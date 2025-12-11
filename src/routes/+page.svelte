@@ -113,7 +113,7 @@
 	</Navigation>
 
 	<!-- contenu principal -->
-	<div class="grow flex flex-col items-center bg-black overflow-auto">
+	<div class="grow flex flex-col items-center bg-surface-900 overflow-auto">
 		<h2>Collection Kaissa</h2>
 		<p>{data.length} résultats</p>
 		<GamesTable {data} />

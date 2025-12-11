@@ -47,6 +47,7 @@
 	"dependencies": {
 		"@lucide/svelte": "^0.555.0",
 		"@tanstack/svelte-table": "^8.21.3",
-		"@tanstack/table-core": "^8.21.3"
+		"@tanstack/table-core": "^8.21.3",
+		"chess.js": "^1.4.0"
 	}
 }

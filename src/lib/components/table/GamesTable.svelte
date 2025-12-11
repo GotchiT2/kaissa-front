@@ -84,7 +84,7 @@
 			</thead>
 			<tbody>
 			{#each table.getRowModel().rows as row (row.id)}
-				<tr class={row.id % 2 === 0 ? 'preset-filled-primary-500' : ''}>
+				<tr class={row.id % 2 === 0 ? 'bg-surface-500' : ''}>
 					<td class="table-cell-fit">
 						{row.original.white}
 					</td>
