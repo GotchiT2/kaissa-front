@@ -1,18 +1,9 @@
 <script lang="ts">
   import {Chess} from "chess.js";
-  import {createEventDispatcher} from "svelte";
   import {Navigation} from "@skeletonlabs/skeleton-svelte";
+  import {ChevronFirst, ChevronLast, ChevronLeft, ChevronRight} from "@lucide/svelte";
 
-  const dispatch = createEventDispatcher();
-
-  type Square = string;
-  type Color = "w" | "b";
-  type PieceType = "p" | "n" | "b" | "r" | "q" | "k";
-
-  interface Piece {
-    color: Color;
-    type: PieceType
-  }
+  type Tile = string;
 
   const files = ["a", "b", "c", "d", "e", "f", "g", "h"];
   const ranks = [8, 7, 6, 5, 4, 3, 2, 1];
@@ -27,9 +18,9 @@
   let currentIndex = $state(0);
 
   // État interface
-  let board = $state<{ square: Square; piece: Piece | null }[][]>([]);
-  let selectedSquare = $state<Square | null>(null);
-  let possibleMoves = $state<Square[]>([]);
+  let board = $state<{ square: Tile; piece: Piece | null }[][]>([]);
+  let selectedSquare = $state<Tile | null>(null);
+  let possibleMoves = $state<Tile[]>([]);
   let statusMessage = $state<string>("");
 
   // -----------------------------------------------------
@@ -39,7 +30,7 @@
   function buildBoard() {
     board = ranks.map((rank) =>
       files.map((file) => {
-        const square = `${file}${rank}` as Square;
+        const square = `${file}${rank}` as Tile;
         const piece = game.get(square) as Piece | null;
         return {square, piece};
       })
@@ -93,7 +84,7 @@
   // GESTION DE LA SELECTION & DES MOUVEMENTS
   // -----------------------------------------------------
 
-  function selectSquare(square: Square) {
+  function selectSquare(square: Tile) {
     selectedSquare = square;
     possibleMoves = game.moves({square, verbose: true}).map((m) => m.to);
   }
@@ -103,7 +94,7 @@
     possibleMoves = [];
   }
 
-  function handleSquareClick(square: Square) {
+  function handleSquareClick(square: Tile) {
     const clickedPiece = game.get(square);
 
     // Navigation active → impossible de jouer
@@ -126,11 +117,10 @@
 
       if (move) {
         moves.push(move.san);
-        currentIndex = moves.length; // 🔥 On reste à la fin
+        currentIndex = moves.length;
         buildBoard();
         clearSelection();
         updateStatus();
-        dispatch("move", {move, history: moves});
         return;
       }
     }
@@ -146,7 +136,6 @@
   // NAVIGATION DANS L’HISTORIQUE
   // -----------------------------------------------------
 
-  // 🔥 Reconstruit la position jusqu'à `currentIndex`
   function rebuildPosition() {
     game = new Chess();
     for (let i = 0; i < currentIndex; i++) {
@@ -157,6 +146,12 @@
   }
 
   // Bouton : coup précédent
+  function firstMove() {
+    currentIndex = 0;
+    rebuildPosition();
+    clearSelection();
+  }
+
   function prevMove() {
     if (currentIndex > 0) {
       currentIndex--;
@@ -236,9 +231,21 @@
             {/each}
         </div>
 
-        <div class="buttons">
-            <button disabled={currentIndex === 0} onclick={prevMove}>⟸ Précédent</button>
-            <button disabled={currentIndex === moves.length} onclick={nextMove}>Suivant ⟹</button>
+        <div class="buttons flex gap-2">
+            <button class="btn preset-tonal" disabled={currentIndex === 0} onclick={firstMove}>
+                <ChevronFirst/>
+                <span class="sr-only">Aller au premier coup</span></button>
+            <button class="btn preset-tonal" disabled={currentIndex === 0} onclick={prevMove}>
+                <ChevronLeft/>
+                <span class="sr-only">Précédent</span></button>
+            <button class="btn preset-tonal" disabled={currentIndex === moves.length} onclick={nextMove}>
+                <ChevronRight/>
+                <span class="sr-only">Suivant</span>
+            </button>
+            <button class="btn preset-tonal" disabled={currentIndex === moves.length} onclick={resumeGame}>
+                <ChevronLast/>
+                <span class="sr-only">Aller au dernier coup</span>
+            </button>
         </div>
 
         {#if currentIndex !== moves.length}
@@ -261,7 +268,7 @@
             <div class="rank">
                 {#each row as cell, c}
                     <button
-                            class="square {(r+c)%2===0 ? 'light':'dark'}
+                            class="square relative {(r+c)%2===0 ? 'light':'dark'}
                           {selectedSquare===cell.square ? 'selected':''}
                           {possibleMoves.includes(cell.square) ? 'target':''}"
                             onclick={() => handleSquareClick(cell.square)}
