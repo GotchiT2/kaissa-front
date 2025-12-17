@@ -1,6 +1,27 @@
-<script>
-    import {Navigation} from "@skeletonlabs/skeleton-svelte";
-    import {ChessQueen, Database} from "@lucide/svelte";
+<script lang="ts">
+  import ChessBoard from "$lib/components/chessboard/ChessBoard.svelte";
+  import {Navigation} from "@skeletonlabs/skeleton-svelte";
+  import {ChessQueen, Database} from "@lucide/svelte";
+
+  let boardRef: ChessBoard;
+
+  function onMove(e) {
+  }
+
+  function flipBoard() {
+    boardRef.flip();
+  }
+
+  function showSampleArrows() {
+    boardRef.setArrows([
+      {from: "e2", to: "e4"},
+      {from: "g1", to: "f3"}
+    ]);
+  }
+
+  function clearArrows() {
+    boardRef.clearArrows();
+  }
 </script>
 
 <div class="flex h-[90vh] w-full">
@@ -21,5 +42,6 @@
         </Navigation.Header>
     </Navigation>
 
-    <h1 class="h1">Mon compte</h1>
+    <ChessBoard bind:this={boardRef} on:move={onMove}/>
+
 </div>

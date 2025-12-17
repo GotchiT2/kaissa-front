@@ -1,121 +1,124 @@
 <script lang="ts">
-	import { ChessQueen, Clock4, Database, Folder, FolderArchive, Hash, Plus, Star, Trash2 } from '@lucide/svelte';
-	import { Navigation } from '@skeletonlabs/skeleton-svelte';
-	import { formatNumber } from '$lib/utils/formatNumber';
-	import GamesTable from '$lib/components/table/GamesTable.svelte';
-	import { onMount } from 'svelte';
-	import { generateFakeGames } from '$lib/utils/fakeGames';
-
-	const collections = [
-		{ label: 'Toutes les parties', href: '#', value: 1300000, icon: Folder },
-		{ label: 'Collection Kaissa', href: '#', value: 15203, icon: Folder },
-		{ label: 'Non classées', href: '#', value: 33, icon: FolderArchive },
-		{ label: 'Corbeille', href: '#', value: 12, icon: Trash2 }
-	];
-
-	const listes = [
-		{ label: 'Parties favorites', href: '#', value: 1803, icon: Star },
-		{ label: 'A analyser plus tard', href: '#', value: 1, icon: Clock4 }
-	];
-
-	const balises = [
-		{ label: 'New', href: '#', value: 13, icon: Hash },
-		{ label: 'Scandinave', href: '#', value: 164, icon: Hash }
-	];
-
-	let data: GameRow[] = [];
-	onMount(() => {
-		data = generateFakeGames(50);
-	});
-
-	let anchorSidebar = 'btn hover:preset-tonal justify-between px-2 w-full flex items-center gap-2';
+  import {ChartPie, ChessQueen, Cloud, Database} from '@lucide/svelte';
 </script>
 
-<div class="flex h-[90vh] w-full">
-	<Navigation
-		class="w-auto h-full bg-[#121212] flex flex-col gap-4"
-		layout="sidebar"
-	>
-		<Navigation.Header class="flex flex-col gap-2 py-4">
-			<a class="btn-icon btn-icon-lg preset-filled-primary-500" href="https://www.skeleton.dev" title="Mode échiquier">
-				<ChessQueen class="size-6" />
-				<span class="sr-only">Mode échiquier</span>
-			</a>
-			<a class="btn-icon btn-icon-lg preset-filled-primary-500" href="https://www.skeleton.dev"
-				 title="Bases de données">
-				<Database class="size-6" />
-				<span class="sr-only">Bases de données</span>
-			</a>
-		</Navigation.Header>
-	</Navigation>
+<section class="flex flex-col gap-8 p-8 lg:p-16 items-center w-full">
+    <h1 class="h1">La nouvelle génération de logiciel d’analyse d’échecs.</h1>
+    <h2 class="h2">Plus rapide, plus fluide, plus moderne. Accessible partout, pour tous les niveaux</h2>
 
-	<Navigation
-		class="w-auto h-full grid grid-rows-[auto_1fr_auto] gap-4 border-r-1 border-b-primary-100 py-8"
-		layout="sidebar"
-	>
-		<Navigation.Content class="ml-4 overflow-y-auto">
-			<Navigation.Group class="w-full">
-				<Navigation.Label class="capitalize pl-2 flex justify-between">Collections
-					<button>
-						<Plus class="size-4 hover:preset-filled-primary-500" />
-						<span class="sr-only">Ajouter une balise</span></button>
-				</Navigation.Label>
-				<Navigation.Menu class="w-full">
-					{#each collections as link (link)}
-						{@const Icon = link.icon}
-						<a href={link.href} class={anchorSidebar} title={link.label} aria-label={link.label}>
-								<span class="flex items-center gap-2">
-									<Icon class="size-4" />
-									{link.label}
-								</span>
-							<span class="opacity-60">{formatNumber(link.value)}</span>
-						</a>
-					{/each}
-				</Navigation.Menu>
-			</Navigation.Group>
+    <div class="grid w-2/3 grid-flow-col grid-cols-3 gap-y-8 mt-16">
+        <div class="flex flex-col items-center justify-center text-center gap-4">
+            <Database/>
+            <p class="w-1/3"><span class="text-primary-500 font-bold">Gestion intuitive des parties</span><br/>Collections,
+                filtres, tags,
+                tout
+                est
+                simple et rapide.</p>
+        </div>
+        <div class="flex flex-col items-center justify-center text-center gap-4">
+            <ChartPie/>
+            <p class="w-1/3"><span class="text-primary-500 font-bold">Statistiques intelligentes</span><br/>Coups les
+                plus
+                joués
+                avec
+                pourcentages
+                de victoire.</p>
+        </div>
 
-			<Navigation.Group class="w-full">
-				<Navigation.Label class="capitalize pl-2">Listes</Navigation.Label>
-				<Navigation.Menu class="w-full">
-					{#each listes as liste (liste)}
-						{@const Icon = liste.icon}
-						<a href={liste.href} class={anchorSidebar} title={liste.label} aria-label={liste.label}>
-								<span class="flex items-center gap-2">
-									<Icon class="size-4" />
-									{liste.label}
-								</span>
-							<span class="opacity-60">{formatNumber(liste.value)}</span>
-						</a>
-					{/each}
-				</Navigation.Menu>
-			</Navigation.Group>
+        <div class="row-span-2 flex justify-center items-center">
+            <img alt="" src="/chessboard.jpg"/>
+        </div>
+        <div class="flex flex-col items-center justify-center text-center gap-4">
+            <ChessQueen/>
+            <p class="w-1/3"><span class="text-primary-500 font-bold">Analyse par Stockfish</span><br/>Meilleur coup et
+                variantes
+                accessibles
+                instantanément.</p>
+        </div>
 
-			<Navigation.Group class="w-full">
-				<Navigation.Label class="capitalize pl-2 flex justify-between">Balises
-					<button>
-						<Plus class="size-4 hover:preset-filled-primary-500" />
-						<span class="sr-only">Ajouter une balise</span></button>
-				</Navigation.Label>
-				<Navigation.Menu class="w-full">
-					{#each balises as balise (balise)}
-						{@const Icon = balise.icon}
-						<a href={balise.href} class={anchorSidebar} title={balise.label} aria-label={balise.label}>
-								<span class="flex items-center gap-2">
-									<Icon class="size-4" />
-									{balise.label}
-								</span>
-							<span class="opacity-60">{formatNumber(balise.value)}</span>
-						</a>
-					{/each}
-				</Navigation.Menu>
-			</Navigation.Group>
-		</Navigation.Content>
-	</Navigation>
+        <div class="flex flex-col items-center justify-center text-center gap-4">
+            <Cloud/>
+            <p class="w-1/3"><span class="text-primary-500 font-bold">Sauvegarde en ligne</span><br/>Accédez à vos
+                parties où
+                que
+                vous soyez.
+            </p>
+        </div>
+    </div>
 
-	<!-- contenu principal -->
-	<div class="grow flex flex-col items-center bg-surface-900 overflow-auto">
-		<h2>Collection Kaissa</h2>
-		<p>{data.length} résultats</p>
-		<GamesTable {data} />
-	</div>
-</div>
+
+    <p class="text-center mt-16"><span
+            class="text-primary-500 font-bold">Scan intelligent (en cours de développement)</span><br/>Prenez
+        une photo,
+        votre partie est ajoutée automatiquement.</p>
+
+    <button class="btn btn-lg preset-filled-primary-500 font-bold" type="button">ESSAYER KAISSA</button>
+
+</section>
+
+<section class="w-full bg-surface-500 py-16">
+    <div class="aspect-video w-1/2 h-full mx-auto bg-primary-500">
+        <!--        <video src=""></video>-->
+    </div>
+</section>
+
+<section class="w-full py-16 flex flex-col gap-8 items-center">
+    <h2 class="h2">Ce qui rend Kaissa unique ?</h2>
+    <p class="h5">Kaissa n’est pas une simple alternative, c’est une nouvelle façon de penser l’analyse d’échecs.</p>
+    <div class="w-full flex items-center justify-center gap-16">
+        <img alt="" class="w-1/4" src="/analyse1.jpg">
+        <ul class="list-disc flex flex-col gap-4">
+            <li>Une interface pensée avec et pour les joueurs : moderne, fluide et agréable à utiliser.</li>
+            <li>Une approche intelligente du stockage de parties : classez, retrouvez et commentez vos parties
+                facilement.
+            </li>
+            <li>Des outils puissants et simples à prendre en main : Notation simple et efficace, Moteur de statistiques
+                repensé, et intégration de Stockfish.
+            </li>
+            <li>Un backlog foisonnant : Kaissa s’améliore chaque jour grâce à notre communauté de joueurs et est là pour
+                rester.
+            </li>
+        </ul>
+    </div>
+</section>
+
+<section class="w-full bg-primary-500 py-16 flex flex-col gap-8 items-center text-surface-900">
+    <h2 class="h2">Accès à la Bêta privée</h2>
+    <p class="h5">Participez au lancement de Kaissa et testez l’application en avant-première !</p>
+    <div class="flex gap-16">
+        <ul class="list-disc flex flex-col gap-4 font-bold">
+            <li>Accès GRATUIT à la Bêta</li>
+            <li>Une notification dès l’ouverture du service
+            </li>
+            <li>Donnez votre avis et influencez les prochaines évolutions.
+            </li>
+        </ul>
+        <button class="btn btn-lg bg-surface-900 text-primary-500" type="button"><span
+                class="font-bold">ESSAYER KAISSA</span><br/>(places
+            limitées)
+        </button>
+    </div>
+</section>
+
+<section class="w-full py-16 flex flex-col gap-8 items-center">
+    <h2 class="h2">Nos partenaires</h2>
+    <ul class="w-2/3 mt-8 flex justify-around">
+        <li class="opacity-60 hover:opacity-100 cursor-pointer transition-all"><img alt=""
+                                                                                    src="/partenaires/chess-club.png">
+        </li>
+        <li class="opacity-60 hover:opacity-100 cursor-pointer transition-all"><img alt=""
+                                                                                    src="/partenaires/chess-club-premium.png">
+        </li>
+        <li class="opacity-60 hover:opacity-100 cursor-pointer transition-all"><img alt=""
+                                                                                    src="/partenaires/chess-club-since-1990.png">
+        </li>
+        <li class="opacity-60 hover:opacity-100 cursor-pointer transition-all"><img alt=""
+                                                                                    src="/partenaires/chess-club-nogent.png">
+        </li>
+        <li class="opacity-60 hover:opacity-100 cursor-pointer transition-all"><img alt=""
+                                                                                    src="/partenaires/chess-club-sautron.png">
+        </li>
+    </ul>
+</section>
+
+

@@ -11,7 +11,9 @@
 			</button>
 		</AppBar.Lead>
 		<AppBar.Headline>
-			<img alt="Kaissa" class="w-32" src="/kaissa-logo.png" />
+			<a href="/" title="Accueil">
+				<img alt="Kaissa" class="w-32" src="/kaissa-logo.png" />
+			</a>
 		</AppBar.Headline>
 		<AppBar.Trail>
 
