@@ -1,90 +1,22 @@
 <script lang="ts">
   import {Chess} from "chess.js";
-  import {Navigation} from "@skeletonlabs/skeleton-svelte";
+  import {Navigation, Switch} from "@skeletonlabs/skeleton-svelte";
   import {ChevronFirst, ChevronLast, ChevronLeft, ChevronRight} from "@lucide/svelte";
+  import Tile from "$lib/components/chessboard/Tile.svelte";
+  import {buildBoard, updateStatus} from "$lib/utils/chessboard";
 
-  type Tile = string;
-
-  const files = ["a", "b", "c", "d", "e", "f", "g", "h"];
-  const ranks = [8, 7, 6, 5, 4, 3, 2, 1];
-
-  // Jeu actif
   let game = new Chess();
 
-  // 🔥 Historique complet des coups
   let moves = $state<string[]>([]);
-
-  // 🔥 Index actuel dans l’historique (pour navigation)
   let currentIndex = $state(0);
+  let board = $state<{ square: string; piece: Piece | null }[][]>([]);
+  let selectedSquare = $state<string | null>(null);
+  let possibleMoves = $state<string[]>([]);
+  let statusMessage = $state<string>("Trait aux Blancs");
 
-  // État interface
-  let board = $state<{ square: Tile; piece: Piece | null }[][]>([]);
-  let selectedSquare = $state<Tile | null>(null);
-  let possibleMoves = $state<Tile[]>([]);
-  let statusMessage = $state<string>("");
+  board = buildBoard(game);
 
-  // -----------------------------------------------------
-  // CONSTRUCTION DU BOARD
-  // -----------------------------------------------------
-
-  function buildBoard() {
-    board = ranks.map((rank) =>
-      files.map((file) => {
-        const square = `${file}${rank}` as Tile;
-        const piece = game.get(square) as Piece | null;
-        return {square, piece};
-      })
-    );
-  }
-
-  buildBoard();
-
-  // -----------------------------------------------------
-  // PIECES → UNICODE
-  // -----------------------------------------------------
-
-  function pieceToUnicode(piece: Piece): string {
-    const map = {
-      w: {p: "♙", n: "♘", b: "♗", r: "♖", q: "♕", k: "♔"},
-      b: {p: "♟", n: "♞", b: "♝", r: "♜", q: "♛", k: "♚"}
-    };
-    return map[piece.color][piece.type];
-  }
-
-  // -----------------------------------------------------
-  // ÉTAT DU JEU (détection échec, mat, pat)
-  // -----------------------------------------------------
-
-  function updateStatus() {
-    if (game.isCheckmate()) {
-      statusMessage =
-        game.turn() === "w"
-          ? "Échec et mat — les Blancs perdent"
-          : "Échec et mat — les Noirs perdent";
-      return;
-    }
-    if (game.isStalemate()) {
-      statusMessage = "Pat — match nul";
-      return;
-    }
-    if (game.isDraw()) {
-      statusMessage = "Match nul";
-      return;
-    }
-    if (game.isCheck()) {
-      statusMessage = game.turn() === "w"
-        ? "Les Blancs sont en échec"
-        : "Les Noirs sont en échec";
-      return;
-    }
-    statusMessage = game.turn() === "w" ? "Trait aux Blancs" : "Trait aux Noirs";
-  }
-
-  // -----------------------------------------------------
-  // GESTION DE LA SELECTION & DES MOUVEMENTS
-  // -----------------------------------------------------
-
-  function selectSquare(square: Tile) {
+  function selectSquare(square: string) {
     selectedSquare = square;
     possibleMoves = game.moves({square, verbose: true}).map((m) => m.to);
   }
@@ -94,10 +26,9 @@
     possibleMoves = [];
   }
 
-  function handleSquareClick(square: Tile) {
+  function handleTileClick(square: string) {
     const clickedPiece = game.get(square);
 
-    // Navigation active → impossible de jouer
     if (currentIndex !== moves.length) return;
 
     if (!selectedSquare) {
@@ -118,9 +49,9 @@
       if (move) {
         moves.push(move.san);
         currentIndex = moves.length;
-        buildBoard();
+        board = buildBoard(game);
         clearSelection();
-        updateStatus();
+        statusMessage = updateStatus(game);
         return;
       }
     }
@@ -132,20 +63,15 @@
     }
   }
 
-  // -----------------------------------------------------
-  // NAVIGATION DANS L’HISTORIQUE
-  // -----------------------------------------------------
-
   function rebuildPosition() {
     game = new Chess();
     for (let i = 0; i < currentIndex; i++) {
       game.move(moves[i]);
     }
-    buildBoard();
-    updateStatus();
+    board = buildBoard(game);
+    statusMessage = updateStatus(game);
   }
 
-  // Bouton : coup précédent
   function firstMove() {
     currentIndex = 0;
     rebuildPosition();
@@ -160,7 +86,6 @@
     }
   }
 
-  // Bouton : coup suivant
   function nextMove() {
     if (currentIndex < moves.length) {
       currentIndex++;
@@ -169,20 +94,9 @@
     }
   }
 
-  // Retour à la partie en cours
   function resumeGame() {
     currentIndex = moves.length;
     rebuildPosition();
-  }
-
-  // Réinitialisation
-  export function reset() {
-    game = new Chess();
-    moves = [];
-    currentIndex = 0;
-    statusMessage = "";
-    buildBoard();
-    clearSelection();
   }
 
   function groupedMoves() {
@@ -198,13 +112,23 @@
     }
     return result;
   }
+
+  const tableData = [
+    {coup: 'c5', frequence: '41%', eval: [47, 4, 49], elo: '1459'},
+    {coup: 'd6', frequence: '28%', eval: [51, 5, 44], elo: '1620'},
+    {coup: 'c5', frequence: '41%', eval: [47, 4, 49], elo: '1459'},
+    {coup: 'd6', frequence: '28%', eval: [51, 5, 44], elo: '1620'},
+    {coup: 'c5', frequence: '41%', eval: [47, 4, 49], elo: '1459'},
+    {coup: 'd6', frequence: '28%', eval: [51, 5, 44], elo: '1620'},
+  ];
 </script>
 
 <Navigation
-        class="w-auto h-full grid grid-rows-[auto_1fr_auto] gap-4 border-r-1 border-b-primary-100 py-8"
+        class="grow h-full grid grid-rows-[auto_1fr_auto] gap-4 border-r-1 border-b-primary-100 py-8"
         layout="sidebar"
 >
-    <Navigation.Content class="ml-4 overflow-y-auto">
+    <Navigation.Content class="
+    ml-4 overflow-y-auto">
         <h3>Historique</h3>
 
         <div class="history">
@@ -230,7 +154,22 @@
                 </div>
             {/each}
         </div>
+    </Navigation.Content>
+</Navigation>
 
+<div class="grow flex gap-8 items-start p-8 bg-surface-900 overflow-auto">
+    <div class="flex flex-col items-center gap-4">
+        <div class="board">
+            {#each board as row, r}
+                <div class="rank">
+                    {#each row as cell, c}
+                        <Tile {cell} {r} {c} isSelected={selectedSquare === cell.square}
+                              isPossibleMove={possibleMoves.includes(cell.square)} {handleTileClick}/>
+                    {/each}
+                </div>
+            {/each}
+        </div>
+        <h2 class="h4">{statusMessage}</h2>
         <div class="buttons flex gap-2">
             <button class="btn preset-tonal" disabled={currentIndex === 0} onclick={firstMove}>
                 <ChevronFirst/>
@@ -247,98 +186,159 @@
                 <span class="sr-only">Aller au dernier coup</span>
             </button>
         </div>
+    </div>
 
-        {#if currentIndex !== moves.length}
-            <button class="resume" onclick={resumeGame}>
-                Retour à la partie
-            </button>
-        {/if}
+    <div class="flex h-full flex-col justify-start grow gap-4">
+        <div class="flex flex-col gap-4 items-center">
+            <Switch dir="rtl" defaultChecked>
+                <Switch.Control>
+                    <Switch.Thumb/>
+                </Switch.Control>
+                <Switch.Label>Notation</Switch.Label>
+                <Switch.HiddenInput/>
+            </Switch>
 
-        <h3>Statut</h3>
-        <p>{statusMessage}</p>
-    </Navigation.Content>
-</Navigation>
+            <textarea
+                    class="w-full h-48 bg-surface-800 text-white p-2 rounded resize-none"
+                    readonly
+            >{moves.join(' ')}</textarea>
+        </div>
 
-<!-- contenu principal -->
-<div class="grow flex items-center p-8 bg-surface-900 overflow-auto">
+        <div class="flex flex-col gap-4 items-center">
+            <Switch dir="rtl" defaultChecked>
+                <Switch.Control>
+                    <Switch.Thumb/>
+                </Switch.Control>
+                <Switch.Label>Meilleurs coups joués</Switch.Label>
+                <Switch.HiddenInput/>
+            </Switch>
 
-    <!-- BOARD -->
-    <div class="board">
-        {#each board as row, r}
-            <div class="rank">
-                {#each row as cell, c}
-                    <button
-                            class="square relative {(r+c)%2===0 ? 'light':'dark'}
-                          {selectedSquare===cell.square ? 'selected':''}
-                          {possibleMoves.includes(cell.square) ? 'target':''}"
-                            onclick={() => handleSquareClick(cell.square)}
-                    >
-                        {#if cell.piece}
-                          <span class="piece {cell.piece.color}">
-                            {pieceToUnicode(cell.piece)}
-                          </span>
-                        {/if}
-                    </button>
-                {/each}
+            <label class="label w-fit flex gap-4 items-center self-start">
+                <span class="label-text">Database</span>
+                <select class="select">
+                    <option value="1">Option 1</option>
+                    <option value="2">Option 2</option>
+                    <option value="3">Option 3</option>
+                    <option value="4">Option 4</option>
+                    <option value="5">Option 5</option>
+                </select>
+            </label>
+
+
+            <div class="table-wrap border border-surface-500">
+                <table class="table caption-bottom">
+                    <thead>
+                    <tr class="text-white">
+                        <th>Coup</th>
+                        <th>Fréquence</th>
+                        <th>Blanc / Neutre / Noir</th>
+                        <th class="text-right!">ELO Moyen</th>
+                    </tr>
+                    </thead>
+                    <tbody class="[&>tr]:hover:preset-tonal-primary">
+                    {#each tableData as row}
+                        <tr>
+                            <td>{row.coup}</td>
+                            <td>{row.frequence}</td>
+                            <td>
+                                <div class="flex h-6 w-full overflow-hidden rounded-md text-xs font-semibold">
+                                    <div
+                                            class="flex items-center justify-center bg-surface-50 text-black"
+                                            style="width: {row.eval[0]}%"
+                                    >
+                                        {row.eval[0]}%
+                                    </div>
+                                    <div
+                                            class="flex items-center justify-center bg-surface-200 text-black"
+                                            style="width: {row.eval[1]}%"
+                                    >
+                                    </div>
+                                    <div
+                                            class="flex items-center justify-center bg-surface-400 text-white"
+                                            style="width: {row.eval[2]}%"
+                                    >
+                                        {row.eval[2]}%
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="text-right">{row.elo}</td>
+                        </tr>
+                    {/each}
+                    </tbody>
+                </table>
             </div>
-        {/each}
+
+        </div>
+
+        <div class="flex flex-col gap-4 items-center">
+            <Switch dir="rtl" defaultChecked>
+                <Switch.Control>
+                    <Switch.Thumb/>
+                </Switch.Control>
+                <Switch.Label>Analyse</Switch.Label>
+                <Switch.HiddenInput/>
+            </Switch>
+
+            <div class="flex flex-col gap-4 border border-surface-500 p-4 rounded w-full">
+                <div class="flex items-start gap-4">
+                        <select class="select">
+                            <option value="1">Option 1</option>
+                            <option value="2">Option 2</option>
+                            <option value="3">Option 3</option>
+                            <option value="4">Option 4</option>
+                            <option value="5">Option 5</option>
+                        </select>
+                        <select class="select">
+                            <option value="1">Option 1</option>
+                            <option value="2">Option 2</option>
+                            <option value="3">Option 3</option>
+                            <option value="4">Option 4</option>
+                            <option value="5">Option 5</option>
+                        </select>
+                        <select class="select">
+                            <option value="1">Option 1</option>
+                            <option value="2">Option 2</option>
+                            <option value="3">Option 3</option>
+                            <option value="4">Option 4</option>
+                            <option value="5">Option 5</option>
+                        </select>
+                        <select class="select">
+                            <option value="1">Option 1</option>
+                            <option value="2">Option 2</option>
+                            <option value="3">Option 3</option>
+                            <option value="4">Option 4</option>
+                            <option value="5">Option 5</option>
+                        </select>
+                        <select class="select">
+                            <option value="1">Option 1</option>
+                            <option value="2">Option 2</option>
+                            <option value="3">Option 3</option>
+                            <option value="4">Option 4</option>
+                            <option value="5">Option 5</option>
+                        </select>
+                </div>
+
+                <p>
+                    (0.31) 1. e4 e5   2. Nf3 Nf6  3. Nxe5 d6   4. Nf3 Nxe4  5. d4 d5   6. Bd3 Bd6   7. O-OO-O   8. Re1 Bf5   9. c4 Bb4    10. Nbd2 c6
+                    (0.22)1. Nf3 d5   2. d4 e6  3. c4 Nf6  4. Bg5 Be7  5. e3 h6  6. Bh4 O-O  7. Nc3 a6  8. Qc2 dxc4  9. Bxc4 b5  10. Bxf6 Bxf6
+                    (0.22)1. d4 d5  2. c4 e6  3. Nf3 Nf6  4. Bg5 Be7  5. e3 h6  6. Bh4 O-O  7. cxd5 exd5  8. Qc2 c6  9. Bd3
+                    (0.22)1. d4 d5  2. c4 e6  3. Nf3 Nf6  4. Bg5 Be7  5. e3 h6  6. Bh4 O-O  7. cxd5 exd5  8. Qc2 c6  9. Bd3
+                </p>
+            </div>
+        </div>
     </div>
 </div>
 
 <style>
     .board {
         display: flex;
+        width: fit-content;
         flex-direction: column;
         border: 2px solid #333;
     }
 
     .rank {
         display: flex;
-    }
-
-    .square {
-        width: 100px;
-        height: 100px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        position: relative;
-        cursor: pointer;
-    }
-
-    .light {
-        background: #F5D7B0;
-    }
-
-    .dark {
-        background: #BC855E;
-    }
-
-    .selected {
-        box-shadow: inset 0 0 0 3px rgba(50, 150, 250, 0.9);
-    }
-
-    .target::after {
-        content: "";
-        position: absolute;
-        width: 18px;
-        height: 18px;
-        background: rgba(0, 0, 0, 0.35);
-        border-radius: 50%;
-    }
-
-    .piece {
-        font-size: 60px;
-    }
-
-    .piece.w {
-        color: white;
-        text-shadow: 0 0 4px black;
-    }
-
-    .piece.b {
-        color: black;
-        text-shadow: 0 0 4px white;
     }
 
     .sidebar {

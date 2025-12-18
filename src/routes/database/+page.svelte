@@ -112,10 +112,12 @@
         </Navigation.Content>
     </Navigation>
 
-    <!-- contenu principal -->
     <div class="grow flex flex-col items-center bg-surface-900 overflow-auto">
-        <h2>Collection Kaissa</h2>
-        <p>{data.length} résultats</p>
+        <div class="flex gap-4 items-center my-6">
+            <h1 class="h2 text-primary-500">Collection Kaissa</h1>
+            <p>{data.length} résultats</p>
+        </div>
+
         <GamesTable {data}/>
     </div>
 

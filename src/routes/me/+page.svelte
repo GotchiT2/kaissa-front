@@ -1,6 +1,19 @@
 <script>
     import {Navigation} from "@skeletonlabs/skeleton-svelte";
     import {ChessQueen, Database} from "@lucide/svelte";
+    import {onMount} from 'svelte';
+    import {connectChessApi, evaluateFen, evaluation} from '$lib/services/chessApi';
+    import {writable} from "svelte/store";
+
+    const ready = writable(false);
+    let fen =
+        'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+
+
+    onMount(async () => {
+        await connectChessApi();
+        ready.set(true);
+    });
 </script>
 
 <div class="flex h-[90vh] w-full">
@@ -22,4 +35,23 @@
     </Navigation>
 
     <h1 class="h1">Mon compte</h1>
+
+    <div class="max-w-md space-y-4">
+        <button
+                class="disabled:opacity-50"
+                disabled={!$ready}
+                onclick={() => evaluateFen(fen)}
+        >
+            Évaluer
+        </button>
+
+        {#if $evaluation}
+            <div class="space-y-1 text-sm">
+                <div>Joueur A : {$evaluation[0]}%</div>
+                <div>Nul : {$evaluation[1]}%</div>
+                <div>Joueur B : {$evaluation[2]}%</div>
+            </div>
+        {/if}
+    </div>
 </div>
+

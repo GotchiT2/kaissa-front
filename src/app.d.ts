@@ -25,6 +25,11 @@ declare global {
     san: string;
     piece: Piece;
   }
+
+  interface Cell {
+    square: string;
+    piece: Piece | null;
+  }
 }
 
 export {};
