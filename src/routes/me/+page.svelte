@@ -1,19 +1,31 @@
-<script>
-    import {Navigation} from "@skeletonlabs/skeleton-svelte";
-    import {ChessQueen, Database} from "@lucide/svelte";
-    import {onMount} from 'svelte';
-    import {connectChessApi, evaluateFen, evaluation} from '$lib/services/chessApi';
-    import {writable} from "svelte/store";
+<script lang="ts">
+  import {Navigation} from "@skeletonlabs/skeleton-svelte";
+  import {ChessQueen, Database} from "@lucide/svelte";
+  import {writable} from "svelte/store";
 
-    const ready = writable(false);
-    let fen =
-        'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+  let ws = $state<WebSocket>(new WebSocket('wss://chess-api.com/v1'));
+  const winChance = writable<number[] | null>(null);
 
+  ws.onmessage = (event) => {
+    const chessApiMessage = JSON.parse(event.data);
 
-    onMount(async () => {
-        await connectChessApi();
-        ready.set(true);
-    });
+    console.log(chessApiMessage.depth, chessApiMessage.winChance, chessApiMessage.continuationArr);
+    winChance.set(chessApiMessage.winChance);
+
+  };
+
+  const ready = writable(false);
+  let fen =
+    'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+
+  async function toto(fen: string) {
+    ws.send(JSON.stringify({
+      fen,
+      variants: 3,
+      depth: 18,
+      searchMoves: 'a2a4',
+    }));
+  }
 </script>
 
 <div class="flex h-[90vh] w-full">
@@ -39,17 +51,15 @@
     <div class="max-w-md space-y-4">
         <button
                 class="disabled:opacity-50"
-                disabled={!$ready}
-                onclick={() => evaluateFen(fen)}
+                onclick={() => toto(fen)}
         >
             Évaluer
         </button>
 
-        {#if $evaluation}
+        {#if $winChance}
             <div class="space-y-1 text-sm">
-                <div>Joueur A : {$evaluation[0]}%</div>
-                <div>Nul : {$evaluation[1]}%</div>
-                <div>Joueur B : {$evaluation[2]}%</div>
+                <div>Joueur A : {$winChance}%</div>
+                <div>Joueur B : {100 - Number($winChance)}%</div>
             </div>
         {/if}
     </div>
