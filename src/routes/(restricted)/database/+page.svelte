@@ -5,6 +5,7 @@
   import GamesTable from '$lib/components/table/GamesTable.svelte';
   import {onMount} from 'svelte';
   import {generateFakeGames} from '$lib/utils/fakeGames';
+  import ImportGame from "$lib/components/ImportGame.svelte";
 
   const collections = [
     {label: 'Toutes les parties', href: '#', value: 1300000, icon: Folder},
@@ -64,10 +65,10 @@
                     {#each collections as link (link)}
                         {@const Icon = link.icon}
                         <a href={link.href} class={anchorSidebar} title={link.label} aria-label={link.label}>
-								<span class="flex items-center gap-2">
-									<Icon class="size-4"/>
-                                    {link.label}
-								</span>
+							<span class="flex items-center gap-2">
+								<Icon class="size-4"/>
+                                {link.label}
+							</span>
                             <span class="opacity-60">{formatNumber(link.value)}</span>
                         </a>
                     {/each}
@@ -80,10 +81,10 @@
                     {#each listes as liste (liste)}
                         {@const Icon = liste.icon}
                         <a href={liste.href} class={anchorSidebar} title={liste.label} aria-label={liste.label}>
-								<span class="flex items-center gap-2">
-									<Icon class="size-4"/>
-                                    {liste.label}
-								</span>
+							<span class="flex items-center gap-2">
+								<Icon class="size-4"/>
+                                {liste.label}
+							</span>
                             <span class="opacity-60">{formatNumber(liste.value)}</span>
                         </a>
                     {/each}
@@ -100,10 +101,10 @@
                     {#each balises as balise (balise)}
                         {@const Icon = balise.icon}
                         <a href={balise.href} class={anchorSidebar} title={balise.label} aria-label={balise.label}>
-								<span class="flex items-center gap-2">
-									<Icon class="size-4"/>
-                                    {balise.label}
-								</span>
+							<span class="flex items-center gap-2">
+								<Icon class="size-4"/>
+                                {balise.label}
+							</span>
                             <span class="opacity-60">{formatNumber(balise.value)}</span>
                         </a>
                     {/each}
@@ -116,6 +117,7 @@
         <div class="flex gap-4 items-center my-6">
             <h1 class="h2 text-primary-500">Collection Kaissa</h1>
             <p>{data.length} résultats</p>
+            <ImportGame/>
         </div>
 
         <GamesTable {data}/>
