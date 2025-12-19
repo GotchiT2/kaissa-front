@@ -1,0 +1,112 @@
+# Règles du projet Kaissa
+
+## Contexte du projet
+Kaissa est une application destinée aux joueurs professionnels d'échecs participant à des tournois.
+L'objectif est de les aider dans leur organisation et leur préparation aux tournois au quotidien.
+
+## Stack technique
+
+### Frontend
+- **Framework** : SvelteKit (dernière version)
+- **Bibliothèque UI** : Skeleton
+- **CSS** : Tailwind CSS
+- **Tests** : Vitest
+
+### Backend
+- **Framework** : SvelteKit (full-stack)
+
+## Principes de développement
+
+### Clean Code
+- Respecter les principes de **séparation des responsabilités**
+- Appliquer les principes **SOLID** :
+  - **S**ingle Responsibility Principle
+  - **O**pen/Closed Principle
+  - **L**iskov Substitution Principle
+  - **I**nterface Segregation Principle
+  - **D**ependency Inversion Principle
+- Nommer les variables, fonctions et composants de manière explicite et significative
+- Éviter la duplication de code (DRY - Don't Repeat Yourself)
+- Maintenir les fonctions courtes et focalisées sur une seule tâche
+- Commenter uniquement le "pourquoi", pas le "quoi" (le code doit être auto-descriptif)
+
+### Architecture
+- Organiser le code par fonctionnalité/domaine métier
+- Séparer la logique métier de la logique de présentation
+- Utiliser des services pour encapsuler la logique métier complexe
+- Placer les utilitaires réutilisables dans `src/lib/utils/`
+- Placer les composants réutilisables dans `src/lib/components/`
+- Placer la logique serveur dans `src/lib/server/`
+
+## Tests
+
+### Stratégie de test
+- **Couvrir l'application par des tests** spécifiant son comportement
+- Privilégier les tests de comportement plutôt que les tests d'implémentation
+- Écrire des tests lisibles et maintenables
+- Utiliser une nomenclature claire pour les tests (describe, it/test)
+- Tester les cas nominaux et les cas limites
+
+### Types de tests
+- Tests unitaires pour les fonctions utilitaires et la logique métier
+- Tests de composants pour les composants Svelte
+- Tests d'intégration pour les flux utilisateurs critiques
+
+## Documentation
+
+### Documentation technique
+- Documenter l'architecture globale de l'application
+- Documenter les choix techniques importants
+- Maintenir à jour la documentation au fil des évolutions
+- Documenter les APIs et les interfaces publiques
+
+### Documentation métier
+- Documenter les concepts métier liés aux échecs et aux tournois
+- Expliquer les règles de gestion spécifiques à l'application
+- Documenter les workflows utilisateurs
+
+### Format
+- Utiliser le Markdown pour la documentation
+- Créer/mettre à jour la documentation dans le dossier `docs/` (à créer si nécessaire)
+
+## Langue
+
+- **Toutes les réponses de l'assistant doivent être en français**
+- Le code peut contenir des noms de variables/fonctions en anglais (convention standard)
+- Les commentaires de code et la documentation doivent être en français
+
+## Bonnes pratiques SvelteKit
+
+- Utiliser les conventions de routage de SvelteKit (routes basées sur les fichiers)
+- Placer la logique de chargement de données dans les fichiers `+page.server.ts` ou `+layout.server.ts`
+- Utiliser les actions de formulaire pour les mutations de données
+- Gérer l'état global avec des stores Svelte quand nécessaire
+- Optimiser les performances avec le streaming et le prefetching
+
+## Bonnes pratiques Tailwind CSS
+
+- Utiliser les classes utilitaires de Tailwind
+- Extraire les patterns répétitifs dans des composants réutilisables
+- Respecter la configuration de Skeleton pour la cohérence visuelle
+- Utiliser les variantes responsives de Tailwind
+
+## Gestion des erreurs
+
+- Gérer les erreurs de manière explicite
+- Fournir des messages d'erreur clairs et utiles aux utilisateurs
+- Logger les erreurs critiques pour faciliter le débogage
+- Utiliser les mécanismes de gestion d'erreurs de SvelteKit (+error.svelte)
+
+## Sécurité
+
+- Ne jamais exposer de données sensibles côté client
+- Valider toutes les entrées utilisateur côté serveur
+- Utiliser les protections CSRF de SvelteKit
+- Implémenter une authentification et autorisation robustes
+
+## Accessibilité
+
+- Respecter les standards WCAG
+- Utiliser des balises sémantiques HTML
+- Fournir des alternatives textuelles pour le contenu non-textuel
+- Assurer la navigation au clavier
