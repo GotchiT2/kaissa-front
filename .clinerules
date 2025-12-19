@@ -29,6 +29,7 @@ L'objectif est de les aider dans leur organisation et leur préparation aux tour
 - Éviter la duplication de code (DRY - Don't Repeat Yourself)
 - Maintenir les fonctions courtes et focalisées sur une seule tâche
 - Commenter uniquement le "pourquoi", pas le "quoi" (le code doit être auto-descriptif)
+- Eviter les commentaires. Les tests doivent servir de documentation vivante.
 
 ### Architecture
 - Organiser le code par fonctionnalité/domaine métier

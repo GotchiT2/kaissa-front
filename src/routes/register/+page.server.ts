@@ -1,10 +1,12 @@
-import { lucia } from "$lib/server/auth";
 import { fail, redirect } from "@sveltejs/kit";
-import { Argon2id } from "oslo/password";
-import { prisma } from "$lib/server/db";
-import { generateIdFromEntropySize } from "lucia";
+import { isNotEmpty, validateEmailField } from "$lib/utils/validation";
 import { validatePassword } from "$lib/utils/passwordValidation";
 import { COUNTRIES } from "$lib/utils/countries";
+import {
+  createUserSession,
+  hashPassword,
+} from "$lib/server/services/authService";
+import { createUser, userExists } from "$lib/server/services/userService";
 import type { Actions } from "./$types";
 
 export const actions: Actions = {
@@ -17,18 +19,20 @@ export const actions: Actions = {
     const lastName = formData.get("lastName");
     const nationality = formData.get("nationality");
 
-    // Validation des champs requis
-    if (!email || typeof email !== "string" || email.length === 0) {
+    // Validation de l'email
+    const emailValidation = validateEmailField(email);
+    if (!emailValidation.isValid) {
       return fail(400, {
-        message: "L'adresse email est requise",
+        message: emailValidation.error!,
         email: email?.toString() || "",
       });
     }
 
+    // Validation du mot de passe
     if (!password || typeof password !== "string") {
       return fail(400, {
         message: "Le mot de passe est requis",
-        email: email.toString(),
+        email: email!.toString(),
       });
     }
 
@@ -36,40 +40,42 @@ export const actions: Actions = {
     const passwordValidation = validatePassword(password);
     if (!passwordValidation.isValid) {
       return fail(400, {
-        message: passwordValidation.errors[0], // Premier message d'erreur
-        email: email.toString(),
+        message: passwordValidation.errors[0],
+        email: email!.toString(),
       });
     }
 
+    // Vérification de la correspondance des mots de passe
     if (password !== confirmPassword) {
       return fail(400, {
         message: "Les mots de passe ne correspondent pas",
-        email: email.toString(),
+        email: email!.toString(),
       });
     }
 
-    if (!firstName || typeof firstName !== "string" || firstName.length === 0) {
+    // Validation des autres champs
+    if (!firstName || typeof firstName !== "string" || !isNotEmpty(firstName)) {
       return fail(400, {
         message: "Le prénom est requis",
-        email: email.toString(),
+        email: email!.toString(),
       });
     }
 
-    if (!lastName || typeof lastName !== "string" || lastName.length === 0) {
+    if (!lastName || typeof lastName !== "string" || !isNotEmpty(lastName)) {
       return fail(400, {
         message: "Le nom est requis",
-        email: email.toString(),
+        email: email!.toString(),
       });
     }
 
     if (
       !nationality ||
       typeof nationality !== "string" ||
-      nationality.length === 0
+      !isNotEmpty(nationality)
     ) {
       return fail(400, {
         message: "La nationalité est requise",
-        email: email.toString(),
+        email: email!.toString(),
       });
     }
 
@@ -77,63 +83,38 @@ export const actions: Actions = {
     if (!COUNTRIES.includes(nationality as any)) {
       return fail(400, {
         message: "La nationalité sélectionnée n'est pas valide",
-        email: email.toString(),
-      });
-    }
-
-    // Validation du format de l'email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return fail(400, {
-        message: "L'adresse email n'est pas valide",
-        email: email.toString(),
+        email: email!.toString(),
       });
     }
 
     try {
       // Vérifier si l'utilisateur existe déjà
-      const existingUser = await prisma.user.findUnique({
-        where: { email },
-      });
-
-      if (existingUser) {
+      if (await userExists(email as string)) {
         return fail(400, {
           message: "Un compte existe déjà avec cette adresse email",
-          email: email.toString(),
+          email: email!.toString(),
         });
       }
 
       // Hasher le mot de passe
-      const argon2id = new Argon2id();
-      const hashedPassword = await argon2id.hash(password);
-
-      // Générer un ID unique pour l'utilisateur
-      const userId = generateIdFromEntropySize(10);
+      const hashedPassword = await hashPassword(password);
 
       // Créer l'utilisateur
-      await prisma.user.create({
-        data: {
-          id: userId,
-          email,
-          password: hashedPassword,
-          firstName,
-          lastName,
-          nationality,
-        },
+      const user = await createUser({
+        email: email as string,
+        password: hashedPassword,
+        firstName: firstName as string,
+        lastName: lastName as string,
+        nationality: nationality as string,
       });
 
       // Créer une session pour l'utilisateur
-      const session = await lucia.createSession(userId, {});
-      const sessionCookie = lucia.createSessionCookie(session.id);
-      cookies.set(sessionCookie.name, sessionCookie.value, {
-        path: ".",
-        ...sessionCookie.attributes,
-      });
+      await createUserSession(user.id, cookies);
     } catch (error) {
       console.error("Erreur lors de la création du compte:", error);
       return fail(500, {
         message: "Une erreur est survenue lors de la création du compte",
-        email: email.toString(),
+        email: email!.toString(),
       });
     }
 
