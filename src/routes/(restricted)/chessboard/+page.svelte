@@ -1,5 +1,5 @@
 <script lang="ts">
-  import ChessBoard from "$lib/components/chessboard/ChessBoard.svelte";
+  import ChessBoard from "$lib/components/chessboard/Chessboard.svelte";
   import {Navigation} from "@skeletonlabs/skeleton-svelte";
   import {ChessQueen, Database} from "@lucide/svelte";
 </script>
