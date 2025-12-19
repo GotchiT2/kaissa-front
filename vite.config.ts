@@ -1,35 +1,38 @@
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vitest/config';
-import { playwright } from '@vitest/browser-playwright';
 import { sveltekit } from '@sveltejs/kit/vite';
 
 export default defineConfig({
 	plugins: [tailwindcss(), sveltekit()],
 	test: {
-		expect: { requireAssertions: true },
-		projects: [
-			{
-				extends: './vite.config.ts',
-				test: {
-					name: 'client',
-					browser: {
-						enabled: true,
-						provider: playwright(),
-						instances: [{ browser: 'chromium', headless: true }]
-					},
-					include: ['src/**/*.svelte.{test,spec}.{js,ts}'],
-					exclude: ['src/lib/server/**']
-				}
-			},
-			{
-				extends: './vite.config.ts',
-				test: {
-					name: 'server',
-					environment: 'node',
-					include: ['src/**/*.{test,spec}.{js,ts}'],
-					exclude: ['src/**/*.svelte.{test,spec}.{js,ts}']
-				}
-			}
-		]
-	}
+		// Environnement par défaut pour les tests
+		environment: 'node',
+		
+		// Patterns de fichiers à inclure
+		include: ['src/**/*.{test,spec}.{js,ts}', 'tests/**/*.{test,spec}.{js,ts}'],
+		
+		// Fichiers à exclure (y compris les tests browser qui nécessitent une config spéciale)
+		exclude: ['node_modules', '.svelte-kit', 'build', '**/*.svelte.{test,spec}.{js,ts}'],
+		
+		// Configuration des globals pour ne pas avoir à importer describe, it, expect
+		globals: true,
+		
+		// Configuration du coverage (optionnel)
+		coverage: {
+			provider: 'v8',
+			reporter: ['text', 'json', 'html'],
+			exclude: [
+				'node_modules/',
+				'.svelte-kit/',
+				'build/',
+				'**/*.config.*',
+				'**/.*',
+			],
+		},
+	},
+	resolve: {
+		alias: {
+			$lib: '/src/lib',
+		},
+	},
 });

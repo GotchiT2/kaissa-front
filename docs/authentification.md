@@ -19,17 +19,23 @@ Le projet Kaissa utilise **Lucia** pour gérer l'authentification des utilisateu
 
 ```prisma
 model User {
-  id       String    @id
-  email    String    @unique
-  password String
-  sessions Session[]
+  id          String    @id
+  email       String    @unique
+  password    String
+  firstName   String
+  lastName    String
+  nationality String
+  sessions    Session[]
 }
 ```
 
 **Champs :**
 - `id` : Identifiant unique de l'utilisateur (String)
 - `email` : Adresse email de l'utilisateur (unique)
-- `password` : Mot de passe hashé de l'utilisateur
+- `password` : Mot de passe hashé de l'utilisateur (Argon2id)
+- `firstName` : Prénom de l'utilisateur
+- `lastName` : Nom de famille de l'utilisateur
+- `nationality` : Nationalité de l'utilisateur
 - `sessions` : Relation vers les sessions actives de l'utilisateur
 
 #### Modèle Session (Prisma)
@@ -78,7 +84,7 @@ export const lucia = new Lucia(adapter, {
 
 **Fonctionnalités :**
 - Cookies de session sécurisés (HTTPS en production)
-- Attributs utilisateur exposés : `email`
+- Attributs utilisateur exposés : `email`, `firstName`, `lastName`, `nationality`
 - Adapter Prisma pour la persistance des sessions
 
 ## ⚠️ Avertissements importants
@@ -165,21 +171,23 @@ Lucia v4 utilise une approche différente avec deux bibliothèques complémentai
 
 ### Hashage des mots de passe
 
-⚠️ **Important :** Le schéma actuel stocke un champ `password`, mais le code de hashage n'est pas visible dans `auth.ts`.
+✅ **Implémentation actuelle :** Les mots de passe sont hashés avec **Argon2id** via la bibliothèque `oslo`.
 
-**Recommandations :**
-- Utiliser **Argon2** (recommandé) ou **bcrypt** pour hasher les mots de passe
-- Ne jamais stocker de mots de passe en clair
-- Implémenter un service dédié pour la gestion des mots de passe
+**Fichier :** `src/routes/register/+page.server.ts`
 
-**Exemple avec Oslo (pour future migration) :**
 ```typescript
 import { Argon2id } from "oslo/password";
 
 const argon2id = new Argon2id();
 const hashedPassword = await argon2id.hash(password);
-const isValid = await argon2id.verify(hashedPassword, password);
 ```
+
+**Caractéristiques :**
+- Algorithme : Argon2id (recommandé pour le hashage de mots de passe)
+- Les mots de passe ne sont jamais stockés en clair
+- Vérification lors de la connexion avec `argon2id.verify()`
+
+⚠️ **Note :** La bibliothèque `oslo` est dépréciée. Lors de la migration vers Lucia v4, utiliser `@oslojs/crypto`.
 
 ### Validation des données
 
@@ -195,18 +203,116 @@ const isValid = await argon2id.verify(hashedPassword, password);
 - Permettre la révocation des sessions actives
 - Logger les activités suspectes
 
+## ✅ Routes d'authentification implémentées
+
+### Page d'inscription (`/register`)
+
+**Fichiers :**
+- `src/routes/register/+page.svelte` : Interface utilisateur
+- `src/routes/register/+page.server.ts` : Logique serveur
+
+**Fonctionnalités :**
+- Formulaire avec validation côté client et serveur
+- Champs : email, prénom, nom, nationalité (sélecteur), mot de passe, confirmation
+- Validation du format email (regex)
+- **Règles de mot de passe renforcées** :
+  - Minimum 12 caractères
+  - Au moins une lettre majuscule
+  - Au moins un chiffre
+  - Au moins un caractère spécial (!@#$%^&*()_+-=[]{}|;:,.<>?)
+- Vérification de la correspondance des mots de passe
+- Vérification de l'unicité de l'email
+- **Sélecteur de nationalité** avec liste complète des pays (195 pays)
+- Validation que la nationalité sélectionnée fait partie de la liste
+- Hashage sécurisé avec Argon2id
+- Création automatique d'une session après inscription
+- Redirection vers la page d'accueil après succès
+- Affichage des erreurs de validation
+
+**Exemple de workflow :**
+1. L'utilisateur remplit le formulaire d'inscription
+2. Les données sont validées côté serveur
+3. Le mot de passe est hashé avec Argon2id
+4. L'utilisateur est créé dans la base de données
+5. Une session est créée automatiquement
+6. L'utilisateur est redirigé vers la page d'accueil, connecté
+
+## ✅ Tests
+
+### Tests unitaires
+
+**Fichier** : `src/lib/utils/passwordValidation.spec.ts`
+
+Tests de la validation des mots de passe :
+- Validation d'un mot de passe conforme
+- Rejet des mots de passe trop courts
+- Rejet des mots de passe sans majuscule
+- Rejet des mots de passe sans chiffre
+- Rejet des mots de passe sans caractère spécial
+- Gestion des erreurs multiples
+- Acceptation de tous les caractères spéciaux autorisés
+
+**Fichier** : `src/routes/register/+page.server.spec.ts`
+
+Tests de l'action serveur d'inscription :
+- Validation de tous les champs requis
+- Validation du format email
+- Validation des règles de mot de passe
+- Vérification de la correspondance des mots de passe
+- Validation de la nationalité
+- Vérification du hashage des mots de passe
+
+### Exécution des tests
+
+```bash
+# Exécuter tous les tests
+pnpm test
+
+# Exécuter les tests en mode watch
+pnpm test:unit
+
+# Exécuter les tests de validation du mot de passe
+pnpm test src/lib/utils/passwordValidation.spec.ts
+```
+
+## 📁 Fichiers créés et modifiés
+
+### Nouveaux fichiers
+
+1. **`src/lib/utils/countries.ts`** : Liste complète des pays (195 pays)
+2. **`src/lib/utils/passwordValidation.ts`** : Fonctions de validation du mot de passe
+3. **`src/lib/utils/passwordValidation.spec.ts`** : Tests unitaires de validation
+4. **`src/routes/register/+page.server.spec.ts`** : Tests de l'action serveur
+5. **`src/lib/server/db.ts`** : Service partagé pour PrismaClient
+
+### Fichiers modifiés
+
+1. **`src/routes/register/+page.svelte`** :
+   - Ajout du sélecteur de pays
+   - Affichage des règles de mot de passe
+   - Mise à jour des validations HTML5
+   
+2. **`src/routes/register/+page.server.ts`** :
+   - Intégration de la validation du mot de passe
+   - Validation de la nationalité
+   - Messages d'erreur détaillés
+
+3. **`src/lib/server/auth.ts`** :
+   - Utilisation du service partagé PrismaClient
+
 ## 🚀 Prochaines étapes
 
 1. **Décider de la stratégie** : Migration vers Lucia v4 ou maintien de v3
-2. **Implémenter le hashage des mots de passe** si ce n'est pas déjà fait
-3. **Créer les routes d'authentification** :
+2. **Créer les routes d'authentification manquantes** :
    - `/login` : Connexion
-   - `/register` : Inscription
    - `/logout` : Déconnexion
-4. **Ajouter la validation des formulaires**
-5. **Implémenter la gestion des erreurs**
-6. **Créer les tests d'authentification**
-7. **Documenter les workflows utilisateurs**
+3. **Ajouter la gestion de session** :
+   - Middleware de vérification de session
+   - Protection des routes privées
+   - Affichage conditionnel selon l'état de connexion
+4. **Créer les tests d'authentification**
+5. **Implémenter la réinitialisation de mot de passe**
+6. **Documenter les workflows utilisateurs**
 
 ## 📚 Ressources
 
