@@ -28,8 +28,8 @@ L'objectif est de les aider dans leur organisation et leur préparation aux tour
 - Nommer les variables, fonctions et composants de manière explicite et significative
 - Éviter la duplication de code (DRY - Don't Repeat Yourself)
 - Maintenir les fonctions courtes et focalisées sur une seule tâche
-- Commenter uniquement le "pourquoi", pas le "quoi" (le code doit être auto-descriptif)
-- Eviter les commentaires. Les tests doivent servir de documentation vivante.
+- **Aucun commentaire dans le code** : le code doit être autoportant grâce à des noms explicites, la séparation des responsabilités, et une architecture claire
+- Les tests servent de documentation vivante du comportement de l'application
 
 ### Architecture
 - Organiser le code par fonctionnalité/domaine métier
@@ -74,7 +74,7 @@ L'objectif est de les aider dans leur organisation et leur préparation aux tour
 
 - **Toutes les réponses de l'assistant doivent être en français**
 - Le code peut contenir des noms de variables/fonctions en anglais (convention standard)
-- Les commentaires de code et la documentation doivent être en français
+- La documentation (fichiers Markdown dans `docs/`) doit être en français
 
 ## Bonnes pratiques SvelteKit
 
