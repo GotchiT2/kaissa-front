@@ -1,35 +1,60 @@
 <script lang="ts">
   import {ChessQueen, Clock4, Database, Folder, FolderArchive, Hash, Plus, Star, Trash2} from '@lucide/svelte';
+  import type { ComponentType } from 'svelte';
   import {Navigation} from '@skeletonlabs/skeleton-svelte';
   import {formatNumber} from '$lib/utils/formatNumber';
   import GamesTable from '$lib/components/table/GamesTable.svelte';
-  import {onMount} from 'svelte';
-  import {generateFakeGames} from '$lib/utils/fakeGames';
   import ImportGame from "$lib/components/ImportGame.svelte";
+  import type { CollectionWithGames, GameRow } from '$lib/types/chess.types';
 
-  const collections = [
-    {label: 'Toutes les parties', href: '#', value: 1300000, icon: Folder},
-    {label: 'Collection Kaissa', href: '#', value: 15203, icon: Folder},
-    {label: 'Non classées', href: '#', value: 33, icon: FolderArchive},
-    {label: 'Corbeille', href: '#', value: 12, icon: Trash2}
-  ];
+  interface Props {
+    data: {
+      collections: CollectionWithGames[];
+    };
+  }
 
-  const listes = [
-    {label: 'Parties favorites', href: '#', value: 1803, icon: Star},
-    {label: 'A analyser plus tard', href: '#', value: 1, icon: Clock4}
-  ];
+  let { data }: Props = $props();
 
-  const balises = [
-    {label: 'New', href: '#', value: 13, icon: Hash},
-    {label: 'Scandinave', href: '#', value: 164, icon: Hash}
-  ];
+  interface CollectionDisplay {
+    id: string;
+    label: string;
+    href: string;
+    value: number;
+    icon: ComponentType;
+  }
 
-  let data: GameRow[] = [];
-  onMount(() => {
-    data = generateFakeGames(50);
+  const collectionsData: CollectionDisplay[] = data.collections.map((collection) => ({
+    id: collection.id,
+    label: collection.title,
+    href: `#${collection.id}`,
+    value: collection.games.length,
+    icon: Folder
+  }));
+
+  let selectedCollectionId = $state<string | null>(collectionsData[0]?.id || null);
+
+  const gamesData = $derived.by((): GameRow[] => {
+    if (!selectedCollectionId) return [];
+    
+    const collection = data.collections.find((c) => c.id === selectedCollectionId);
+    if (!collection) return [];
+
+    return collection.games.map((cg) => ({
+      whitePlayer: cg.game.whitePlayer,
+      blackPlayer: cg.game.blackPlayer,
+      tournament: cg.game.tournament || '?',
+      date: cg.game.date ? new Date(cg.game.date).toLocaleDateString() : '?',
+      whiteElo: cg.game.whiteElo || 0,
+      blackElo: cg.game.blackElo || 0,
+      result: cg.game.result || '*'
+    }));
   });
 
-  let anchorSidebar = 'btn hover:preset-tonal justify-between px-2 w-full flex items-center gap-2';
+  const selectedCollection = $derived<CollectionWithGames | undefined>(
+    data.collections.find((c) => c.id === selectedCollectionId)
+  );
+
+  const anchorSidebar: string = 'btn hover:preset-tonal justify-between px-2 w-full flex items-center gap-2';
 </script>
 
 <div class="flex h-[90vh] w-full">
@@ -59,68 +84,46 @@
                 <Navigation.Label class="capitalize pl-2 flex justify-between">Collections
                     <button>
                         <Plus class="size-4 hover:preset-filled-primary-500"/>
-                        <span class="sr-only">Ajouter une balise</span></button>
+                        <span class="sr-only">Ajouter une collection</span></button>
                 </Navigation.Label>
                 <Navigation.Menu class="w-full">
-                    {#each collections as link (link)}
-                        {@const Icon = link.icon}
-                        <a href={link.href} class={anchorSidebar} title={link.label} aria-label={link.label}>
+                    {#each collectionsData as collection (collection.id)}
+                        {@const Icon = collection.icon}
+                        <button
+                                onclick={() => selectedCollectionId = collection.id}
+                                class={anchorSidebar}
+                                class:preset-filled-primary-500={selectedCollectionId === collection.id}
+                                title={collection.label}
+                                aria-label={collection.label}
+                        >
 							<span class="flex items-center gap-2">
 								<Icon class="size-4"/>
-                                {link.label}
+                                {collection.label}
 							</span>
-                            <span class="opacity-60">{formatNumber(link.value)}</span>
-                        </a>
+                            <span class="opacity-60">{formatNumber(collection.value)}</span>
+                        </button>
                     {/each}
                 </Navigation.Menu>
             </Navigation.Group>
 
-            <Navigation.Group class="w-full">
-                <Navigation.Label class="capitalize pl-2">Listes</Navigation.Label>
-                <Navigation.Menu class="w-full">
-                    {#each listes as liste (liste)}
-                        {@const Icon = liste.icon}
-                        <a href={liste.href} class={anchorSidebar} title={liste.label} aria-label={liste.label}>
-							<span class="flex items-center gap-2">
-								<Icon class="size-4"/>
-                                {liste.label}
-							</span>
-                            <span class="opacity-60">{formatNumber(liste.value)}</span>
-                        </a>
-                    {/each}
-                </Navigation.Menu>
-            </Navigation.Group>
-
-            <Navigation.Group class="w-full">
-                <Navigation.Label class="capitalize pl-2 flex justify-between">Balises
-                    <button>
-                        <Plus class="size-4 hover:preset-filled-primary-500"/>
-                        <span class="sr-only">Ajouter une balise</span></button>
-                </Navigation.Label>
-                <Navigation.Menu class="w-full">
-                    {#each balises as balise (balise)}
-                        {@const Icon = balise.icon}
-                        <a href={balise.href} class={anchorSidebar} title={balise.label} aria-label={balise.label}>
-							<span class="flex items-center gap-2">
-								<Icon class="size-4"/>
-                                {balise.label}
-							</span>
-                            <span class="opacity-60">{formatNumber(balise.value)}</span>
-                        </a>
-                    {/each}
-                </Navigation.Menu>
-            </Navigation.Group>
         </Navigation.Content>
     </Navigation>
 
     <div class="grow flex flex-col items-center bg-surface-900 overflow-auto">
         <div class="flex gap-4 items-center my-6">
-            <h1 class="h2 text-primary-500">Collection Kaissa</h1>
-            <p>{data.length} résultats</p>
+            <h1 class="h2 text-primary-500">{selectedCollection?.title || 'Collection'}</h1>
+            <p>{gamesData.length} résultat{gamesData.length > 1 ? 's' : ''}</p>
             <ImportGame/>
         </div>
 
-        <GamesTable {data}/>
+        {#if gamesData.length > 0}
+            <GamesTable data={gamesData}/>
+        {:else}
+            <div class="flex flex-col items-center justify-center h-64 gap-4">
+                <p class="text-lg opacity-60">Aucune partie dans cette collection</p>
+                <ImportGame/>
+            </div>
+        {/if}
     </div>
 
 </div>

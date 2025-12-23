@@ -13,13 +13,14 @@ datasource db {
 }
 
 model User {
-  id          String    @id
-  email       String    @unique
+  id          String       @id
+  email       String       @unique
   password    String
   firstName   String
   lastName    String
   nationality String
   sessions    Session[]
+  collections Collection[]
 }
 
 model Session {
@@ -27,4 +28,40 @@ model Session {
   userId    String
   expiresAt DateTime
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Game {
+  id          String           @id @default(cuid())
+  whitePlayer String
+  blackPlayer String
+  tournament  String?
+  date        DateTime?
+  whiteElo    Int?
+  blackElo    Int?
+  moves       String
+  result      String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  collections CollectionGame[]
+}
+
+model Collection {
+  id        String           @id @default(cuid())
+  title     String
+  creatorId String
+  creator   User             @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  games     CollectionGame[]
+}
+
+model CollectionGame {
+  id           String     @id @default(cuid())
+  collectionId String
+  gameId       String
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  game         Game       @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  addedAt      DateTime   @default(now())
+
+  @@unique([collectionId, gameId])
 }
