@@ -1,0 +1,24 @@
+# deps locales (pnpm crée beaucoup de liens)
+node_modules
+.pnpm-store
+.pnpm
+
+# outputs
+.svelte-kit
+build
+dist
+.vite
+
+# VCS & tooling
+.git
+.gitignore
+.github
+
+# env / logs
+.env
+.env.*
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
