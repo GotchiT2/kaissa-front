@@ -1,7 +1,7 @@
-import { PrismaClient } from '@prisma/client';
-import { PrismaPg } from '@prisma/adapter-pg';
-import { Pool } from 'pg';
-import { env } from '$env/dynamic/private';
+import * as Prisma from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { Pool } from "pg";
+import { env } from "$env/dynamic/private";
 
 // Créer un pool de connexions PostgreSQL
 const pool = new Pool({ connectionString: env.DATABASE_URL });
@@ -10,4 +10,4 @@ const pool = new Pool({ connectionString: env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
 
 // Créer et exporter une instance unique de PrismaClient
-export const prisma = new PrismaClient({ adapter });
+export const prisma = new Prisma.PrismaClient({ adapter });
