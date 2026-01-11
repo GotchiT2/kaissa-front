@@ -1,9 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,6 +8,38 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum Visibilite {
+  PRIVEE
+  PUBLIQUE
+}
+
+enum Resultat {
+  BLANCS
+  NOIRS
+  NULLE
+  INCONNU
+}
+
+enum Camp {
+  BLANCS
+  NOIRS
+}
+
+enum CalculStatut {
+  EN_ATTENTE
+  EN_COURS
+  TERMINE
+  ERREUR
+}
+
+// ============================================================================
+// UTILISATEUR
+// ============================================================================
 
 model User {
   id          String       @id
@@ -21,6 +50,8 @@ model User {
   nationality String
   sessions    Session[]
   collections Collection[]
+
+  @@index([email])
 }
 
 model Session {
@@ -28,40 +59,201 @@ model Session {
   userId    String
   expiresAt DateTime
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
-model Game {
-  id          String           @id @default(cuid())
-  whitePlayer String
-  blackPlayer String
-  tournament  String?
-  date        DateTime?
-  whiteElo    Int?
-  blackElo    Int?
-  moves       String
-  result      String?
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-  collections CollectionGame[]
-}
+// ============================================================================
+// COLLECTION (arborescente)
+// ============================================================================
 
 model Collection {
-  id        String           @id @default(cuid())
-  title     String
-  creatorId String
-  creator   User             @relation(fields: [creatorId], references: [id], onDelete: Cascade)
-  createdAt DateTime         @default(now())
-  updatedAt DateTime         @updatedAt
-  games     CollectionGame[]
+  id             String              @id @default(cuid())
+  nom            String
+  visibilite     Visibilite          @default(PRIVEE)
+  proprietaireId String?
+  parentId       String?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  proprietaire   User?               @relation(fields: [proprietaireId], references: [id], onDelete: Cascade)
+  parent         Collection?         @relation("CollectionHierarchie", fields: [parentId], references: [id], onDelete: Cascade)
+  enfants        Collection[]        @relation("CollectionHierarchie")
+  parties        PartieTravail[]
+  ancetres       CollectionClosure[] @relation("CollectionDescendant")
+  descendants    CollectionClosure[] @relation("CollectionAncetre")
+  agregats       AgregatCoupsCollection[]
+  calculs        CalculAgregatStatut[]
+
+  @@index([proprietaireId])
+  @@index([parentId])
+  @@index([visibilite])
 }
 
-model CollectionGame {
-  id           String     @id @default(cuid())
-  collectionId String
-  gameId       String
-  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
-  game         Game       @relation(fields: [gameId], references: [id], onDelete: Cascade)
-  addedAt      DateTime   @default(now())
+// Closure table pour l'arborescence des collections
+model CollectionClosure {
+  ancetreId    String
+  descendantId String
+  profondeur   Int
+  ancetre      Collection @relation("CollectionAncetre", fields: [ancetreId], references: [id], onDelete: Cascade)
+  descendant   Collection @relation("CollectionDescendant", fields: [descendantId], references: [id], onDelete: Cascade)
 
-  @@unique([collectionId, gameId])
+  @@id([ancetreId, descendantId])
+  @@index([descendantId])
+  @@index([ancetreId, profondeur])
+}
+
+// ============================================================================
+// PARTIE DE TRAVAIL (le "fichier")
+// ============================================================================
+
+model PartieTravail {
+  id           String             @id @default(cuid())
+  collectionId String
+  titre        String?
+  resultat     Resultat           @default(INCONNU)
+  blancNom     String?
+  noirNom      String?
+  blancElo     Int?
+  noirElo      Int?
+  datePartie   DateTime?
+  cadence      String?
+  site         String?
+  event        String?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  collection   Collection         @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  coups        CoupNoeud[]
+  tags         PartieTag[]
+  transitions  TransitionPartie[]
+
+  @@index([collectionId])
+  @@index([datePartie])
+  @@index([blancElo])
+  @@index([noirElo])
+  @@index([cadence])
+  @@index([resultat])
+}
+
+// ============================================================================
+// ARBRE DE COUPS / VARIANTES (nœuds)
+// ============================================================================
+
+model CoupNoeud {
+  id            String              @id @default(cuid())
+  partieId      String
+  parentId      String?
+  coupUci       String?
+  ply           Int
+  hashPosition  BigInt
+  fen           String?
+  estPrincipal  Boolean             @default(false)
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  partie        PartieTravail       @relation(fields: [partieId], references: [id], onDelete: Cascade)
+  parent        CoupNoeud?          @relation("CoupNoeudHierarchie", fields: [parentId], references: [id], onDelete: Cascade)
+  enfants       CoupNoeud[]         @relation("CoupNoeudHierarchie")
+  commentaires  CommentaireNoeud[]
+
+  @@index([partieId])
+  @@index([partieId, parentId])
+  @@index([partieId, ply])
+  @@index([hashPosition])
+}
+
+// ============================================================================
+// COMMENTAIRES
+// ============================================================================
+
+model CommentaireNoeud {
+  id        String    @id @default(cuid())
+  noeudId   String
+  contenu   String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  noeud     CoupNoeud @relation(fields: [noeudId], references: [id], onDelete: Cascade)
+
+  @@index([noeudId])
+}
+
+// ============================================================================
+// TAGS
+// ============================================================================
+
+model Tag {
+  id      String      @id @default(cuid())
+  nom     String      @unique
+  parties PartieTag[]
+}
+
+model PartieTag {
+  partieId String
+  tagId    String
+  partie   PartieTravail @relation(fields: [partieId], references: [id], onDelete: Cascade)
+  tag      Tag           @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([partieId, tagId])
+  @@index([tagId, partieId])
+}
+
+// ============================================================================
+// AGRÉGATS (serving)
+// ============================================================================
+
+model AgregatCoupsCollection {
+  collectionId     String
+  hashPosition     BigInt
+  filtreHash       String
+  coupUci          String
+  nbParties        BigInt
+  victoiresBlancs  BigInt
+  nulles           BigInt
+  victoiresNoirs   BigInt
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  collection       Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+
+  @@id([collectionId, hashPosition, filtreHash, coupUci])
+  @@index([collectionId, hashPosition, filtreHash, nbParties(sort: Desc)], map: "idx_agregat_top_coups")
+  @@index([collectionId, hashPosition, filtreHash], map: "idx_agregat_lookup")
+}
+
+// ============================================================================
+// ÉTAT DE CALCUL (lazy-build)
+// ============================================================================
+
+model CalculAgregatStatut {
+  collectionId String
+  hashPosition BigInt
+  filtreHash   String
+  statut       CalculStatut @default(EN_ATTENTE)
+  requestedAt  DateTime     @default(now())
+  startedAt    DateTime?
+  finishedAt   DateTime?
+  erreur       String?
+  collection   Collection   @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+
+  @@id([collectionId, hashPosition, filtreHash])
+  @@index([statut, requestedAt])
+}
+
+// ============================================================================
+// TRANSITIONS DE LA LIGNE PRINCIPALE (matérialisées)
+// ============================================================================
+
+model TransitionPartie {
+  id                  String        @id @default(cuid())
+  partieId            String
+  hashPositionAvant   BigInt
+  coupUci             String
+  hashPositionApres   BigInt
+  ply                 Int
+  estDansPrincipal    Boolean       @default(true)
+  campAuTrait         Camp?
+  partie              PartieTravail @relation(fields: [partieId], references: [id], onDelete: Cascade)
+
+  @@index([hashPositionAvant, coupUci])
+  @@index([hashPositionAvant])
+  @@index([partieId, ply])
+  @@index([hashPositionAvant, campAuTrait])
+  @@index([hashPositionAvant, coupUci, partieId])
 }
