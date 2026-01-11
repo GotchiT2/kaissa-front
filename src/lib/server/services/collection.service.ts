@@ -1,21 +1,61 @@
-import { db } from "$lib/server/db";
-import type {
-  CollectionWithGames,
-  CreateGameData,
-  Game,
-} from "$lib/types/chess.types";
+import { prisma } from "$lib/server/db";
 
-export async function getUserCollections(
-  userId: string,
-): Promise<CollectionWithGames[]> {
-  return await db.collection.findMany({
+export interface CreateCollectionData {
+  nom: string;
+  proprietaireId: string;
+  parentId?: string;
+}
+
+export async function createCollection(data: CreateCollectionData) {
+  const { nom, proprietaireId, parentId } = data;
+
+  const collection = await prisma.collection.create({
+    data: {
+      nom,
+      proprietaireId,
+      parentId,
+      visibilite: "PRIVEE",
+    },
+  });
+
+  await prisma.collectionClosure.create({
+    data: {
+      ancetreId: collection.id,
+      descendantId: collection.id,
+      profondeur: 0,
+    },
+  });
+
+  if (parentId) {
+    const parentClosures = await prisma.collectionClosure.findMany({
+      where: {
+        descendantId: parentId,
+      },
+    });
+
+    const closuresToCreate = parentClosures.map((closure) => ({
+      ancetreId: closure.ancetreId,
+      descendantId: collection.id,
+      profondeur: closure.profondeur + 1,
+    }));
+
+    await prisma.collectionClosure.createMany({
+      data: closuresToCreate,
+    });
+  }
+
+  return collection;
+}
+
+export async function getUserCollections(userId: string) {
+  return await prisma.collection.findMany({
     where: {
-      creatorId: userId,
+      proprietaireId: userId,
     },
     include: {
-      games: {
-        include: {
-          game: true,
+      _count: {
+        select: {
+          parties: true,
         },
       },
     },
@@ -25,82 +65,19 @@ export async function getUserCollections(
   });
 }
 
-export async function getCollectionById(
-  collectionId: string,
-  userId: string,
-): Promise<CollectionWithGames | null> {
-  return await db.collection.findFirst({
+export async function getCollectionById(collectionId: string, userId: string) {
+  return await prisma.collection.findFirst({
     where: {
       id: collectionId,
-      creatorId: userId,
+      proprietaireId: userId,
     },
     include: {
-      games: {
-        include: {
-          game: true,
+      parties: true,
+      _count: {
+        select: {
+          parties: true,
         },
       },
     },
   });
-}
-
-export async function createCollection(
-  userId: string,
-  title: string,
-): Promise<CollectionWithGames> {
-  return await db.collection.create({
-    data: {
-      title,
-      creatorId: userId,
-    },
-    include: {
-      games: {
-        include: {
-          game: true,
-        },
-      },
-    },
-  });
-}
-
-export async function ensureDefaultCollection(
-  userId: string,
-): Promise<CollectionWithGames> {
-  const existingCollection = await db.collection.findFirst({
-    where: {
-      creatorId: userId,
-      title: "Kaissa",
-    },
-    include: {
-      games: {
-        include: {
-          game: true,
-        },
-      },
-    },
-  });
-
-  if (!existingCollection) {
-    return await createCollection(userId, "Kaissa");
-  }
-
-  return existingCollection;
-}
-
-export async function addGameToCollection(
-  collectionId: string,
-  gameData: CreateGameData,
-): Promise<Game> {
-  const game = await db.game.create({
-    data: gameData,
-  });
-
-  await db.collectionGame.create({
-    data: {
-      collectionId,
-      gameId: game.id,
-    },
-  });
-
-  return game;
 }
