@@ -1,11 +1,12 @@
 <script lang="ts">
-  import {ChessQueen, Clock4, Database, Folder, FolderArchive, Hash, Plus, Star, Trash2} from '@lucide/svelte';
-  import type { ComponentType } from 'svelte';
-  import {Navigation} from '@skeletonlabs/skeleton-svelte';
+  import {ChessQueen, Database, Folder, Plus, XIcon} from '@lucide/svelte';
+  import type {ComponentType} from 'svelte';
+  import {createToaster, Dialog, Navigation, Portal, Toast} from '@skeletonlabs/skeleton-svelte';
   import {formatNumber} from '$lib/utils/formatNumber';
   import GamesTable from '$lib/components/table/GamesTable.svelte';
   import ImportGame from "$lib/components/ImportGame.svelte";
-  import type { CollectionWithGames, GameRow } from '$lib/types/chess.types';
+  import type {CollectionGame, CollectionWithGames, GameRow} from '$lib/types/chess.types';
+  import {invalidateAll} from '$app/navigation';
 
   interface Props {
     data: {
@@ -13,7 +14,58 @@
     };
   }
 
-  let { data }: Props = $props();
+  let {data}: Props = $props();
+
+  let collectionName = $state('');
+  let isSubmitting = $state(false);
+  let errorMessage = $state('');
+
+  const toaster = createToaster();
+
+  async function handleCreateCollection() {
+    errorMessage = '';
+
+    if (!collectionName.trim()) {
+      errorMessage = 'Le nom de la collection est requis';
+      return;
+    }
+
+    if (collectionName.trim().length > 100) {
+      errorMessage = 'Le nom de la collection ne peut pas dépasser 100 caractères';
+      return;
+    }
+
+    isSubmitting = true;
+
+    try {
+      const response = await fetch('/api/collections', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({nom: collectionName.trim()}),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        errorMessage = error.message || 'Erreur lors de la création de la collection';
+        return;
+      }
+
+      toaster.success({
+        title: 'Succès',
+        description: 'Collection créée avec succès',
+      })
+
+      dialogOpen = false;
+      collectionName = '';
+      await invalidateAll();
+    } catch (err) {
+      errorMessage = 'Erreur lors de la création de la collection';
+    } finally {
+      isSubmitting = false;
+    }
+  }
 
   interface CollectionDisplay {
     id: string;
@@ -25,9 +77,9 @@
 
   const collectionsData: CollectionDisplay[] = data.collections.map((collection) => ({
     id: collection.id,
-    label: collection.title,
+    label: collection.nom,
     href: `#${collection.id}`,
-    value: collection.games.length,
+    value: collection.parties.length || 0,
     icon: Folder
   }));
 
@@ -35,18 +87,18 @@
 
   const gamesData = $derived.by((): GameRow[] => {
     if (!selectedCollectionId) return [];
-    
-    const collection = data.collections.find((c) => c.id === selectedCollectionId);
-    if (!collection) return [];
 
-    return collection.games.map((cg) => ({
-      whitePlayer: cg.game.whitePlayer,
-      blackPlayer: cg.game.blackPlayer,
-      tournament: cg.game.tournament || '?',
-      date: cg.game.date ? new Date(cg.game.date).toLocaleDateString() : '?',
-      whiteElo: cg.game.whiteElo || 0,
-      blackElo: cg.game.blackElo || 0,
-      result: cg.game.result || '*'
+    const collection = data.collections.find((c) => c.id === selectedCollectionId);
+    if (!collection || !collection.parties) return [];
+
+    return collection.parties.map((partie: CollectionGame) => ({
+      whitePlayer: partie.game.whitePlayer || '?',
+      blackPlayer: partie.game.blackPlayer || '?',
+      tournament: partie.game.tournament || '?',
+      date: partie.game.date ? new Date(partie.game.date).toLocaleDateString() : '?',
+      whiteElo: partie.game.whiteElo || 0,
+      blackElo: partie.game.blackElo || 0,
+      result: partie.game.result || 'INCONNU'
     }));
   });
 
@@ -82,9 +134,58 @@
         <Navigation.Content class="ml-4 overflow-y-auto">
             <Navigation.Group class="w-full">
                 <Navigation.Label class="capitalize pl-2 flex justify-between">Collections
-                    <button>
-                        <Plus class="size-4 hover:preset-filled-primary-500"/>
-                        <span class="sr-only">Ajouter une collection</span></button>
+                    <Dialog>
+                        <Dialog.Trigger class="btn preset-filled">
+                            <Plus class="size-4 hover:preset-filled-primary-500"/>
+                            <span class="sr-only">Ajouter une collection</span></Dialog.Trigger>
+                        <Portal>
+                            <Dialog.Backdrop class="fixed inset-0 z-50 bg-surface-50-950/50"/>
+                            <Dialog.Positioner class="fixed inset-0 z-50 flex justify-center items-center p-4">
+                                <Dialog.Content
+                                        class="card bg-surface-100-900 w-full max-w-xl p-4 space-y-4 shadow-xl">
+                                    <header class="flex justify-between items-center">
+                                        <Dialog.Title class="text-lg font-bold">Créer une nouvelle collection
+                                        </Dialog.Title>
+                                        <Dialog.CloseTrigger class="btn-icon hover:preset-tonal">
+                                            <XIcon class="size-4"/>
+                                        </Dialog.CloseTrigger>
+                                    </header>
+
+                                    <form class="space-y-4"
+                                          onsubmit={(e) => { e.preventDefault(); handleCreateCollection(); }}>
+                                        <div>
+                                            <label class="block text-sm font-medium mb-2" for="collection-name">
+                                                Nom de la collection
+                                            </label>
+                                            <input
+                                                    bind:value={collectionName}
+                                                    class="input w-full"
+                                                    disabled={isSubmitting}
+                                                    id="collection-name"
+                                                    maxlength="100"
+                                                    placeholder="Ex: Mes parties de tournoi"
+                                                    required
+                                                    type="text"
+                                            />
+                                            {#if errorMessage}
+                                                <p class="text-error-500 text-sm mt-2">{errorMessage}</p>
+                                            {/if}
+                                        </div>
+
+                                        <Dialog.CloseTrigger class="btn preset-tonal">Annuler</Dialog.CloseTrigger>
+                                        <button
+                                                class="btn preset-filled-primary-500"
+                                                disabled={isSubmitting}
+                                                type="submit"
+                                        >
+                                            {isSubmitting ? 'Création...' : 'Créer'}
+                                        </button>
+                                    </form>
+                                </Dialog.Content>
+                            </Dialog.Positioner>
+                        </Portal>
+                    </Dialog>
+
                 </Navigation.Label>
                 <Navigation.Menu class="w-full">
                     {#each collectionsData as collection (collection.id)}
@@ -127,3 +228,15 @@
     </div>
 
 </div>
+
+<Toast.Group {toaster}>
+    {#snippet children(toast)}
+        <Toast {toast}>
+            <Toast.Message>
+                <Toast.Title>{toast.title}</Toast.Title>
+                <Toast.Description>{toast.description}</Toast.Description>
+            </Toast.Message>
+            <Toast.CloseTrigger/>
+        </Toast>
+    {/snippet}
+</Toast.Group>

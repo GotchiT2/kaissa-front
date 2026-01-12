@@ -53,6 +53,7 @@ export async function getUserCollections(userId: string) {
       proprietaireId: userId,
     },
     include: {
+      parties: true,
       _count: {
         select: {
           parties: true,

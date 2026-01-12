@@ -14,11 +14,11 @@ export interface Game {
 
 export interface Collection {
   id: string;
-  title: string;
+  nom: string;
   creatorId: string;
   createdAt: Date;
   updatedAt: Date;
-  games: CollectionGame[];
+  parties: CollectionGame[];
 }
 
 export interface CollectionGame {
@@ -30,7 +30,7 @@ export interface CollectionGame {
 }
 
 export interface CollectionWithGames extends Collection {
-  games: CollectionGame[];
+  parties: CollectionGame[];
 }
 
 export interface CreateGameData {
