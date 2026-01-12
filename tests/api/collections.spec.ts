@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { POST } from "$routes/api/collections/+server";
+import { POST } from "../../src/routes/api/collections/+server";
 import { createCollection } from "$lib/server/services/collection.service";
 
 vi.mock("$lib/server/services/collection.service", () => ({
@@ -38,14 +38,62 @@ describe("POST /api/collections", () => {
     const data = await response.json();
 
     expect(response.status).toBe(201);
-    expect(data).toEqual({
-      success: true,
-      collection: mockCollection,
+    expect(data.success).toBe(true);
+    expect(data.collection).toMatchObject({
+      id: "col_123",
+      nom: "Ma Collection",
+      proprietaireId: "user_123",
+      parentId: null,
+      visibilite: "PRIVEE",
     });
 
     expect(createCollection).toHaveBeenCalledWith({
       nom: "Ma Collection",
       proprietaireId: "user_123",
+      parentId: undefined,
+    });
+  });
+
+  it("devrait créer une sous-collection avec parentId", async () => {
+    const mockCollection = {
+      id: "col_child",
+      nom: "Sous-collection",
+      proprietaireId: "user_123",
+      parentId: "col_parent",
+      visibilite: "PRIVEE",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    vi.mocked(createCollection).mockResolvedValue(mockCollection);
+
+    const request = new Request("http://localhost/api/collections", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nom: "Sous-collection", parentId: "col_parent" }),
+    });
+
+    const locals = {
+      user: { id: "user_123", email: "test@example.com" },
+    };
+
+    const response = await POST({ request, locals } as any);
+    const data = await response.json();
+
+    expect(response.status).toBe(201);
+    expect(data.success).toBe(true);
+    expect(data.collection).toMatchObject({
+      id: "col_child",
+      nom: "Sous-collection",
+      proprietaireId: "user_123",
+      parentId: "col_parent",
+      visibilite: "PRIVEE",
+    });
+
+    expect(createCollection).toHaveBeenCalledWith({
+      nom: "Sous-collection",
+      proprietaireId: "user_123",
+      parentId: "col_parent",
     });
   });
 
@@ -77,6 +125,7 @@ describe("POST /api/collections", () => {
     expect(createCollection).toHaveBeenCalledWith({
       nom: "Ma Collection",
       proprietaireId: "user_123",
+      parentId: undefined,
     });
   });
 

@@ -10,7 +10,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
   }
 
   const body = await request.json();
-  const { nom } = body;
+  const { nom, parentId } = body;
 
   if (!nom || typeof nom !== "string" || nom.trim().length === 0) {
     throw error(400, "Le nom de la collection est requis");
@@ -24,6 +24,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     const collection = await createCollection({
       nom: nom.trim(),
       proprietaireId: user.id,
+      parentId: parentId || undefined,
     });
 
     return json({
