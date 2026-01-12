@@ -72,6 +72,30 @@
 
   let selectedCollectionId = $state<string | null>(data.collections[0]?.id || null);
 
+  function formatMoves(coups: any[]): string {
+    if (!coups || coups.length === 0) return '—';
+    
+    const moves = coups.slice(0, 8).map((coup, index) => {
+      const moveNumber = Math.floor(index / 2) + 1;
+      const move = coup.coupUci || '';
+      
+      if (index % 2 === 0) {
+        return `${moveNumber}. ${move}`;
+      } else {
+        return move;
+      }
+    });
+    
+    return moves.join(' ');
+  }
+
+  function normalizeResult(result: string | null | undefined): "1-0" | "0-1" | "½-½" {
+    if (result === "BLANCS") return "1-0";
+    if (result === "NOIRS") return "0-1";
+    if (result === "NULLE") return "½-½";
+    return "½-½";
+  }
+
   const gamesData = $derived.by((): GameRow[] => {
     if (!selectedCollectionId) return [];
 
@@ -79,13 +103,15 @@
     if (!collection || !collection.parties) return [];
 
     return collection.parties.map((partie: any) => ({
+      id: partie.id,
       whitePlayer: partie.blancNom || '?',
       blackPlayer: partie.noirNom || '?',
       tournament: partie.event || '?',
       date: partie.datePartie ? new Date(partie.datePartie).toLocaleDateString() : '?',
       whiteElo: partie.blancElo || 0,
       blackElo: partie.noirElo || 0,
-      result: partie.resultat || 'INCONNU'
+      result: normalizeResult(partie.resultat),
+      notation: formatMoves(partie.coups || []),
     }));
   });
 
@@ -153,7 +179,11 @@
         </div>
 
         {#if gamesData.length > 0}
-            <GamesTable data={gamesData}/>
+            <GamesTable
+                    data={gamesData}
+                    onDeleteSuccess={(message) => toaster.success({ title: 'Succès', description: message })}
+                    onDeleteError={(message) => toaster.error({ title: 'Erreur', description: message })}
+            />
         {:else}
             <div class="flex flex-col items-center justify-center h-64 gap-4">
                 <p class="text-lg opacity-60">Aucune partie dans cette collection</p>
@@ -173,26 +203,26 @@
         {#if node.children && node.children.length > 0}
             <TreeView.Branch>
                 <TreeView.BranchControl>
-                    <TreeView.BranchIndicator />
+                    <TreeView.BranchIndicator/>
                     <TreeView.BranchText>
                         <button
-                            onclick={() => handleSelectCollection(node.id)}
-                            class="flex items-center gap-2 flex-1 text-left"
-                            class:preset-filled-primary-500={selectedCollectionId === node.id}
+                                onclick={() => handleSelectCollection(node.id)}
+                                class="flex items-center gap-2 flex-1 text-left"
+                                class:preset-filled-primary-500={selectedCollectionId === node.id}
                         >
-                            <Folder class="size-4" />
+                            <Folder class="size-4"/>
                             <span>{node.nom}</span>
                             <span class="opacity-60 ml-2">({formatNumber(node.partiesCount)})</span>
                         </button>
                     </TreeView.BranchText>
-                    <CreationCollection 
-                        {handleToastSuccess}
-                        label="Créer une sous-collection de {node.nom}"
-                        parentId={node.id}
+                    <CreationCollection
+                            {handleToastSuccess}
+                            label="Créer une sous-collection de {node.nom}"
+                            parentId={node.id}
                     />
                 </TreeView.BranchControl>
                 <TreeView.BranchContent>
-                    <TreeView.BranchIndentGuide />
+                    <TreeView.BranchIndentGuide/>
                     {#each node.children as childNode, childIndex (childNode)}
                         {@render collectionNode(childNode, [...indexPath, childIndex])}
                     {/each}
@@ -201,18 +231,18 @@
         {:else}
             <TreeView.Item>
                 <button
-                    onclick={() => handleSelectCollection(node.id)}
-                    class="flex items-center gap-2 flex-1 text-left px-2 py-1 rounded hover:preset-tonal"
-                    class:preset-filled-primary-500={selectedCollectionId === node.id}
+                        onclick={() => handleSelectCollection(node.id)}
+                        class="flex items-center gap-2 flex-1 text-left px-2 py-1 rounded hover:preset-tonal"
+                        class:preset-filled-primary-500={selectedCollectionId === node.id}
                 >
-                    <Folder class="size-4" />
+                    <Folder class="size-4"/>
                     <span>{node.nom}</span>
                     <span class="opacity-60 ml-2">({formatNumber(node.partiesCount)})</span>
                 </button>
-                <CreationCollection 
-                    {handleToastSuccess}
-                    label="Créer une sous-collection de {node.nom}"
-                    parentId={node.id}
+                <CreationCollection
+                        {handleToastSuccess}
+                        label="Créer une sous-collection de {node.nom}"
+                        parentId={node.id}
                 />
             </TreeView.Item>
         {/if}

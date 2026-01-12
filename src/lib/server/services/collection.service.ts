@@ -53,7 +53,18 @@ export async function getUserCollections(userId: string) {
       proprietaireId: userId,
     },
     include: {
-      parties: true,
+      parties: {
+        include: {
+          coups: {
+            where: {
+              estPrincipal: true,
+            },
+            orderBy: {
+              ply: 'asc',
+            },
+          },
+        },
+      },
       _count: {
         select: {
           parties: true,
@@ -73,7 +84,18 @@ export async function getCollectionById(collectionId: string, userId: string) {
       proprietaireId: userId,
     },
     include: {
-      parties: true,
+      parties: {
+        include: {
+          coups: {
+            where: {
+              estPrincipal: true,
+            },
+            orderBy: {
+              ply: 'asc',
+            },
+          },
+        },
+      },
       _count: {
         select: {
           parties: true,

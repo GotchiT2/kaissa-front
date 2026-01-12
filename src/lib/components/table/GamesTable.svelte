@@ -1,28 +1,32 @@
 <script generics="TData, TValue" lang="ts">
-	import {
-		getCoreRowModel,
-		getPaginationRowModel,
-		getSortedRowModel,
-		type PaginationState,
-		type SortingState
-	} from '@tanstack/table-core';
+  import {
+    getCoreRowModel,
+    getPaginationRowModel,
+    getSortedRowModel,
+    type PaginationState,
+    type SortingState
+  } from '@tanstack/table-core';
 
-	import {createSvelteTable} from '$lib/components/table/data-table.svelte';
-	import PaginationOld from '$lib/components/table/PaginationOld.svelte';
-	import {Pagination} from '@skeletonlabs/skeleton-svelte';
-	import {ArrowLeftIcon, ArrowRightIcon} from '@lucide/svelte';
-	import FlexRender from '$lib/components/table/FlexRender.svelte';
-	import {columns} from '$lib/components/table/columns';
+  import {createSvelteTable} from '$lib/components/table/data-table.svelte';
+  import PaginationOld from '$lib/components/table/PaginationOld.svelte';
+  import {Dialog, Portal} from '@skeletonlabs/skeleton-svelte';
+  import {Trash2Icon, XIcon} from '@lucide/svelte';
+  import FlexRender from '$lib/components/table/FlexRender.svelte';
+  import {columns} from '$lib/components/table/columns';
+  import {invalidateAll} from '$app/navigation';
 
-	type DataTableProps<GameRow, TValue> = {
-    // columns: ColumnDef<TData, TValue>[];
+  type DataTableProps<GameRow, TValue> = {
     data: GameRow[];
+    onDeleteSuccess?: (message: string) => void;
+    onDeleteError?: (message: string) => void;
   };
   const PAGE_SIZE = 20;
 
-  let {data}: DataTableProps<GameRow, TValue> = $props();
+  let {data, onDeleteSuccess, onDeleteError}: DataTableProps<GameRow, TValue> = $props();
   let pagination = $state<PaginationState>({pageIndex: 0, pageSize: PAGE_SIZE});
   let sorting = $state<SortingState>([]);
+  let partieToDelete = $state<{ id: string, name: string } | null>(null);
+  let isDeleting = $state(false);
 
   let page = $state(1);
   const start = $derived((page - 1) * PAGE_SIZE);
@@ -61,6 +65,50 @@
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel()
   });
+
+  function openDeleteModal(id: string, whitePlayer: string, blackPlayer: string) {
+    partieToDelete = {
+      id,
+      name: `${whitePlayer} vs ${blackPlayer}`
+    };
+  }
+
+  function closeDeleteModal() {
+    if (!isDeleting) {
+      partieToDelete = null;
+    }
+  }
+
+  async function confirmDelete() {
+    if (!partieToDelete) return;
+
+    isDeleting = true;
+
+    try {
+      const response = await fetch(`/api/parties/${partieToDelete.id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Erreur lors de la suppression');
+      }
+
+      await invalidateAll();
+
+      if (onDeleteSuccess) {
+        onDeleteSuccess('Partie supprimée avec succès');
+      }
+
+      partieToDelete = null;
+    } catch (error: any) {
+      if (onDeleteError) {
+        onDeleteError(error.message || 'Erreur lors de la suppression');
+      }
+    } finally {
+      isDeleting = false;
+    }
+  }
 </script>
 
 <div class="table-container space-y-4">
@@ -79,6 +127,7 @@
                             {/if}
                         </th>
                     {/each}
+                    <th>Actions</th>
                 </tr>
             {/each}
             </thead>
@@ -109,10 +158,20 @@
                     <td class="table-cell-fit">
                         {row.original.notation}
                     </td>
+                    <td class="table-cell-fit">
+                        <button
+                                onclick={() => openDeleteModal(row.original.id, row.original.whitePlayer, row.original.blackPlayer)}
+                                class="btn-icon btn-icon-sm hover:preset-filled-error-500"
+                                title="Supprimer cette partie"
+                                aria-label="Supprimer cette partie"
+                        >
+                            <Trash2Icon class="size-4"/>
+                        </button>
+                    </td>
                 </tr>
             {:else}
                 <tr>
-                    <td colspan={columns.length} class="h-24 text-center">No results.</td>
+                    <td colspan={columns.length + 1} class="h-24 text-center">No results.</td>
                 </tr>
             {/each}
             </tbody>
@@ -122,29 +181,71 @@
 
                 <PaginationOld tableModel={table}/>
 
-                <Pagination count={data.length} onPageChange={(event) => (page = event.page)} {page}
-                            pageSize={PAGE_SIZE}>
-                    <Pagination.PrevTrigger>
-                        <ArrowLeftIcon class="size-4"/>
-                    </Pagination.PrevTrigger>
-                    <Pagination.Context>
-                        {#snippet children(pagination)}
-                            {#each pagination().pages as page, index (page)}
-                                {#if page.type === 'page'}
-                                    <Pagination.Item {...page}>
-                                        {page.value}
-                                    </Pagination.Item>
-                                {:else}
-                                    <Pagination.Ellipsis {index}>&#8230;</Pagination.Ellipsis>
-                                {/if}
-                            {/each}
-                        {/snippet}
-                    </Pagination.Context>
-                    <Pagination.NextTrigger>
-                        <ArrowRightIcon class="size-4"/>
-                    </Pagination.NextTrigger>
-                </Pagination>
+                <!--                <Pagination count={data.length} onPageChange={(event) => (page = event.page)} {page}-->
+                <!--                            pageSize={PAGE_SIZE}>-->
+                <!--                    <Pagination.PrevTrigger>-->
+                <!--                        <ArrowLeftIcon class="size-4"/>-->
+                <!--                    </Pagination.PrevTrigger>-->
+                <!--                    <Pagination.Context>-->
+                <!--                        {#snippet children(pagination)}-->
+                <!--                            {#each pagination().pages as page, index (page)}-->
+                <!--                                {#if page.type === 'page'}-->
+                <!--                                    <Pagination.Item {...page}>-->
+                <!--                                        {page.value}-->
+                <!--                                    </Pagination.Item>-->
+                <!--                                {:else}-->
+                <!--                                    <Pagination.Ellipsis {index}>&#8230;</Pagination.Ellipsis>-->
+                <!--                                {/if}-->
+                <!--                            {/each}-->
+                <!--                        {/snippet}-->
+                <!--                    </Pagination.Context>-->
+                <!--                    <Pagination.NextTrigger>-->
+                <!--                        <ArrowRightIcon class="size-4"/>-->
+                <!--                    </Pagination.NextTrigger>-->
+                <!--                </Pagination>-->
             </div>
         </footer>
     </div>
 </div>
+
+{#if partieToDelete}
+    <Dialog open={partieToDelete !== null}>
+        <Portal>
+            <Dialog.Backdrop class="fixed inset-0 z-50 bg-surface-50-950/50" onclick={closeDeleteModal}/>
+            <Dialog.Positioner class="fixed inset-0 z-50 flex justify-center items-center p-4">
+                <Dialog.Content class="card bg-surface-100-900 w-full max-w-md p-4 space-y-4 shadow-xl">
+                    <header class="flex justify-between items-center">
+                        <Dialog.Title class="text-lg font-bold">Confirmer la suppression</Dialog.Title>
+                        <Dialog.CloseTrigger class="btn-icon hover:preset-tonal" onclick={closeDeleteModal}
+                                             disabled={isDeleting}>
+                            <XIcon class="size-4"/>
+                        </Dialog.CloseTrigger>
+                    </header>
+
+                    <Dialog.Description class="space-y-2">
+                        <p>Êtes-vous sûr de vouloir supprimer la partie :</p>
+                        <p class="font-semibold text-primary-500">{partieToDelete.name}</p>
+                        <p class="text-sm opacity-75">Cette action est irréversible.</p>
+                    </Dialog.Description>
+
+                    <footer class="flex justify-end gap-2">
+                        <button
+                                class="btn preset-tonal"
+                                onclick={closeDeleteModal}
+                                disabled={isDeleting}
+                        >
+                            Annuler
+                        </button>
+                        <button
+                                class="btn preset-filled-error-500"
+                                onclick={confirmDelete}
+                                disabled={isDeleting}
+                        >
+                            {isDeleting ? 'Suppression...' : 'Supprimer'}
+                        </button>
+                    </footer>
+                </Dialog.Content>
+            </Dialog.Positioner>
+        </Portal>
+    </Dialog>
+{/if}

@@ -45,11 +45,13 @@ export interface CreateGameData {
 }
 
 export interface GameRow {
+  id: string;
   whitePlayer: string;
-  blackPlayer: string;
-  tournament: string;
-  date: string;
   whiteElo: number;
+  blackPlayer: string;
   blackElo: number;
-  result: string;
+  result: "1-0" | "0-1" | "½-½";
+  date: string;
+  tournament: string;
+  notation: string;
 }

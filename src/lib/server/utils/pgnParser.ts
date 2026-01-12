@@ -1,5 +1,12 @@
 import { Chess } from 'chess.js';
 
+export interface ParsedMove {
+  uci: string;
+  san: string;
+  fen: string;
+  ply: number;
+}
+
 export interface ParsedGame {
   blancNom: string;
   noirNom: string;
@@ -10,6 +17,7 @@ export interface ParsedGame {
   datePartie?: Date;
   resultat: 'BLANCS' | 'NOIRS' | 'NULLE' | 'INCONNU';
   moves: string;
+  parsedMoves: ParsedMove[];
 }
 
 export function parsePGNFile(pgnContent: string): ParsedGame[] {
@@ -36,6 +44,24 @@ export function parsePGNFile(pgnContent: string): ParsedGame[] {
       const movesText = movesMatch ? movesMatch[1].trim() : '';
 
       chess.loadPgn(gameText);
+
+      const parsedMoves: ParsedMove[] = [];
+      const history = chess.history({ verbose: true });
+      
+      chess.reset();
+      
+      for (let i = 0; i < history.length; i++) {
+        const move = history[i];
+        const uci = move.from + move.to + (move.promotion || '');
+        chess.move(move.san);
+        
+        parsedMoves.push({
+          uci,
+          san: move.san,
+          fen: chess.fen(),
+          ply: i + 1
+        });
+      }
 
       const blancNom = headers['White'] || 'Inconnu';
       const noirNom = headers['Black'] || 'Inconnu';
@@ -80,6 +106,7 @@ export function parsePGNFile(pgnContent: string): ParsedGame[] {
         datePartie,
         resultat,
         moves: movesText,
+        parsedMoves,
       });
     } catch (error) {
       console.error('Erreur lors du parsing d\'une partie:', error);

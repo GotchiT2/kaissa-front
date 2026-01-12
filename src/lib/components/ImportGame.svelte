@@ -13,7 +13,6 @@
 
   let files = $state<File[]>([]);
   let isUploading = $state(false);
-  let dialogOpen = $state(false);
 
   const animation =
     'transition transition-discrete opacity-0 translate-y-[100px] starting:data-[state=open]:opacity-0 starting:data-[state=open]:translate-y-[100px] data-[state=open]:opacity-100 data-[state=open]:translate-y-0';
@@ -25,7 +24,6 @@
     }
 
     const file = files[0];
-    console.log('>>>> file', file)
 
     if (!file.name.endsWith('.pgn')) {
       onError?.('Le fichier doit être au format PGN');
@@ -52,7 +50,6 @@
       const result = await response.json();
       onSuccess?.(result.message);
 
-      dialogOpen = false;
       files = [];
       await invalidateAll();
     } catch (err) {

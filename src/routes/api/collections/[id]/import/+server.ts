@@ -2,6 +2,7 @@ import { json, error } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { parsePGNFile } from "$lib/server/utils/pgnParser";
 import { prisma } from "$lib/server/db";
+import { hashFEN } from "$lib/server/utils/positionHash";
 
 export const POST: RequestHandler = async ({ request, locals, params }) => {
   const user = locals.user;
@@ -46,20 +47,43 @@ export const POST: RequestHandler = async ({ request, locals, params }) => {
 
     for (const game of games) {
       try {
-        await prisma.partieTravail.create({
-          data: {
-            collectionId: collectionId,
-            titre: `${game.blancNom} vs ${game.noirNom}`,
-            resultat: game.resultat,
-            blancNom: game.blancNom,
-            noirNom: game.noirNom,
-            blancElo: game.blancElo,
-            noirElo: game.noirElo,
-            datePartie: game.datePartie,
-            event: game.event,
-            site: game.site,
-          },
+        await prisma.$transaction(async (tx) => {
+          const partie = await tx.partieTravail.create({
+            data: {
+              collectionId: collectionId,
+              titre: `${game.blancNom} vs ${game.noirNom}`,
+              resultat: game.resultat,
+              blancNom: game.blancNom,
+              noirNom: game.noirNom,
+              blancElo: game.blancElo,
+              noirElo: game.noirElo,
+              datePartie: game.datePartie,
+              event: game.event,
+              site: game.site,
+            },
+          });
+
+          let previousNodeId: string | null = null;
+
+          for (const move of game.parsedMoves) {
+            const positionHash = hashFEN(move.fen);
+
+            const noeud = await tx.coupNoeud.create({
+              data: {
+                partieId: partie.id,
+                parentId: previousNodeId,
+                coupUci: move.uci,
+                ply: move.ply,
+                hashPosition: positionHash,
+                fen: move.fen,
+                estPrincipal: true,
+              },
+            });
+
+            previousNodeId = noeud.id;
+          }
         });
+
         importedCount++;
       } catch (err) {
         console.error("Erreur lors de l'import d'une partie:", err);
