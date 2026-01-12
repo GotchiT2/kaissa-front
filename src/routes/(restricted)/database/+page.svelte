@@ -1,7 +1,6 @@
 <script lang="ts">
   import {ChessQueen, Database, Folder} from '@lucide/svelte';
-  import type {ComponentType} from 'svelte';
-  import {createToaster, Navigation, Toast} from '@skeletonlabs/skeleton-svelte';
+  import {createToaster, createTreeViewCollection, Navigation, Toast, TreeView} from '@skeletonlabs/skeleton-svelte';
   import {formatNumber} from '$lib/utils/formatNumber';
   import GamesTable from '$lib/components/table/GamesTable.svelte';
   import ImportGame from "$lib/components/ImportGame.svelte";
@@ -18,23 +17,60 @@
 
   const toaster = createToaster();
 
-  interface CollectionDisplay {
+  interface CollectionNode {
     id: string;
-    label: string;
-    href: string;
-    value: number;
-    icon: ComponentType;
+    nom: string;
+    partiesCount: number;
+    collection: CollectionWithGames;
+    children?: CollectionNode[];
   }
 
-  const collectionsData: CollectionDisplay[] = data.collections.map((collection) => ({
-    id: collection.id,
-    label: collection.nom,
-    href: `#${collection.id}`,
-    value: collection.parties.length || 0,
-    icon: Folder
+  function buildCollectionTree(collections: CollectionWithGames[]): CollectionNode[] {
+    const collectionMap = new Map<string, CollectionNode>();
+    const rootNodes: CollectionNode[] = [];
+
+    collections.forEach(collection => {
+      collectionMap.set(collection.id, {
+        id: collection.id,
+        nom: collection.nom,
+        partiesCount: collection.parties.length || 0,
+        collection,
+        children: []
+      });
+    });
+
+    collections.forEach(collection => {
+      const node = collectionMap.get(collection.id)!;
+      if (collection.parentId) {
+        const parent = collectionMap.get(collection.parentId);
+        if (parent) {
+          parent.children!.push(node);
+        } else {
+          rootNodes.push(node);
+        }
+      } else {
+        rootNodes.push(node);
+      }
+    });
+
+    return rootNodes;
+  }
+
+  const treeNodes = $derived(buildCollectionTree(data.collections));
+
+  const collectionTreeView = $derived(createTreeViewCollection<CollectionNode>({
+    nodeToValue: (node) => node.id,
+    nodeToString: (node) => node.nom,
+    rootNode: {
+      id: 'root',
+      nom: '',
+      partiesCount: 0,
+      collection: {} as CollectionWithGames,
+      children: treeNodes
+    }
   }));
 
-  let selectedCollectionId = $state<string | null>(collectionsData[0]?.id || null);
+  let selectedCollectionId = $state<string | null>(data.collections[0]?.id || null);
 
   const gamesData = $derived.by((): GameRow[] => {
     if (!selectedCollectionId) return [];
@@ -61,7 +97,9 @@
     toaster.success({title: 'Succès', description: message});
   }
 
-  const anchorSidebar: string = 'btn hover:preset-tonal justify-between px-2 w-full flex items-center gap-2';
+  function handleSelectCollection(id: string) {
+    selectedCollectionId = id;
+  }
 </script>
 
 <div class="flex h-[90vh] w-full">
@@ -91,29 +129,13 @@
                 <Navigation.Label class="capitalize pl-2 flex justify-between">Collections
                     <CreationCollection {handleToastSuccess} label="Créer une collection"/>
                 </Navigation.Label>
-                <Navigation.Menu class="w-full">
-                    {#each collectionsData as collection (collection.id)}
-                        {@const Icon = collection.icon}
-                        <div class="flex items-center gap-1 w-full">
-                            <button
-                                    onclick={() => selectedCollectionId = collection.id}
-                                    class={anchorSidebar}
-                                    class:preset-filled-primary-500={selectedCollectionId === collection.id}
-                                    title={collection.label}
-                                    aria-label={collection.label}
-                            >
-				<span class="flex items-center gap-2">
-					<Icon class="size-4"/>
-                    {collection.label}
-				</span>
-                                <span class="opacity-60">{formatNumber(collection.value)}</span>
-                            </button>
-                            <CreationCollection {handleToastSuccess}
-                                                label="Créer une sous-collection de {collection.label}"
-                                                parentId={collection.id}/>
-                        </div>
-                    {/each}
-                </Navigation.Menu>
+                <TreeView collection={collectionTreeView}>
+                    <TreeView.Tree>
+                        {#each collectionTreeView.rootNode.children || [] as node, index (node)}
+                            {@render collectionNode(node, [index])}
+                        {/each}
+                    </TreeView.Tree>
+                </TreeView>
             </Navigation.Group>
 
         </Navigation.Content>
@@ -145,6 +167,57 @@
     </div>
 
 </div>
+
+{#snippet collectionNode(node: CollectionNode, indexPath: number[])}
+    <TreeView.NodeProvider value={{ node, indexPath }}>
+        {#if node.children && node.children.length > 0}
+            <TreeView.Branch>
+                <TreeView.BranchControl>
+                    <TreeView.BranchIndicator />
+                    <TreeView.BranchText>
+                        <button
+                            onclick={() => handleSelectCollection(node.id)}
+                            class="flex items-center gap-2 flex-1 text-left"
+                            class:preset-filled-primary-500={selectedCollectionId === node.id}
+                        >
+                            <Folder class="size-4" />
+                            <span>{node.nom}</span>
+                            <span class="opacity-60 ml-2">({formatNumber(node.partiesCount)})</span>
+                        </button>
+                    </TreeView.BranchText>
+                    <CreationCollection 
+                        {handleToastSuccess}
+                        label="Créer une sous-collection de {node.nom}"
+                        parentId={node.id}
+                    />
+                </TreeView.BranchControl>
+                <TreeView.BranchContent>
+                    <TreeView.BranchIndentGuide />
+                    {#each node.children as childNode, childIndex (childNode)}
+                        {@render collectionNode(childNode, [...indexPath, childIndex])}
+                    {/each}
+                </TreeView.BranchContent>
+            </TreeView.Branch>
+        {:else}
+            <TreeView.Item>
+                <button
+                    onclick={() => handleSelectCollection(node.id)}
+                    class="flex items-center gap-2 flex-1 text-left px-2 py-1 rounded hover:preset-tonal"
+                    class:preset-filled-primary-500={selectedCollectionId === node.id}
+                >
+                    <Folder class="size-4" />
+                    <span>{node.nom}</span>
+                    <span class="opacity-60 ml-2">({formatNumber(node.partiesCount)})</span>
+                </button>
+                <CreationCollection 
+                    {handleToastSuccess}
+                    label="Créer une sous-collection de {node.nom}"
+                    parentId={node.id}
+                />
+            </TreeView.Item>
+        {/if}
+    </TreeView.NodeProvider>
+{/snippet}
 
 <Toast.Group {toaster}>
     {#snippet children(toast)}
