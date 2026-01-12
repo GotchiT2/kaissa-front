@@ -5,7 +5,7 @@
   import {formatNumber} from '$lib/utils/formatNumber';
   import GamesTable from '$lib/components/table/GamesTable.svelte';
   import ImportGame from "$lib/components/ImportGame.svelte";
-  import type {CollectionGame, CollectionWithGames, GameRow} from '$lib/types/chess.types';
+  import type {CollectionWithGames, GameRow} from '$lib/types/chess.types';
   import {invalidateAll} from '$app/navigation';
 
   interface Props {
@@ -57,7 +57,6 @@
         description: 'Collection créée avec succès',
       })
 
-      dialogOpen = false;
       collectionName = '';
       await invalidateAll();
     } catch (err) {
@@ -91,14 +90,14 @@
     const collection = data.collections.find((c) => c.id === selectedCollectionId);
     if (!collection || !collection.parties) return [];
 
-    return collection.parties.map((partie: CollectionGame) => ({
-      whitePlayer: partie.game.whitePlayer || '?',
-      blackPlayer: partie.game.blackPlayer || '?',
-      tournament: partie.game.tournament || '?',
-      date: partie.game.date ? new Date(partie.game.date).toLocaleDateString() : '?',
-      whiteElo: partie.game.whiteElo || 0,
-      blackElo: partie.game.blackElo || 0,
-      result: partie.game.result || 'INCONNU'
+    return collection.parties.map((partie: any) => ({
+      whitePlayer: partie.blancNom || '?',
+      blackPlayer: partie.noirNom || '?',
+      tournament: partie.event || '?',
+      date: partie.datePartie ? new Date(partie.datePartie).toLocaleDateString() : '?',
+      whiteElo: partie.blancElo || 0,
+      blackElo: partie.noirElo || 0,
+      result: partie.resultat || 'INCONNU'
     }));
   });
 
@@ -212,9 +211,13 @@
 
     <div class="grow flex flex-col items-center bg-surface-900 overflow-auto">
         <div class="flex gap-4 items-center my-6">
-            <h1 class="h2 text-primary-500">{selectedCollection?.title || 'Collection'}</h1>
+            <h1 class="h2 text-primary-500">{selectedCollection?.nom || 'Collection'}</h1>
             <p>{gamesData.length} résultat{gamesData.length > 1 ? 's' : ''}</p>
-            <ImportGame/>
+            <ImportGame
+                    collectionId={selectedCollectionId || ''}
+                    onError={(message) => toaster.error({ title: 'Erreur', description: message })}
+                    onSuccess={(message) => toaster.success({ title: 'Succès', description: message })}
+            />
         </div>
 
         {#if gamesData.length > 0}
@@ -222,7 +225,11 @@
         {:else}
             <div class="flex flex-col items-center justify-center h-64 gap-4">
                 <p class="text-lg opacity-60">Aucune partie dans cette collection</p>
-                <ImportGame/>
+                <ImportGame
+                        collectionId={selectedCollectionId || ''}
+                        onSuccess={(message) => toaster.success({ title: 'Succès', description: message })}
+                        onError={(message) => toaster.error({ title: 'Erreur', description: message })}
+                />
             </div>
         {/if}
     </div>
