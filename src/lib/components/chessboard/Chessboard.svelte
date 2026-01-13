@@ -5,7 +5,7 @@
   import Tile from "$lib/components/chessboard/Tile.svelte";
   import {buildBoard, updateStatus} from "$lib/utils/chessboard";
 
-  const {parties} = $props();
+  const {parties, collections} = $props();
   let game = new Chess();
 
   let selectedGameIndex = $state(parties[0]?.id || null);
@@ -259,11 +259,13 @@
             <label class="label w-fit flex gap-4 items-center self-start">
                 <span class="label-text">Database</span>
                 <select class="select">
-                    <option value="1">Option 1</option>
-                    <option value="2">Option 2</option>
-                    <option value="3">Option 3</option>
-                    <option value="4">Option 4</option>
-                    <option value="5">Option 5</option>
+                    {#if collections.length === 0}
+                        <option value="">Aucune collection disponible</option>
+                    {:else}
+                        {#each collections as collection (collection.id)}
+                            <option value={collection.id}>{collection.nom}</option>
+                        {/each}
+                    {/if}
                 </select>
             </label>
 

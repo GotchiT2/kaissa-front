@@ -24,6 +24,6 @@
         </Navigation.Header>
     </Navigation>
 
-    <ChessBoard parties={data.partiesInAnalysis}/>
+    <ChessBoard parties={data.partiesInAnalysis} collections={data.collections}/>
 
 </div>

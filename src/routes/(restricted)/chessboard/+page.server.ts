@@ -35,7 +35,21 @@ export const load: PageServerLoad = async ({ locals }) => {
     },
   });
 
+  const collections = await prisma.collection.findMany({
+    where: {
+      proprietaireId: user.id,
+    },
+    select: {
+      id: true,
+      nom: true,
+    },
+    orderBy: {
+      nom: 'asc',
+    },
+  });
+
   return {
     partiesInAnalysis,
+    collections,
   };
 };
