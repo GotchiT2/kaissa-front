@@ -1,5 +1,5 @@
 <script lang="ts">
-  import {ChessQueen, Database, FlaskConical, Folder} from '@lucide/svelte';
+  import {ChessQueen, Database, FlaskConical, Folder, Tag} from '@lucide/svelte';
   import {createToaster, createTreeViewCollection, Navigation, Toast, TreeView} from '@skeletonlabs/skeleton-svelte';
   import {formatNumber} from '$lib/utils/formatNumber';
   import GamesTable from '$lib/components/table/GamesTable.svelte';
@@ -11,6 +11,7 @@
     data: {
       collections: CollectionWithGames[];
       partiesInAnalysis: any[];
+      tags: any[];
     };
   }
 
@@ -202,6 +203,23 @@
                     <span>Parties en analyse</span>
                     <span class="opacity-60 ml-auto">({data.partiesInAnalysis.length}/5)</span>
                 </button>
+            </Navigation.Group>
+
+            <Navigation.Group class="w-full mt-4">
+                <Navigation.Label class="capitalize pl-2">Tags</Navigation.Label>
+                {#if data.tags.length === 0}
+                    <p class="text-sm opacity-60 px-4 py-2">Aucun tag disponible</p>
+                {:else}
+                    {#each data.tags as tag}
+                        <button
+                                class="flex items-center gap-2 w-full text-left px-4 py-2 rounded hover:preset-tonal"
+                        >
+                            <Tag class="size-4"/>
+                            <span>{tag.nom}</span>
+                            <span class="opacity-60 ml-auto">({tag._count.parties})</span>
+                        </button>
+                    {/each}
+                {/if}
             </Navigation.Group>
 
         </Navigation.Content>

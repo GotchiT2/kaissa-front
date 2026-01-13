@@ -3,10 +3,7 @@ import { getUserCollections } from "$lib/server/services/collection.service";
 import type { CollectionWithGames } from "$lib/types/chess.types";
 import { prisma } from "$lib/server/db";
 
-export const load: PageServerLoad<{
-  collections: CollectionWithGames[];
-  partiesInAnalysis: any[];
-}> = async ({ locals }) => {
+export const load: PageServerLoad = async ({ locals }) => {
   const user = locals.user;
 
   if (!user) {
@@ -42,8 +39,33 @@ export const load: PageServerLoad<{
     },
   });
 
+  const tags = await prisma.tag.findMany({
+    where: {
+      parties: {
+        some: {
+          partie: {
+            collection: {
+              proprietaireId: user.id,
+            },
+          },
+        },
+      },
+    },
+    include: {
+      _count: {
+        select: {
+          parties: true,
+        },
+      },
+    },
+    orderBy: {
+      nom: 'asc',
+    },
+  });
+
   return {
     collections,
     partiesInAnalysis,
+    tags,
   };
 };
