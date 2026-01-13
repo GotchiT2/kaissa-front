@@ -4,6 +4,7 @@
   import {ChevronFirst, ChevronLast, ChevronLeft, ChevronRight} from "@lucide/svelte";
   import Tile from "$lib/components/chessboard/Tile.svelte";
   import {buildBoard, updateStatus} from "$lib/utils/chessboard";
+  import {hashFEN} from "$lib/utils/positionHash";
 
   const {parties, collections} = $props();
   let game = new Chess();
@@ -62,8 +63,44 @@
   let selectedSquare = $state<string | null>(null);
   let possibleMoves = $state<string[]>([]);
   let statusMessage = $state<string>("Trait aux Blancs");
+  let selectedCollectionId = $state<string | null>(collections[0]?.id || null);
+
+
+  type MeilleurCoup = {
+    coup: string;
+    nbParties: string;
+    statsVictoires: [number, number, number];
+  };
+
+  let meilleursCoups: MeilleurCoup[]  = $state([]);
 
   board = buildBoard(game);
+
+  $effect(() => {
+    if (!selectedCollectionId) return;
+
+    currentIndex;
+
+    const fen = game.fen();
+    const hashPosition = hashFEN(fen);
+
+    fetch(`/api/collections/${selectedCollectionId}/position-moves?hashPosition=${hashPosition}`)
+      .then(response => response.json())
+      .then(data => {
+        meilleursCoups = data.moves.map((move => {
+          const statsVictoires = calculePourcentageVictoires(move.victoiresBlancs, move.victoiresNoirs, move.nulles);
+          return {
+            coup: move.coup,
+            nbParties: move.nbParties,
+            statsVictoires,
+            // elo: move.eloMoyen.toFixed(0)
+          };
+        }));
+      })
+      .catch(error => {
+        console.error('Erreur lors de la récupération des coups:', error);
+      });
+  });
 
   function selectSquare(square: string) {
     selectedSquare = square;
@@ -165,14 +202,13 @@
     return result;
   }
 
-  const tableData = [
-    {coup: 'c5', frequence: '41%', eval: [47, 4, 49], elo: '1459'},
-    {coup: 'd6', frequence: '28%', eval: [51, 5, 44], elo: '1620'},
-    {coup: 'c5', frequence: '41%', eval: [47, 4, 49], elo: '1459'},
-    {coup: 'd6', frequence: '28%', eval: [51, 5, 44], elo: '1620'},
-    {coup: 'c5', frequence: '41%', eval: [47, 4, 49], elo: '1459'},
-    {coup: 'd6', frequence: '28%', eval: [51, 5, 44], elo: '1620'},
-  ];
+  function calculePourcentageVictoires(nbBlancs: number, nbNoirs: number, nbNulles: number) {
+    const total = nbBlancs + nbNoirs + nbNulles;
+    if (total === 0) {
+      return {victoiresBlancs: 0, victoiresNoirs: 0, nulles: 0};
+    }
+    return [Math.round((nbBlancs / total) * 100), Math.round((nbNoirs / total) * 100), Math.round((nbNulles / total) * 100)]
+  }
 </script>
 
 <div class="grow flex gap-8 items-start p-8 bg-surface-900 overflow-auto">
@@ -258,7 +294,7 @@
 
             <label class="label w-fit flex gap-4 items-center self-start">
                 <span class="label-text">Database</span>
-                <select class="select">
+                <select class="select" bind:value={selectedCollectionId}>
                     {#if collections.length === 0}
                         <option value="">Aucune collection disponible</option>
                     {:else}
@@ -275,38 +311,38 @@
                     <thead>
                     <tr class="text-white">
                         <th>Coup</th>
-                        <th>Fréquence</th>
+                        <th>Nombre de parties</th>
                         <th>Blanc / Neutre / Noir</th>
                         <th class="text-right!">ELO Moyen</th>
                     </tr>
                     </thead>
                     <tbody class="[&>tr]:hover:preset-tonal-primary">
-                    {#each tableData as row}
+                    {#each meilleursCoups as row}
                         <tr>
                             <td>{row.coup}</td>
-                            <td>{row.frequence}</td>
+                            <td>{row.nbParties}</td>
                             <td>
                                 <div class="flex h-6 w-full overflow-hidden rounded-md text-xs font-semibold">
                                     <div
                                             class="flex items-center justify-center bg-surface-50 text-black"
-                                            style="width: {row.eval[0]}%"
+                                            style="width: {row.statsVictoires[0]}%"
                                     >
-                                        {row.eval[0]}%
+                                        {row.statsVictoires[0]}%
                                     </div>
                                     <div
                                             class="flex items-center justify-center bg-surface-200 text-black"
-                                            style="width: {row.eval[1]}%"
+                                            style="width: {row.statsVictoires[1]}%"
                                     >
                                     </div>
                                     <div
                                             class="flex items-center justify-center bg-surface-400 text-white"
-                                            style="width: {row.eval[2]}%"
+                                            style="width: {row.statsVictoires[2]}%"
                                     >
-                                        {row.eval[2]}%
+                                        {row.statsVictoires[2]}%
                                     </div>
                                 </div>
                             </td>
-                            <td class="text-right">{row.elo}</td>
+<!--                            <td class="text-right">{row.elo}</td>-->
                         </tr>
                     {/each}
                     </tbody>

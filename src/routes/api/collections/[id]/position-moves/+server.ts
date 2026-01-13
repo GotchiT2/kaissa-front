@@ -1,0 +1,61 @@
+import { json } from "@sveltejs/kit";
+import type { RequestHandler } from "./$types";
+import { prisma } from "$lib/server/db";
+
+export const GET: RequestHandler = async ({ params, url, locals }) => {
+  const user = locals.user;
+
+  if (!user) {
+    return json({ message: "Vous devez être connecté" }, { status: 401 });
+  }
+
+  const collectionId = params.id;
+  const hashPosition = url.searchParams.get("hashPosition");
+
+  if (!hashPosition) {
+    return json({ message: "Le paramètre hashPosition est requis" }, { status: 400 });
+  }
+
+  try {
+    const hashPositionBigInt = BigInt(hashPosition);
+
+    const collection = await prisma.collection.findUnique({
+      where: { id: collectionId },
+    });
+
+    if (!collection) {
+      return json({ message: "Collection non trouvée" }, { status: 404 });
+    }
+
+    if (collection.proprietaireId !== user.id) {
+      return json({ message: "Accès non autorisé à cette collection" }, { status: 403 });
+    }
+
+    const topMoves = await prisma.agregatCoupsCollection.findMany({
+      where: {
+        collectionId,
+        hashPosition: hashPositionBigInt,
+      },
+      orderBy: {
+        nbParties: "desc",
+      },
+      take: 6,
+    });
+
+    return json({
+      moves: topMoves.map((move) => ({
+        coup: move.coupUci,
+        nbParties: Number(move.nbParties),
+        victoiresBlancs: Number(move.victoiresBlancs),
+        nulles: Number(move.nulles),
+        victoiresNoirs: Number(move.victoiresNoirs),
+      })),
+    });
+  } catch (error) {
+    console.error("Erreur lors de la récupération des meilleurs coups:", error);
+    return json(
+      { message: "Erreur lors de la récupération des meilleurs coups" },
+      { status: 500 }
+    );
+  }
+};

@@ -3,6 +3,7 @@ import type { RequestHandler } from "./$types";
 import { parsePGNFile } from "$lib/server/utils/pgnParser";
 import { prisma } from "$lib/server/db";
 import { hashFEN } from "$lib/server/utils/positionHash";
+import type { Camp, Resultat } from "@prisma/client";
 
 export const POST: RequestHandler = async ({ request, locals, params }) => {
   const user = locals.user;
@@ -65,6 +66,8 @@ export const POST: RequestHandler = async ({ request, locals, params }) => {
 
           let previousNodeId: string | null = null;
 
+          let previousHashPosition: bigint | null = null;
+
           for (const move of game.parsedMoves) {
             const positionHash = hashFEN(move.fen);
 
@@ -80,6 +83,23 @@ export const POST: RequestHandler = async ({ request, locals, params }) => {
               },
             });
 
+            if (previousHashPosition !== null && move.uci) {
+              const campAuTrait: Camp = move.ply % 2 === 1 ? "BLANCS" : "NOIRS";
+              
+              await tx.transitionPartie.create({
+                data: {
+                  partieId: partie.id,
+                  hashPositionAvant: previousHashPosition,
+                  coupUci: move.uci,
+                  hashPositionApres: positionHash,
+                  ply: move.ply,
+                  estDansPrincipal: true,
+                  campAuTrait,
+                },
+              });
+            }
+
+            previousHashPosition = positionHash;
             previousNodeId = noeud.id;
           }
         });
@@ -95,6 +115,8 @@ export const POST: RequestHandler = async ({ request, locals, params }) => {
       data: { updatedAt: new Date() },
     });
 
+    await updateAggregates(collectionId);
+
     return json({
       success: true,
       message: `${importedCount} partie(s) importée(s) avec succès`,
@@ -109,3 +131,88 @@ export const POST: RequestHandler = async ({ request, locals, params }) => {
     throw error(500, "Erreur lors de l'import des parties");
   }
 };
+
+async function updateAggregates(collectionId: string) {
+  const filtreHash = "default";
+
+  const transitions = await prisma.transitionPartie.findMany({
+    where: {
+      partie: {
+        collectionId,
+      },
+      estDansPrincipal: true,
+    },
+    include: {
+      partie: {
+        select: {
+          id: true,
+          resultat: true,
+        },
+      },
+    },
+  });
+
+  const aggregatesMap = new Map<string, {
+    nbParties: Set<string>;
+    victoiresBlancs: number;
+    nulles: number;
+    victoiresNoirs: number;
+  }>();
+
+  for (const transition of transitions) {
+    const key = `${transition.hashPositionAvant}|${transition.coupUci}`;
+    
+    if (!aggregatesMap.has(key)) {
+      aggregatesMap.set(key, {
+        nbParties: new Set(),
+        victoiresBlancs: 0,
+        nulles: 0,
+        victoiresNoirs: 0,
+      });
+    }
+
+    const agg = aggregatesMap.get(key)!;
+    agg.nbParties.add(transition.partieId);
+
+    if (transition.partie.resultat === "BLANCS") {
+      agg.victoiresBlancs++;
+    } else if (transition.partie.resultat === "NOIRS") {
+      agg.victoiresNoirs++;
+    } else if (transition.partie.resultat === "NULLE") {
+      agg.nulles++;
+    }
+  }
+
+  for (const [key, agg] of aggregatesMap.entries()) {
+    const [hashPositionStr, coupUci] = key.split('|');
+    const hashPosition = BigInt(hashPositionStr);
+
+    await prisma.agregatCoupsCollection.upsert({
+      where: {
+        collectionId_hashPosition_filtreHash_coupUci: {
+          collectionId,
+          hashPosition,
+          filtreHash,
+          coupUci,
+        },
+      },
+      create: {
+        collectionId,
+        hashPosition,
+        filtreHash,
+        coupUci,
+        nbParties: BigInt(agg.nbParties.size),
+        victoiresBlancs: BigInt(agg.victoiresBlancs),
+        nulles: BigInt(agg.nulles),
+        victoiresNoirs: BigInt(agg.victoiresNoirs),
+      },
+      update: {
+        nbParties: BigInt(agg.nbParties.size),
+        victoiresBlancs: BigInt(agg.victoiresBlancs),
+        nulles: BigInt(agg.nulles),
+        victoiresNoirs: BigInt(agg.victoiresNoirs),
+        updatedAt: new Date(),
+      },
+    });
+  }
+}
