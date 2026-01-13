@@ -49,6 +49,22 @@ export const load: PageServerLoad = async ({ locals }) => {
           parties: true,
         },
       },
+      parties: {
+        include: {
+          partie: {
+            include: {
+              coups: {
+                where: {
+                  estPrincipal: true,
+                },
+                orderBy: {
+                  ply: 'asc',
+                },
+              },
+            },
+          },
+        },
+      },
     },
     orderBy: {
       nom: 'asc',

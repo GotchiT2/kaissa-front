@@ -74,7 +74,8 @@
   }));
 
   let selectedCollectionId = $state<string | null>(data.collections[0]?.id || null);
-  let viewMode = $state<'collection' | 'analysis'>('collection');
+  let selectedTagId = $state<string | null>(null);
+  let viewMode = $state<'collection' | 'analysis' | 'tag'>('collection');
 
   function formatMoves(coups: any[]): string {
     if (!coups || coups.length === 0) return '—';
@@ -116,6 +117,29 @@
       }));
     }
 
+    if (viewMode === 'tag') {
+      if (!selectedTagId) return [];
+
+      const tag = data.tags.find((t) => t.id === selectedTagId);
+      if (!tag || !tag.parties) return [];
+
+      return tag.parties.map((partieTag: any) => {
+        const partie = partieTag.partie;
+        return {
+          id: partie.id,
+          whitePlayer: partie.blancNom || '?',
+          blackPlayer: partie.noirNom || '?',
+          tournament: partie.event || '?',
+          date: partie.datePartie ? new Date(partie.datePartie).toLocaleDateString() : '?',
+          whiteElo: partie.blancElo || 0,
+          blackElo: partie.noirElo || 0,
+          result: normalizeResult(partie.resultat),
+          notation: formatMoves(partie.coups || []),
+          isInAnalysis: partie.isInAnalysis || false,
+        };
+      });
+    }
+
     if (!selectedCollectionId) return [];
 
     const collection = data.collections.find((c) => c.id === selectedCollectionId);
@@ -139,8 +163,16 @@
     data.collections.find((c) => c.id === selectedCollectionId)
   );
 
+  const selectedTag = $derived(
+    data.tags.find((t) => t.id === selectedTagId)
+  );
+
   const pageTitle = $derived(
-    viewMode === 'analysis' ? 'En Analyse' : selectedCollection?.nom || 'Collection'
+    viewMode === 'analysis' 
+      ? 'En Analyse' 
+      : viewMode === 'tag' 
+        ? selectedTag?.nom || 'Tag'
+        : selectedCollection?.nom || 'Collection'
   );
 
   function handleToastSuccess(message: string) {
@@ -154,6 +186,11 @@
 
   function handleSelectAnalysis() {
     viewMode = 'analysis';
+  }
+
+  function handleSelectTag(id: string) {
+    selectedTagId = id;
+    viewMode = 'tag';
   }
 </script>
 
@@ -213,9 +250,11 @@
                 {#if data.tags.length === 0}
                     <p class="text-sm opacity-60 px-4 py-2">Aucun tag disponible</p>
                 {:else}
-                    {#each data.tags as tag}
+                    {#each data.tags as tag (tag.id)}
                         <button
                                 class="flex items-center gap-2 w-full text-left px-4 py-2 rounded hover:preset-tonal"
+                                class:preset-filled-primary-500={viewMode === 'tag' && selectedTagId === tag.id}
+                                onclick={() => handleSelectTag(tag.id)}
                         >
                             <Tag class="size-4"/>
                             <span>{tag.nom}</span>
