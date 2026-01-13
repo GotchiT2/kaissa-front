@@ -1,6 +1,6 @@
 <script lang="ts">
   import {Chess} from "chess.js";
-  import {Navigation, Switch, Tabs} from "@skeletonlabs/skeleton-svelte";
+  import {Switch, Tabs} from "@skeletonlabs/skeleton-svelte";
   import {ChevronFirst, ChevronLast, ChevronLeft, ChevronRight} from "@lucide/svelte";
   import Tile from "$lib/components/chessboard/Tile.svelte";
   import {buildBoard, updateStatus} from "$lib/utils/chessboard";
@@ -12,23 +12,6 @@
   let selectedGameIndex = $state(parties[0]?.id || null);
 
   const selectedPartie = $derived(parties.find(p => p.id === selectedGameIndex));
-  
-  const partieNotation = $derived(() => {
-    if (!selectedPartie?.coups || selectedPartie.coups.length === 0) {
-      return '—';
-    }
-    
-    return selectedPartie.coups.map((coup, index) => {
-      const moveNumber = Math.floor(index / 2) + 1;
-      const move = coup.coupUci || '';
-      
-      if (index % 2 === 0) {
-        return `${moveNumber}. ${move}`;
-      } else {
-        return move;
-      }
-    }).join(' ');
-  });
 
   const moves = $derived(() => {
     if (!selectedPartie?.coups || selectedPartie.coups.length === 0) {
@@ -211,9 +194,9 @@
   }
 </script>
 
-<div class="grow flex gap-8 items-start p-8 bg-surface-900 overflow-auto">
-    <div class="flex flex-col items-center gap-4">
-        <Tabs onValueChange={(tab) => selectedGameIndex = tab.value}>
+<div class="flex gap-8 items-start p-8 bg-surface-900 overflow-auto">
+    <div class="flex flex-col items-center gap-4 max-w-[50%]">
+        <Tabs value={selectedGameIndex} onValueChange={(tab) => selectedGameIndex = tab.value}>
             <Tabs.List>
                 {#each parties as partie}
                     <Tabs.Trigger class="flex-1" value={partie.id.toString()}>

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import {ChessQueen, Database, Folder, FlaskConical} from '@lucide/svelte';
+  import {ChessQueen, Database, FlaskConical, Folder} from '@lucide/svelte';
   import {createToaster, createTreeViewCollection, Navigation, Toast, TreeView} from '@skeletonlabs/skeleton-svelte';
   import {formatNumber} from '$lib/utils/formatNumber';
   import GamesTable from '$lib/components/table/GamesTable.svelte';
@@ -76,18 +76,18 @@
 
   function formatMoves(coups: any[]): string {
     if (!coups || coups.length === 0) return '—';
-    
+
     const moves = coups.slice(0, 8).map((coup, index) => {
       const moveNumber = Math.floor(index / 2) + 1;
       const move = coup.coupUci || '';
-      
+
       if (index % 2 === 0) {
         return `${moveNumber}. ${move}`;
       } else {
         return move;
       }
     });
-    
+
     return moves.join(' ');
   }
 
@@ -157,7 +157,7 @@
 
 <div class="flex h-[90vh] w-full">
     <Navigation
-            class="w-auto h-full bg-[#121212] flex flex-col gap-4"
+            class="w-auto px-4 h-full bg-[#121212] flex flex-col items-center gap-4"
             layout="sidebar"
     >
         <Navigation.Header class="flex flex-col gap-2 py-4">
@@ -194,9 +194,9 @@
             <Navigation.Group class="w-full mt-4">
                 <Navigation.Label class="capitalize pl-2">En Analyse</Navigation.Label>
                 <button
-                        onclick={handleSelectAnalysis}
                         class="flex items-center gap-2 w-full text-left px-4 py-2 rounded hover:preset-tonal"
                         class:preset-filled-primary-500={viewMode === 'analysis'}
+                        onclick={handleSelectAnalysis}
                 >
                     <FlaskConical class="size-4"/>
                     <span>Parties en analyse</span>
