@@ -10,26 +10,32 @@
   import {createSvelteTable} from '$lib/components/table/data-table.svelte';
   import PaginationOld from '$lib/components/table/PaginationOld.svelte';
   import {Dialog, Portal} from '@skeletonlabs/skeleton-svelte';
-  import {Trash2Icon, XIcon, FlaskConicalIcon} from '@lucide/svelte';
+  import {Trash2Icon, XIcon, FlaskConicalIcon, TagIcon} from '@lucide/svelte';
   import FlexRender from '$lib/components/table/FlexRender.svelte';
   import {columns} from '$lib/components/table/columns';
   import {invalidateAll} from '$app/navigation';
 
   type DataTableProps<GameRow, TValue> = {
     data: GameRow[];
+    availableTags: any[];
     onDeleteSuccess?: (message: string) => void;
     onDeleteError?: (message: string) => void;
     onAnalysisToggleSuccess?: (message: string) => void;
     onAnalysisToggleError?: (message: string) => void;
+    onTagsUpdateSuccess?: (message: string) => void;
+    onTagsUpdateError?: (message: string) => void;
   };
   const PAGE_SIZE = 20;
 
-  let {data, onDeleteSuccess, onDeleteError, onAnalysisToggleSuccess, onAnalysisToggleError}: DataTableProps<GameRow, TValue> = $props();
+  let {data, availableTags, onDeleteSuccess, onDeleteError, onAnalysisToggleSuccess, onAnalysisToggleError, onTagsUpdateSuccess, onTagsUpdateError}: DataTableProps<GameRow, TValue> = $props();
   let pagination = $state<PaginationState>({pageIndex: 0, pageSize: PAGE_SIZE});
   let sorting = $state<SortingState>([]);
   let partieToDelete = $state<{ id: string, name: string } | null>(null);
   let isDeleting = $state(false);
   let togglingAnalysisIds = $state<Set<string>>(new Set());
+  let partieForTags = $state<{ id: string, name: string } | null>(null);
+  let selectedTagIds = $state<Set<string>>(new Set());
+  let isUpdatingTags = $state(false);
 
   let page = $state(1);
   const start = $derived((page - 1) * PAGE_SIZE);
@@ -134,8 +140,8 @@
       await invalidateAll();
 
       if (onAnalysisToggleSuccess) {
-        const message = !currentStatus 
-          ? 'Partie ajoutée à l\'analyse' 
+        const message = !currentStatus
+          ? 'Partie ajoutée à l\'analyse'
           : 'Partie retirée de l\'analyse';
         onAnalysisToggleSuccess(message);
       }
@@ -146,6 +152,66 @@
     } finally {
       togglingAnalysisIds.delete(id);
       togglingAnalysisIds = togglingAnalysisIds;
+    }
+  }
+
+  function openTagsModal(id: string, whitePlayer: string, blackPlayer: string) {
+    partieForTags = {
+      id,
+      name: `${whitePlayer} vs ${blackPlayer}`
+    };
+    selectedTagIds = new Set();
+  }
+
+  function closeTagsModal() {
+    if (!isUpdatingTags) {
+      partieForTags = null;
+      selectedTagIds = new Set();
+    }
+  }
+
+  function toggleTag(tagId: string) {
+    if (selectedTagIds.has(tagId)) {
+      selectedTagIds.delete(tagId);
+    } else {
+      selectedTagIds.add(tagId);
+    }
+    selectedTagIds = selectedTagIds;
+  }
+
+  async function saveTags() {
+    if (!partieForTags) return;
+
+    isUpdatingTags = true;
+
+    try {
+      const response = await fetch(`/api/parties/${partieForTags.id}/tags`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ tagIds: Array.from(selectedTagIds) }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Erreur lors de la mise à jour des tags');
+      }
+
+      await invalidateAll();
+
+      if (onTagsUpdateSuccess) {
+        onTagsUpdateSuccess('Tags mis à jour avec succès');
+      }
+
+      partieForTags = null;
+      selectedTagIds = new Set();
+    } catch (error: any) {
+      if (onTagsUpdateError) {
+        onTagsUpdateError(error.message || 'Erreur lors de la mise à jour des tags');
+      }
+    } finally {
+      isUpdatingTags = false;
     }
   }
 </script>
@@ -199,6 +265,14 @@
                     </td>
                     <td class="table-cell-fit">
                         <div class="flex gap-2">
+                            <button
+                                    onclick={() => openTagsModal(row.original.id, row.original.whitePlayer, row.original.blackPlayer)}
+                                    class="btn-icon btn-icon-sm hover:preset-filled-primary-500"
+                                    title="Gérer les tags"
+                                    aria-label="Gérer les tags"
+                            >
+                                <TagIcon class="size-4"/>
+                            </button>
                             <button
                                     onclick={() => toggleAnalysis(row.original.id, row.original.isInAnalysis)}
                                     class="btn-icon btn-icon-sm {row.original.isInAnalysis ? 'preset-filled-primary-500' : 'hover:preset-filled-primary-500'}"
@@ -257,6 +331,66 @@
         </footer>
     </div>
 </div>
+
+{#if partieForTags}
+    <Dialog open={partieForTags !== null}>
+        <Portal>
+            <Dialog.Backdrop class="fixed inset-0 z-50 bg-surface-50-950/50" onclick={closeTagsModal}/>
+            <Dialog.Positioner class="fixed inset-0 z-50 flex justify-center items-center p-4">
+                <Dialog.Content class="card bg-surface-100-900 w-full max-w-md p-4 space-y-4 shadow-xl">
+                    <header class="flex justify-between items-center">
+                        <Dialog.Title class="text-lg font-bold">Gérer les tags</Dialog.Title>
+                        <Dialog.CloseTrigger class="btn-icon hover:preset-tonal" onclick={closeTagsModal}
+                                             disabled={isUpdatingTags}>
+                            <XIcon class="size-4"/>
+                        </Dialog.CloseTrigger>
+                    </header>
+
+                    <Dialog.Description class="space-y-2">
+                        <p>Sélectionnez les tags pour :</p>
+                        <p class="font-semibold text-primary-500">{partieForTags.name}</p>
+                        
+                        <div class="space-y-2 mt-4 max-h-64 overflow-y-auto">
+                            {#if availableTags.length === 0}
+                                <p class="text-sm opacity-60">Aucun tag disponible. Créez-en un d'abord.</p>
+                            {:else}
+                                {#each availableTags as tag (tag.id)}
+                                    <label class="flex items-center gap-2 p-2 rounded hover:preset-tonal cursor-pointer">
+                                        <input
+                                                type="checkbox"
+                                                class="checkbox"
+                                                checked={selectedTagIds.has(tag.id)}
+                                                onchange={() => toggleTag(tag.id)}
+                                                disabled={isUpdatingTags}
+                                        />
+                                        <span>{tag.nom}</span>
+                                    </label>
+                                {/each}
+                            {/if}
+                        </div>
+                    </Dialog.Description>
+
+                    <footer class="flex justify-end gap-2">
+                        <button
+                                class="btn preset-tonal"
+                                onclick={closeTagsModal}
+                                disabled={isUpdatingTags}
+                        >
+                            Annuler
+                        </button>
+                        <button
+                                class="btn preset-filled-primary-500"
+                                onclick={saveTags}
+                                disabled={isUpdatingTags}
+                        >
+                            {isUpdatingTags ? 'Enregistrement...' : 'Enregistrer'}
+                        </button>
+                    </footer>
+                </Dialog.Content>
+            </Dialog.Positioner>
+        </Portal>
+    </Dialog>
+{/if}
 
 {#if partieToDelete}
     <Dialog open={partieToDelete !== null}>
