@@ -4,30 +4,6 @@
   import {ChessQueen, Database} from "@lucide/svelte";
 
   let {data} = $props();
-
-  // $effect(() => {
-  //   console.log('=== PARTIES EN ANALYSE ===');
-  //   console.log(`Nombre de parties en analyse: ${partiesInAnalysis.length}`);
-  //
-  //   partiesInAnalysis.forEach((partie, index) => {
-  //     console.log(`\n--- Partie ${index + 1} ---`);
-  //     console.log('ID:', partie.id);
-  //     console.log('Titre:', partie.titre || 'Sans titre');
-  //     console.log('Blancs:', partie.blancNom, `(${partie.blancElo || '?'})`);
-  //     console.log('Noirs:', partie.noirNom, `(${partie.noirElo || '?'})`);
-  //     console.log('Résultat:', partie.resultat);
-  //     console.log('Date:', partie.datePartie ? new Date(partie.datePartie).toLocaleDateString() : 'Inconnue');
-  //     console.log('Collection:', partie.collection.nom);
-  //     console.log('Nombre de coups:', partie.coups.length);
-  //     console.log('Contenu complet:', JSON.stringify(partie, (key, value) =>
-  //       typeof value === 'bigint' ? value.toString() : value, 2
-  //     ));
-  //   });
-  //
-  //   if (partiesInAnalysis.length === 0) {
-  //     console.log('Aucune partie en analyse pour le moment.');
-  //   }
-  // });
 </script>
 
 <div class="flex h-[90vh] w-full">

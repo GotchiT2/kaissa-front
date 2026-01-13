@@ -8,14 +8,55 @@
   const {parties} = $props();
   let game = new Chess();
 
-  let selectedGameIndex = $derived(parties[0]?.id || null);
+  let selectedGameIndex = $state(parties[0]?.id || null);
 
-  $effect(() => {
-    console.log("Selected game index changed:", selectedGameIndex);
-
+  const selectedPartie = $derived(parties.find(p => p.id === selectedGameIndex));
+  
+  const partieNotation = $derived(() => {
+    if (!selectedPartie?.coups || selectedPartie.coups.length === 0) {
+      return '—';
+    }
+    
+    return selectedPartie.coups.map((coup, index) => {
+      const moveNumber = Math.floor(index / 2) + 1;
+      const move = coup.coupUci || '';
+      
+      if (index % 2 === 0) {
+        return `${moveNumber}. ${move}`;
+      } else {
+        return move;
+      }
+    }).join(' ');
   });
 
-  let moves = $derived<string[]>([]);
+  const moves = $derived(() => {
+    if (!selectedPartie?.coups || selectedPartie.coups.length === 0) {
+      return [];
+    }
+    
+    const tempGame = new Chess();
+    const movesInSan: string[] = [];
+    
+    for (const coup of selectedPartie.coups) {
+      if (coup.coupUci) {
+        try {
+          const move = tempGame.move({
+            from: coup.coupUci.substring(0, 2),
+            to: coup.coupUci.substring(2, 4),
+            promotion: coup.coupUci.length > 4 ? coup.coupUci[4] : undefined
+          });
+          if (move) {
+            movesInSan.push(move.san);
+          }
+        } catch (e) {
+          console.error("Erreur lors de la conversion du coup:", coup.coupUci, e);
+        }
+      }
+    }
+    
+    return movesInSan;
+  });
+
   let currentIndex = $state(0);
   let board = $state<{ square: string; piece: Piece | null }[][]>([]);
   let selectedSquare = $state<string | null>(null);
@@ -37,7 +78,7 @@
   function handleTileClick(square: string) {
     const clickedPiece = game.get(square);
 
-    if (currentIndex !== moves.length) return;
+    if (currentIndex !== moves().length) return;
 
     if (!selectedSquare) {
       if (clickedPiece && clickedPiece.color === game.turn()) {
@@ -55,8 +96,7 @@
       const move = game.move({from: selectedSquare, to: square, promotion: "q"});
 
       if (move) {
-        moves.push(move.san);
-        currentIndex = moves.length;
+        currentIndex = moves().length;
         board = buildBoard(game);
         clearSelection();
         statusMessage = updateStatus(game);
@@ -73,8 +113,11 @@
 
   function rebuildPosition() {
     game = new Chess();
+    const currentMoves = moves();
     for (let i = 0; i < currentIndex; i++) {
-      game.move(moves[i]);
+      if (currentMoves[i]) {
+        game.move(currentMoves[i]);
+      }
     }
     board = buildBoard(game);
     statusMessage = updateStatus(game);
@@ -95,7 +138,7 @@
   }
 
   function nextMove() {
-    if (currentIndex < moves.length) {
+    if (currentIndex < moves().length) {
       currentIndex++;
       rebuildPosition();
       clearSelection();
@@ -103,17 +146,18 @@
   }
 
   function resumeGame() {
-    currentIndex = moves.length;
+    currentIndex = moves().length;
     rebuildPosition();
   }
 
   function groupedMoves() {
+    const currentMoves = moves();
     const result = [];
-    for (let i = 0; i < moves.length; i += 2) {
+    for (let i = 0; i < currentMoves.length; i += 2) {
       result.push({
         moveNumber: i / 2 + 1,
-        white: moves[i] ?? "",
-        black: moves[i + 1] ?? "",
+        white: currentMoves[i] ?? "",
+        black: currentMoves[i + 1] ?? "",
         whiteIndex: i + 1,
         blackIndex: i + 2
       });
@@ -130,40 +174,6 @@
     {coup: 'd6', frequence: '28%', eval: [51, 5, 44], elo: '1620'},
   ];
 </script>
-
-<Navigation
-        class="grow h-full grid grid-rows-[auto_1fr_auto] gap-4 border-r-1 border-b-primary-100 py-8"
-        layout="sidebar"
->
-    <Navigation.Content class="
-    ml-4 overflow-y-auto">
-        <h3>Historique</h3>
-
-        <div class="history">
-            {#each groupedMoves() as row}
-                <div class={"history-row" + (row.moveNumber % 2 === 0 ? ' history-row-light' : '')}>
-                    <div class="move-number">{row.moveNumber}.</div>
-
-                    <button
-                            class="move white
-                                {currentIndex === row.whiteIndex ? 'active' : ''}"
-                            onclick={() => { currentIndex = row.whiteIndex; rebuildPosition(); }}
-                    >
-                        {row.white}
-                    </button>
-
-                    <button
-                            class="move black
-                                {currentIndex === row.blackIndex ? 'active' : ''}"
-                            onclick={() => { currentIndex = row.blackIndex; rebuildPosition(); }}
-                    >
-                        {row.black}
-                    </button>
-                </div>
-            {/each}
-        </div>
-    </Navigation.Content>
-</Navigation>
 
 <div class="grow flex gap-8 items-start p-8 bg-surface-900 overflow-auto">
     <div class="flex flex-col items-center gap-4">
@@ -195,11 +205,11 @@
             <button class="btn preset-tonal" disabled={currentIndex === 0} onclick={prevMove}>
                 <ChevronLeft/>
                 <span class="sr-only">Précédent</span></button>
-            <button class="btn preset-tonal" disabled={currentIndex === moves.length} onclick={nextMove}>
+            <button class="btn preset-tonal" disabled={currentIndex === moves().length} onclick={nextMove}>
                 <ChevronRight/>
                 <span class="sr-only">Suivant</span>
             </button>
-            <button class="btn preset-tonal" disabled={currentIndex === moves.length} onclick={resumeGame}>
+            <button class="btn preset-tonal" disabled={currentIndex === moves().length} onclick={resumeGame}>
                 <ChevronLast/>
                 <span class="sr-only">Aller au dernier coup</span>
             </button>
@@ -207,7 +217,7 @@
     </div>
 
     <div class="flex h-full flex-col justify-start grow gap-4">
-        <div class="flex flex-col gap-4 items-center">
+        <div class="flex flex-col gap-4 items-center w-full">
             <Switch dir="rtl" defaultChecked>
                 <Switch.Control>
                     <Switch.Thumb/>
@@ -216,10 +226,25 @@
                 <Switch.HiddenInput/>
             </Switch>
 
-            <textarea
-                    class="w-full h-48 bg-surface-800 text-white p-2 rounded resize-none"
-                    readonly
-            >{moves.join(' ')}</textarea>
+            <div class="notation-text w-full bg-surface-800 p-4 rounded max-h-96 overflow-y-auto">
+                {#each groupedMoves() as row}
+                    <span class="move-number">{row.moveNumber}.</span>
+                    <button
+                            class="move-btn {currentIndex === row.whiteIndex ? 'active' : ''}"
+                            onclick={() => { currentIndex = row.whiteIndex; rebuildPosition(); }}
+                    >
+                        {row.white}
+                    </button>
+                    {#if row.black}
+                        <button
+                                class="move-btn {currentIndex === row.blackIndex ? 'active' : ''}"
+                                onclick={() => { currentIndex = row.blackIndex; rebuildPosition(); }}
+                        >
+                            {row.black}
+                        </button>
+                    {/if}
+                {/each}
+            </div>
         </div>
 
         <div class="flex flex-col gap-4 items-center">
@@ -385,48 +410,38 @@
         background: rgba(255, 255, 255, 0.15);
     }
 
-    .history {
+    .notation-text {
         font-family: system-ui, -apple-system, sans-serif;
         font-size: 14px;
-    }
-
-    .history-row {
-        display: grid;
-        grid-template-columns: 32px 1fr 1fr;
-        gap: 6px;
-        padding: 4px 2px;
-        align-items: center;
-    }
-
-    .history-row-light {
-        background: rgba(255, 255, 255, 0.1);
+        line-height: 1.8;
     }
 
     .move-number {
-        text-align: right;
         color: #aaa;
+        margin-right: 4px;
+        margin-left: 8px;
     }
 
-    .move {
-        padding: 3px 6px;
-        border-radius: 4px;
+    .move-number:first-child {
+        margin-left: 0;
+    }
+
+    .move-btn {
+        padding: 2px 4px;
+        margin: 0 2px;
+        border-radius: 3px;
         cursor: pointer;
+        background: transparent;
+        color: inherit;
+        transition: background 0.15s;
     }
 
-    .move:hover {
-        background: rgba(255, 255, 255, 0.05);
+    .move-btn:hover {
+        background: rgba(255, 255, 255, 0.1);
     }
 
-    .move.white {
-        text-align: left;
-    }
-
-    .move.black {
-        text-align: left;
-    }
-
-    .move.active {
-        background: rgba(255, 255, 255, 0.15);
+    .move-btn.active {
+        background: rgba(59, 130, 246, 0.5);
         color: white;
         font-weight: 600;
     }
