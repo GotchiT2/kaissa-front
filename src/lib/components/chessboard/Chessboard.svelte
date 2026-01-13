@@ -1,13 +1,21 @@
 <script lang="ts">
   import {Chess} from "chess.js";
-  import {Navigation, Switch} from "@skeletonlabs/skeleton-svelte";
+  import {Navigation, Switch, Tabs} from "@skeletonlabs/skeleton-svelte";
   import {ChevronFirst, ChevronLast, ChevronLeft, ChevronRight} from "@lucide/svelte";
   import Tile from "$lib/components/chessboard/Tile.svelte";
   import {buildBoard, updateStatus} from "$lib/utils/chessboard";
 
+  const {parties} = $props();
   let game = new Chess();
 
-  let moves = $state<string[]>([]);
+  let selectedGameIndex = $derived(parties[0]?.id || null);
+
+  $effect(() => {
+    console.log("Selected game index changed:", selectedGameIndex);
+
+  });
+
+  let moves = $derived<string[]>([]);
   let currentIndex = $state(0);
   let board = $state<{ square: string; piece: Piece | null }[][]>([]);
   let selectedSquare = $state<string | null>(null);
@@ -159,6 +167,16 @@
 
 <div class="grow flex gap-8 items-start p-8 bg-surface-900 overflow-auto">
     <div class="flex flex-col items-center gap-4">
+        <Tabs onValueChange={(tab) => selectedGameIndex = tab.value}>
+            <Tabs.List>
+                {#each parties as partie}
+                    <Tabs.Trigger class="flex-1" value={partie.id.toString()}>
+                        {partie.titre || 'Partie sans titre'}
+                    </Tabs.Trigger>
+                {/each}
+            </Tabs.List>
+        </Tabs>
+
         <div class="board">
             {#each board as row, r}
                 <div class="rank">
