@@ -55,4 +55,5 @@ export interface GameRow {
   tournament: string;
   notation: string;
   isInAnalysis: boolean;
+  tagIds: string[];
 }

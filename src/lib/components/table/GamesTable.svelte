@@ -10,7 +10,7 @@
   import {createSvelteTable} from '$lib/components/table/data-table.svelte';
   import PaginationOld from '$lib/components/table/PaginationOld.svelte';
   import {Dialog, Portal} from '@skeletonlabs/skeleton-svelte';
-  import {Trash2Icon, XIcon, FlaskConicalIcon, TagIcon} from '@lucide/svelte';
+  import {FlaskConicalIcon, TagIcon, Trash2Icon, XIcon} from '@lucide/svelte';
   import FlexRender from '$lib/components/table/FlexRender.svelte';
   import {columns} from '$lib/components/table/columns';
   import {invalidateAll} from '$app/navigation';
@@ -27,7 +27,16 @@
   };
   const PAGE_SIZE = 20;
 
-  let {data, availableTags, onDeleteSuccess, onDeleteError, onAnalysisToggleSuccess, onAnalysisToggleError, onTagsUpdateSuccess, onTagsUpdateError}: DataTableProps<GameRow, TValue> = $props();
+  let {
+    data,
+    availableTags,
+    onDeleteSuccess,
+    onDeleteError,
+    onAnalysisToggleSuccess,
+    onAnalysisToggleError,
+    onTagsUpdateSuccess,
+    onTagsUpdateError
+  }: DataTableProps<GameRow, TValue> = $props();
   let pagination = $state<PaginationState>({pageIndex: 0, pageSize: PAGE_SIZE});
   let sorting = $state<SortingState>([]);
   let partieToDelete = $state<{ id: string, name: string } | null>(null);
@@ -129,7 +138,7 @@
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ isInAnalysis: !currentStatus }),
+        body: JSON.stringify({isInAnalysis: !currentStatus}),
       });
 
       if (!response.ok) {
@@ -160,7 +169,11 @@
       id,
       name: `${whitePlayer} vs ${blackPlayer}`
     };
-    selectedTagIds = new Set();
+
+    const resultat = availableTags.filter(tag =>
+      tag.parties.some(partie => partie.partieId === id)
+    ).map(tag => tag.id);
+    selectedTagIds = new Set(resultat);
   }
 
   function closeTagsModal() {
@@ -190,7 +203,7 @@
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ tagIds: Array.from(selectedTagIds) }),
+        body: JSON.stringify({tagIds: Array.from(selectedTagIds)}),
       });
 
       if (!response.ok) {
@@ -349,7 +362,7 @@
                     <Dialog.Description class="space-y-2">
                         <p>Sélectionnez les tags pour :</p>
                         <p class="font-semibold text-primary-500">{partieForTags.name}</p>
-                        
+
                         <div class="space-y-2 mt-4 max-h-64 overflow-y-auto">
                             {#if availableTags.length === 0}
                                 <p class="text-sm opacity-60">Aucun tag disponible. Créez-en un d'abord.</p>

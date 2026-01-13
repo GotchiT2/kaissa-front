@@ -33,6 +33,11 @@ export const load: PageServerLoad = async ({ locals }) => {
           nom: true,
         },
       },
+      tags: {
+        select: {
+          tagId: true,
+        },
+      },
     },
     orderBy: {
       updatedAt: "desc",
@@ -59,6 +64,11 @@ export const load: PageServerLoad = async ({ locals }) => {
                 },
                 orderBy: {
                   ply: 'asc',
+                },
+              },
+              tags: {
+                select: {
+                  tagId: true,
                 },
               },
             },

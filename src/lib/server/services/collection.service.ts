@@ -63,6 +63,11 @@ export async function getUserCollections(userId: string) {
               ply: 'asc',
             },
           },
+          tags: {
+            select: {
+              tagId: true,
+            },
+          },
         },
       },
       _count: {
@@ -92,6 +97,11 @@ export async function getCollectionById(collectionId: string, userId: string) {
             },
             orderBy: {
               ply: 'asc',
+            },
+          },
+          tags: {
+            select: {
+              tagId: true,
             },
           },
         },

@@ -114,6 +114,7 @@
         result: normalizeResult(partie.resultat),
         notation: formatMoves(partie.coups || []),
         isInAnalysis: partie.isInAnalysis || false,
+        tagIds: partie.tags?.map((t: any) => t.tagId) || [],
       }));
     }
 
@@ -136,6 +137,7 @@
           result: normalizeResult(partie.resultat),
           notation: formatMoves(partie.coups || []),
           isInAnalysis: partie.isInAnalysis || false,
+          tagIds: partie.tags?.map((t: any) => t.tagId) || [],
         };
       });
     }
@@ -156,6 +158,7 @@
       result: normalizeResult(partie.resultat),
       notation: formatMoves(partie.coups || []),
       isInAnalysis: partie.isInAnalysis || false,
+      tagIds: partie.tags?.map((t: any) => t.tagId) || [],
     }));
   });
 
@@ -168,9 +171,9 @@
   );
 
   const pageTitle = $derived(
-    viewMode === 'analysis' 
-      ? 'En Analyse' 
-      : viewMode === 'tag' 
+    viewMode === 'analysis'
+      ? 'En Analyse'
+      : viewMode === 'tag'
         ? selectedTag?.nom || 'Tag'
         : selectedCollection?.nom || 'Collection'
   );
