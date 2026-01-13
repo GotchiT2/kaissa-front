@@ -1,5 +1,5 @@
 <script lang="ts">
-  import {ChessQueen, Database, Folder} from '@lucide/svelte';
+  import {ChessQueen, Database, Folder, FlaskConical} from '@lucide/svelte';
   import {createToaster, createTreeViewCollection, Navigation, Toast, TreeView} from '@skeletonlabs/skeleton-svelte';
   import {formatNumber} from '$lib/utils/formatNumber';
   import GamesTable from '$lib/components/table/GamesTable.svelte';
@@ -10,6 +10,7 @@
   interface Props {
     data: {
       collections: CollectionWithGames[];
+      partiesInAnalysis: any[];
     };
   }
 
@@ -71,6 +72,7 @@
   }));
 
   let selectedCollectionId = $state<string | null>(data.collections[0]?.id || null);
+  let viewMode = $state<'collection' | 'analysis'>('collection');
 
   function formatMoves(coups: any[]): string {
     if (!coups || coups.length === 0) return '—';
@@ -97,6 +99,21 @@
   }
 
   const gamesData = $derived.by((): GameRow[] => {
+    if (viewMode === 'analysis') {
+      return data.partiesInAnalysis.map((partie: any) => ({
+        id: partie.id,
+        whitePlayer: partie.blancNom || '?',
+        blackPlayer: partie.noirNom || '?',
+        tournament: partie.event || '?',
+        date: partie.datePartie ? new Date(partie.datePartie).toLocaleDateString() : '?',
+        whiteElo: partie.blancElo || 0,
+        blackElo: partie.noirElo || 0,
+        result: normalizeResult(partie.resultat),
+        notation: formatMoves(partie.coups || []),
+        isInAnalysis: partie.isInAnalysis || false,
+      }));
+    }
+
     if (!selectedCollectionId) return [];
 
     const collection = data.collections.find((c) => c.id === selectedCollectionId);
@@ -120,12 +137,21 @@
     data.collections.find((c) => c.id === selectedCollectionId)
   );
 
+  const pageTitle = $derived(
+    viewMode === 'analysis' ? 'En Analyse' : selectedCollection?.nom || 'Collection'
+  );
+
   function handleToastSuccess(message: string) {
     toaster.success({title: 'Succès', description: message});
   }
 
   function handleSelectCollection(id: string) {
     selectedCollectionId = id;
+    viewMode = 'collection';
+  }
+
+  function handleSelectAnalysis() {
+    viewMode = 'analysis';
   }
 </script>
 
@@ -165,18 +191,33 @@
                 </TreeView>
             </Navigation.Group>
 
+            <Navigation.Group class="w-full mt-4">
+                <Navigation.Label class="capitalize pl-2">En Analyse</Navigation.Label>
+                <button
+                        onclick={handleSelectAnalysis}
+                        class="flex items-center gap-2 w-full text-left px-4 py-2 rounded hover:preset-tonal"
+                        class:preset-filled-primary-500={viewMode === 'analysis'}
+                >
+                    <FlaskConical class="size-4"/>
+                    <span>Parties en analyse</span>
+                    <span class="opacity-60 ml-auto">({data.partiesInAnalysis.length}/5)</span>
+                </button>
+            </Navigation.Group>
+
         </Navigation.Content>
     </Navigation>
 
     <div class="grow flex flex-col items-center bg-surface-900 overflow-auto">
         <div class="flex gap-4 items-center my-6">
-            <h1 class="h2 text-primary-500">{selectedCollection?.nom || 'Collection'}</h1>
+            <h1 class="h2 text-primary-500">{pageTitle}</h1>
             <p>{gamesData.length} résultat{gamesData.length > 1 ? 's' : ''}</p>
-            <ImportGame
-                    collectionId={selectedCollectionId || ''}
-                    onError={(message) => toaster.error({ title: 'Erreur', description: message })}
-                    onSuccess={(message) => toaster.success({ title: 'Succès', description: message })}
-            />
+            {#if viewMode === 'collection'}
+                <ImportGame
+                        collectionId={selectedCollectionId || ''}
+                        onError={(message) => toaster.error({ title: 'Erreur', description: message })}
+                        onSuccess={(message) => toaster.success({ title: 'Succès', description: message })}
+                />
+            {/if}
         </div>
 
         {#if gamesData.length > 0}
@@ -189,12 +230,18 @@
             />
         {:else}
             <div class="flex flex-col items-center justify-center h-64 gap-4">
-                <p class="text-lg opacity-60">Aucune partie dans cette collection</p>
-                <ImportGame
-                        collectionId={selectedCollectionId || ''}
-                        onSuccess={(message) => toaster.success({ title: 'Succès', description: message })}
-                        onError={(message) => toaster.error({ title: 'Erreur', description: message })}
-                />
+                {#if viewMode === 'analysis'}
+                    <FlaskConical class="size-12 opacity-60"/>
+                    <p class="text-lg opacity-60">Aucune partie en analyse</p>
+                    <p class="text-sm opacity-40">Ajoutez jusqu'à 5 parties pour les analyser</p>
+                {:else}
+                    <p class="text-lg opacity-60">Aucune partie dans cette collection</p>
+                    <ImportGame
+                            collectionId={selectedCollectionId || ''}
+                            onSuccess={(message) => toaster.success({ title: 'Succès', description: message })}
+                            onError={(message) => toaster.error({ title: 'Erreur', description: message })}
+                    />
+                {/if}
             </div>
         {/if}
     </div>
