@@ -122,6 +122,7 @@ model PartieTravail {
   cadence      String?
   site         String?
   event        String?
+  isInAnalysis Boolean            @default(false)
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
   collection   Collection         @relation(fields: [collectionId], references: [id], onDelete: Cascade)
@@ -135,6 +136,7 @@ model PartieTravail {
   @@index([noirElo])
   @@index([cadence])
   @@index([resultat])
+  @@index([isInAnalysis])
 }
 
 // ============================================================================

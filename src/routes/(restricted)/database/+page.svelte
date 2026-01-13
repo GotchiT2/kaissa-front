@@ -112,6 +112,7 @@
       blackElo: partie.noirElo || 0,
       result: normalizeResult(partie.resultat),
       notation: formatMoves(partie.coups || []),
+      isInAnalysis: partie.isInAnalysis || false,
     }));
   });
 
@@ -183,6 +184,8 @@
                     data={gamesData}
                     onDeleteSuccess={(message) => toaster.success({ title: 'Succès', description: message })}
                     onDeleteError={(message) => toaster.error({ title: 'Erreur', description: message })}
+                    onAnalysisToggleSuccess={(message) => toaster.success({ title: 'Succès', description: message })}
+                    onAnalysisToggleError={(message) => toaster.error({ title: 'Erreur', description: message })}
             />
         {:else}
             <div class="flex flex-col items-center justify-center h-64 gap-4">

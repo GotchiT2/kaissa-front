@@ -54,4 +54,5 @@ export interface GameRow {
   date: string;
   tournament: string;
   notation: string;
+  isInAnalysis: boolean;
 }

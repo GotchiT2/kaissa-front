@@ -10,7 +10,7 @@
   import {createSvelteTable} from '$lib/components/table/data-table.svelte';
   import PaginationOld from '$lib/components/table/PaginationOld.svelte';
   import {Dialog, Portal} from '@skeletonlabs/skeleton-svelte';
-  import {Trash2Icon, XIcon} from '@lucide/svelte';
+  import {Trash2Icon, XIcon, FlaskConicalIcon} from '@lucide/svelte';
   import FlexRender from '$lib/components/table/FlexRender.svelte';
   import {columns} from '$lib/components/table/columns';
   import {invalidateAll} from '$app/navigation';
@@ -19,14 +19,17 @@
     data: GameRow[];
     onDeleteSuccess?: (message: string) => void;
     onDeleteError?: (message: string) => void;
+    onAnalysisToggleSuccess?: (message: string) => void;
+    onAnalysisToggleError?: (message: string) => void;
   };
   const PAGE_SIZE = 20;
 
-  let {data, onDeleteSuccess, onDeleteError}: DataTableProps<GameRow, TValue> = $props();
+  let {data, onDeleteSuccess, onDeleteError, onAnalysisToggleSuccess, onAnalysisToggleError}: DataTableProps<GameRow, TValue> = $props();
   let pagination = $state<PaginationState>({pageIndex: 0, pageSize: PAGE_SIZE});
   let sorting = $state<SortingState>([]);
   let partieToDelete = $state<{ id: string, name: string } | null>(null);
   let isDeleting = $state(false);
+  let togglingAnalysisIds = $state<Set<string>>(new Set());
 
   let page = $state(1);
   const start = $derived((page - 1) * PAGE_SIZE);
@@ -109,6 +112,42 @@
       isDeleting = false;
     }
   }
+
+  async function toggleAnalysis(id: string, currentStatus: boolean) {
+    togglingAnalysisIds.add(id);
+    togglingAnalysisIds = togglingAnalysisIds;
+
+    try {
+      const response = await fetch(`/api/parties/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ isInAnalysis: !currentStatus }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Erreur lors de la mise à jour');
+      }
+
+      await invalidateAll();
+
+      if (onAnalysisToggleSuccess) {
+        const message = !currentStatus 
+          ? 'Partie ajoutée à l\'analyse' 
+          : 'Partie retirée de l\'analyse';
+        onAnalysisToggleSuccess(message);
+      }
+    } catch (error: any) {
+      if (onAnalysisToggleError) {
+        onAnalysisToggleError(error.message || 'Erreur lors de la mise à jour');
+      }
+    } finally {
+      togglingAnalysisIds.delete(id);
+      togglingAnalysisIds = togglingAnalysisIds;
+    }
+  }
 </script>
 
 <div class="table-container space-y-4">
@@ -159,14 +198,25 @@
                         {row.original.notation}
                     </td>
                     <td class="table-cell-fit">
-                        <button
-                                onclick={() => openDeleteModal(row.original.id, row.original.whitePlayer, row.original.blackPlayer)}
-                                class="btn-icon btn-icon-sm hover:preset-filled-error-500"
-                                title="Supprimer cette partie"
-                                aria-label="Supprimer cette partie"
-                        >
-                            <Trash2Icon class="size-4"/>
-                        </button>
+                        <div class="flex gap-2">
+                            <button
+                                    onclick={() => toggleAnalysis(row.original.id, row.original.isInAnalysis)}
+                                    class="btn-icon btn-icon-sm {row.original.isInAnalysis ? 'preset-filled-primary-500' : 'hover:preset-filled-primary-500'}"
+                                    title={row.original.isInAnalysis ? "Retirer de l'analyse" : "Ajouter à l'analyse"}
+                                    aria-label={row.original.isInAnalysis ? "Retirer de l'analyse" : "Ajouter à l'analyse"}
+                                    disabled={togglingAnalysisIds.has(row.original.id)}
+                            >
+                                <FlaskConicalIcon class="size-4"/>
+                            </button>
+                            <button
+                                    onclick={() => openDeleteModal(row.original.id, row.original.whitePlayer, row.original.blackPlayer)}
+                                    class="btn-icon btn-icon-sm hover:preset-filled-error-500"
+                                    title="Supprimer cette partie"
+                                    aria-label="Supprimer cette partie"
+                            >
+                                <Trash2Icon class="size-4"/>
+                            </button>
+                        </div>
                     </td>
                 </tr>
             {:else}
