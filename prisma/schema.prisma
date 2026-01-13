@@ -53,6 +53,7 @@ model User {
   lastLoginAt DateTime?
   sessions    Session[]
   collections Collection[]
+  tags        Tag[]
 
   @@index([email])
 }
@@ -185,9 +186,16 @@ model CommentaireNoeud {
 // ============================================================================
 
 model Tag {
-  id      String      @id @default(cuid())
-  nom     String      @unique
-  parties PartieTag[]
+  id             String      @id @default(cuid())
+  nom            String
+  proprietaireId String
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  proprietaire   User        @relation(fields: [proprietaireId], references: [id], onDelete: Cascade)
+  parties        PartieTag[]
+
+  @@unique([proprietaireId, nom])
+  @@index([proprietaireId])
 }
 
 model PartieTag {

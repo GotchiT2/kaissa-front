@@ -6,6 +6,7 @@
   import ImportGame from "$lib/components/ImportGame.svelte";
   import type {CollectionWithGames, GameRow} from '$lib/types/chess.types';
   import CreationCollection from "$lib/components/modales/CreationCollection.svelte";
+  import CreationTag from "$lib/components/modales/CreationTag.svelte";
 
   interface Props {
     data: {
@@ -206,7 +207,9 @@
             </Navigation.Group>
 
             <Navigation.Group class="w-full mt-4">
-                <Navigation.Label class="capitalize pl-2">Tags</Navigation.Label>
+                <Navigation.Label class="capitalize pl-2 flex justify-between">Tags
+                    <CreationTag {handleToastSuccess} label="Créer un tag"/>
+                </Navigation.Label>
                 {#if data.tags.length === 0}
                     <p class="text-sm opacity-60 px-4 py-2">Aucun tag disponible</p>
                 {:else}

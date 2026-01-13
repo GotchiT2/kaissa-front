@@ -41,15 +41,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 
   const tags = await prisma.tag.findMany({
     where: {
-      parties: {
-        some: {
-          partie: {
-            collection: {
-              proprietaireId: user.id,
-            },
-          },
-        },
-      },
+      proprietaireId: user.id,
     },
     include: {
       _count: {
