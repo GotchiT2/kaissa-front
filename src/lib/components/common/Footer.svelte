@@ -5,7 +5,7 @@
 <footer class="w-full bg-[#121212] border-t-1 border-t-primary-100" role="contentinfo">
     <nav class="text-white">
         <ul class="flex flex-col items-center md:items-start">
-            <li class="mb-1"><a class="hover:underline hover:text-primary-500 transition-all" href="/mentions-legales">Mentions
+            <li class="mb-1"><a class="hover:underline hover:text-primary-500 transition-all" href="/legals">Mentions
                 Légales</a></li>
             <li class="mb-1"><a class="hover:underline hover:text-primary-500 transition-all"
                                 href="/politique-de-confidentialite">Politique de Confidentialité</a></li>
