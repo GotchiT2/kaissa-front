@@ -41,6 +41,9 @@ importers:
       pg:
         specifier: ^8.16.3
         version: 8.16.3
+      ws:
+        specifier: ^8.19.0
+        version: 8.19.0
     devDependencies:
       '@eslint/compat':
         specifier: ^1.4.0
@@ -2607,8 +2610,8 @@ packages:
     resolution: {integrity: sha512-BN22B5eaMMI9UMtjrGd5g5eCYPpCPDUy0FJXbYsaT5zYxjFOckS53SQDE3pWkVoWpHXVb3BrYcEN4Twa55B5cA==}
     engines: {node: '>=0.10.0'}
 
-  ws@8.18.3:
-    resolution: {integrity: sha512-PEIGCY5tSlUt50cqyMXfCzX+oOPqN0vuGqWzbcJ2xvnkzkq46oOpz7dQaTDBdfICb4N14+GARUDw2XV2N4tvzg==}
+  ws@8.19.0:
+    resolution: {integrity: sha512-blAT2mjOEIi0ZzruJfIhb3nps74PRWTCz1IjglWEEpQl5XS/UNama6u2/rjFkDDouqr4L67ry+1aGIALViWjDg==}
     engines: {node: '>=10.0.0'}
     peerDependencies:
       bufferutil: ^4.0.1
@@ -3606,7 +3609,7 @@ snapshots:
       sirv: 3.0.2
       tinyrainbow: 3.0.3
       vitest: 4.0.15(@types/node@24.10.1)(@vitest/browser-playwright@4.0.15)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)
-      ws: 8.18.3
+      ws: 8.19.0
     transitivePeerDependencies:
       - bufferutil
       - msw
@@ -5031,7 +5034,7 @@ snapshots:
 
   word-wrap@1.2.5: {}
 
-  ws@8.18.3: {}
+  ws@8.19.0: {}
 
   xtend@4.0.2: {}
 
