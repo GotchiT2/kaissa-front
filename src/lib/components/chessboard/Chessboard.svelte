@@ -57,6 +57,11 @@
 
   let meilleursCoups: MeilleurCoup[]  = $state([]);
 
+  let stockfishLines: string[] = $state([]);
+  let bestmove = $state("");
+  let eventSource: EventSource | null = null;
+  let movetime = 1000;
+
   board = buildBoard(game);
 
   $effect(() => {
@@ -83,6 +88,96 @@
       .catch(error => {
         console.error('Erreur lors de la récupération des coups:', error);
       });
+  });
+
+  let analyzeTimer: number | null = null;
+  let lastRequestedFen: string | null = null;
+
+  $effect(() => {
+    currentIndex;
+
+    // 1) Annule un timer précédent si l’utilisateur change vite de coup
+    if (analyzeTimer) {
+      clearTimeout(analyzeTimer);
+      analyzeTimer = null;
+    }
+
+    // 2) Ferme l’EventSource en cours (si on relance une nouvelle analyse)
+    if (eventSource) {
+      eventSource.close();
+      eventSource = null;
+    }
+
+    // 3) Reset UI
+    stockfishLines = [];
+    bestmove = "";
+
+    // 4) Rebuild la position (comme tu faisais)
+    game = new Chess();
+    const currentMoves = moves();
+    for (let i = 0; i < currentIndex; i++) {
+      if (currentMoves[i]) {
+        game.move(currentMoves[i]);
+      }
+    }
+
+    const fen = game.fen();
+
+    // (optionnel) évite de relancer si la FEN n’a pas changé
+    if (lastRequestedFen === fen) {
+      return;
+    }
+
+    // 5) Debounce : on attend que l’état se stabilise
+    analyzeTimer = window.setTimeout(() => {
+      lastRequestedFen = fen;
+
+      const id = crypto.randomUUID();
+      const url = `/api/proxy/stream?fen=${encodeURIComponent(fen)}&movetime=${movetime}&id=${id}`;
+
+      console.log("Lancement de l'analyse Stockfish pour:", fen);
+
+      eventSource = new EventSource(url);
+
+      eventSource.addEventListener("queued", () => {
+        console.log("Analyse en attente");
+        stockfishLines = ["Analyse en attente..."];
+      });
+
+      eventSource.addEventListener("info", (e) => {
+        const data = JSON.parse((e as MessageEvent).data);
+        // console.log("Info reçue:", data.line);
+        stockfishLines = [...stockfishLines, data.line];
+      });
+
+      eventSource.addEventListener("bestmove", (e) => {
+        const data = JSON.parse((e as MessageEvent).data);
+        console.log("Meilleur coup:", data.line);
+        bestmove = data.line;
+        eventSource?.close();
+        eventSource = null;
+      });
+
+      // IMPORTANT: l’EventSource déclenche "error" aussi lors de coupures réseau.
+      // Ici on ferme pour éviter des connexions fantômes.
+      eventSource.addEventListener("error", (e) => {
+        console.error("Erreur EventSource:", e);
+        eventSource?.close();
+        eventSource = null;
+      });
+    }, 300); // <= ajuste à 200/300/500ms selon la sensation UX
+
+    // cleanup de l'effect
+    return () => {
+      if (analyzeTimer) {
+        clearTimeout(analyzeTimer);
+        analyzeTimer = null;
+      }
+      if (eventSource) {
+        eventSource.close();
+        eventSource = null;
+      }
+    };
   });
 
   function selectSquare(square: string) {
@@ -344,19 +439,19 @@
             </Switch>
 
             <div class="flex flex-col gap-4 border border-surface-500 p-4 rounded w-full">
-                <div class="flex items-start gap-4">
-                    <span>Stockfish 17.1</span>
-                    <span>depth: 22</span>
-                    <span>toto: bidule</span>
-                    <span>truc: pouet</span>
-                </div>
+                {#if bestmove}
+                    <div class="flex items-start gap-4 flex-wrap">
+                        <span class="font-semibold">Meilleur coup: {bestmove}</span>
+                    </div>
+                {/if}
 
-                <p>
-                    (0.31) 1. e4 e5   2. Nf3 Nf6  3. Nxe5 d6   4. Nf3 Nxe4  5. d4 d5   6. Bd3 Bd6   7. O-OO-O   8. Re1 Bf5   9. c4 Bb4    10. Nbd2 c6
-                    (0.22)1. Nf3 d5   2. d4 e6  3. c4 Nf6  4. Bg5 Be7  5. e3 h6  6. Bh4 O-O  7. Nc3 a6  8. Qc2 dxc4  9. Bxc4 b5  10. Bxf6 Bxf6
-                    (0.22)1. d4 d5  2. c4 e6  3. Nf3 Nf6  4. Bg5 Be7  5. e3 h6  6. Bh4 O-O  7. cxd5 exd5  8. Qc2 c6  9. Bd3
-                    (0.22)1. d4 d5  2. c4 e6  3. Nf3 Nf6  4. Bg5 Be7  5. e3 h6  6. Bh4 O-O  7. cxd5 exd5  8. Qc2 c6  9. Bd3
-                </p>
+                <div class="bg-surface-900 p-3 rounded max-h-64 overflow-y-auto">
+                    {#if stockfishLines.length === 0}
+                        <p class="text-surface-400">Analyse en cours...</p>
+                    {:else}
+                        <pre class="text-xs font-mono whitespace-pre-wrap">{stockfishLines.join("\n")}</pre>
+                    {/if}
+                </div>
             </div>
         </div>
     </div>

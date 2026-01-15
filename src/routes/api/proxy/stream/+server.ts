@@ -20,68 +20,135 @@ export const GET = async ({ url }) => {
     );
   }
 
+  let ws: WebSocket | null = null;
+  let pingTimer: NodeJS.Timeout | null = null;
+
   const stream = new ReadableStream({
     start(controller) {
+      console.log("SSE stream open", { id, movetime });
+
       const encoder = new TextEncoder();
-      const sendEvent = (event: string, data: unknown) => {
-        controller.enqueue(encoder.encode(`event: ${event}\n`));
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
-      };
+      let closed = false;
 
-      const ws = new WebSocket(wsUrl);
-
-      const stop = () => {
+      const sendRaw = (txt: string) => {
+        if (closed) return;
         try {
-          ws.send(JSON.stringify({ op: "stop", id }));
-        } catch {}
+          controller.enqueue(encoder.encode(txt));
+        } catch {
+          closed = true;
+        }
       };
+
+      const sendEvent = (event: string, data: unknown) => {
+        sendRaw(`event: ${event}\n`);
+        sendRaw(`data: ${JSON.stringify(data)}\n\n`);
+      };
+
+      const closeOnce = () => {
+        if (closed) return;
+        closed = true;
+
+        try {
+          pingTimer && clearInterval(pingTimer);
+        } catch {}
+        pingTimer = null;
+
+        try {
+          controller.close();
+        } catch {}
+        try {
+          ws?.close();
+        } catch {}
+        ws = null;
+      };
+
+      const stopJob = () => {
+        // stop uniquement si ws est OPEN
+        if (ws && ws.readyState === ws.OPEN) {
+          try {
+            ws.send(JSON.stringify({ op: "stop", id }));
+          } catch {}
+        }
+      };
+
+      ws = new WebSocket(wsUrl);
 
       ws.on("open", () => {
-        // lance l'analyse via le proxy
-        ws.send(JSON.stringify({ op: "analyze", id, fen, movetime }));
-        sendEvent("queued", { id });
+        // On lance l'analyse via le proxy
+        ws?.send(JSON.stringify({ op: "analyze", id, fen, movetime }));
       });
 
-      ws.on("message", (data) => {
-        let msg: any;
+      ws.on("message", (data: WebSocket.Data) => {
+        let msg: { id?: string; op?: string; line?: string; error?: string };
         try {
           msg = JSON.parse(data.toString());
         } catch {
           return;
         }
-        if (msg.id && msg.id !== id) return; // ignore autres jobs
 
+        // certains messages peuvent ne pas avoir d'id (ex: err générique)
+        if (msg.id && msg.id !== id) return;
+
+        if (msg.op === "queued") sendEvent("queued", { id });
         if (msg.op === "info") sendEvent("info", { id, line: msg.line });
+
         if (msg.op === "bestmove") {
           sendEvent("bestmove", { id, line: msg.line });
-          ws.close();
-          controller.close();
+          closeOnce();
+          return;
         }
+
         if (msg.op === "err") {
           sendEvent("error", { id, error: msg.error ?? "engine_error" });
-          ws.close();
-          controller.close();
+          closeOnce();
+          return;
         }
       });
 
       ws.on("error", () => {
         sendEvent("error", { id, error: "proxy_ws_error" });
-        controller.close();
+        closeOnce();
       });
 
       ws.on("close", () => {
-        // si le client ferme le stream, on stoppe
-        stop();
+        // IMPORTANT: ne pas appeler stopJob ici (c'est déjà fermé)
+        // juste signaler si pas déjà closed
+        if (!closed) {
+          sendEvent("error", { id, error: "proxy_ws_closed" });
+          closeOnce();
+        }
       });
 
-      // Si le navigateur ferme le stream (abort)
-      // SvelteKit appelle cancel() -> on stoppe le job
-      (this as any).cancel = () => {
-        stop();
+      // keep-alive SSE
+      pingTimer = setInterval(() => {
+        sendRaw(`: ping\n\n`);
+      }, 15000);
+
+      // on stocke des callbacks sur l'instance stream via closure
+      (globalThis as any).__sseCloseOnce = closeOnce;
+      (globalThis as any).__sseStopJob = stopJob;
+    },
+
+    cancel() {
+      console.log("SSE stream cancel", { id });
+
+      // la fermeture côté client doit stopper le job et fermer sans crash
+      try {
+        pingTimer && clearInterval(pingTimer);
+      } catch {}
+      pingTimer = null;
+
+      // stop si possible
+      if (ws && ws.readyState === ws.OPEN) {
         try {
-          ws.close();
+          ws.send(JSON.stringify({ op: "stop", id }));
         } catch {}
-      };
+      }
+
+      try {
+        ws?.close();
+      } catch {}
+      ws = null;
     },
   });
 
