@@ -1,6 +1,6 @@
 <script lang="ts">
-  import {ChessQueen, Database, FlaskConical, Folder, Tag} from '@lucide/svelte';
-  import {createToaster, createTreeViewCollection, Navigation, Toast, TreeView} from '@skeletonlabs/skeleton-svelte';
+  import {ChessQueen, Database, FlaskConical, Folder, Tag, Trash2, XIcon} from '@lucide/svelte';
+  import {createToaster, createTreeViewCollection, Dialog, Navigation, Portal, Toast, TreeView} from '@skeletonlabs/skeleton-svelte';
   import {formatNumber} from '$lib/utils/formatNumber';
   import GamesTable from '$lib/components/table/GamesTable.svelte';
   import ImportGame from "$lib/components/ImportGame.svelte";
@@ -76,6 +76,8 @@
   let selectedCollectionId = $state<string | null>(data.collections[0]?.id || null);
   let selectedTagId = $state<string | null>(null);
   let viewMode = $state<'collection' | 'analysis' | 'tag'>('collection');
+  let tagToDelete = $state<{ id: string, nom: string, partiesCount: number } | null>(null);
+  let isDeleting = $state(false);
 
   function formatMoves(coups: any[]): string {
     if (!coups || coups.length === 0) return '—';
@@ -195,6 +197,52 @@
     selectedTagId = id;
     viewMode = 'tag';
   }
+
+  function openDeleteTagModal(tagId: string, tagNom: string, partiesCount: number) {
+    tagToDelete = {
+      id: tagId,
+      nom: tagNom,
+      partiesCount
+    };
+  }
+
+  function closeDeleteTagModal() {
+    if (!isDeleting) {
+      tagToDelete = null;
+    }
+  }
+
+  async function confirmDeleteTag() {
+    if (!tagToDelete) return;
+
+    isDeleting = true;
+
+    try {
+      const response = await fetch(`/api/tags/${tagToDelete.id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Erreur lors de la suppression du tag');
+      }
+
+      toaster.success({ title: 'Succès', description: 'Tag supprimé avec succès' });
+
+      if (viewMode === 'tag' && selectedTagId === tagToDelete.id) {
+        viewMode = 'collection';
+        selectedTagId = null;
+      }
+
+      tagToDelete = null;
+
+      window.location.reload();
+    } catch (err: any) {
+      toaster.error({ title: 'Erreur', description: err.message || 'Erreur lors de la suppression du tag' });
+    } finally {
+      isDeleting = false;
+    }
+  }
 </script>
 
 <div class="flex h-[90vh] w-full">
@@ -254,15 +302,29 @@
                     <p class="text-sm opacity-60 px-4 py-2">Aucun tag disponible</p>
                 {:else}
                     {#each data.tags as tag (tag.id)}
-                        <button
-                                class="flex items-center gap-2 w-full text-left px-4 py-2 rounded hover:preset-tonal"
-                                class:preset-filled-primary-500={viewMode === 'tag' && selectedTagId === tag.id}
-                                onclick={() => handleSelectTag(tag.id)}
-                        >
-                            <Tag class="size-4"/>
-                            <span>{tag.nom}</span>
-                            <span class="opacity-60 ml-auto">({tag._count.parties})</span>
-                        </button>
+                        <div class="flex items-center gap-2 w-full px-4 py-2 rounded hover:preset-tonal group">
+                            <button
+                                    class="flex items-center gap-2 flex-1 text-left"
+                                    class:preset-filled-primary-500={viewMode === 'tag' && selectedTagId === tag.id}
+                                    onclick={() => handleSelectTag(tag.id)}
+                            >
+                                <Tag class="size-4"/>
+                                <span>{tag.nom}</span>
+                                <span class="opacity-60 ml-auto">({tag._count.parties})</span>
+                            </button>
+                            <button
+                                    class="btn-icon btn-icon-sm hover:preset-filled-error-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    onclick={(e) => {
+                                        e.stopPropagation();
+                                        openDeleteTagModal(tag.id, tag.nom, tag._count.parties);
+                                    }}
+                                    disabled={isDeleting}
+                                    title="Supprimer le tag"
+                                    aria-label="Supprimer le tag {tag.nom}"
+                            >
+                                <Trash2 class="size-4"/>
+                            </button>
+                        </div>
                     {/each}
                 {/if}
             </Navigation.Group>
@@ -364,6 +426,52 @@
         {/if}
     </TreeView.NodeProvider>
 {/snippet}
+
+{#if tagToDelete}
+    <Dialog open={tagToDelete !== null}>
+        <Portal>
+            <Dialog.Backdrop class="fixed inset-0 z-50 bg-surface-50-950/50" onclick={closeDeleteTagModal}/>
+            <Dialog.Positioner class="fixed inset-0 z-50 flex justify-center items-center p-4">
+                <Dialog.Content class="card bg-surface-100-900 w-full max-w-md p-4 space-y-4 shadow-xl">
+                    <header class="flex justify-between items-center">
+                        <Dialog.Title class="text-lg font-bold">Confirmer la suppression</Dialog.Title>
+                        <Dialog.CloseTrigger class="btn-icon hover:preset-tonal" onclick={closeDeleteTagModal}
+                                             disabled={isDeleting}>
+                            <XIcon class="size-4"/>
+                        </Dialog.CloseTrigger>
+                    </header>
+
+                    <Dialog.Description class="space-y-2">
+                        <p>Êtes-vous sûr de vouloir supprimer le tag :</p>
+                        <p class="font-semibold text-primary-500">{tagToDelete.nom}</p>
+                        <p class="text-sm opacity-75">
+                            Ce tag est actuellement lié à {tagToDelete.partiesCount} partie{tagToDelete.partiesCount > 1 ? 's' : ''}.
+                            Toutes ces associations seront supprimées.
+                        </p>
+                        <p class="text-sm opacity-75">Cette action est irréversible.</p>
+                    </Dialog.Description>
+
+                    <footer class="flex justify-end gap-2">
+                        <button
+                                class="btn preset-tonal"
+                                onclick={closeDeleteTagModal}
+                                disabled={isDeleting}
+                        >
+                            Annuler
+                        </button>
+                        <button
+                                class="btn preset-filled-error-500"
+                                onclick={confirmDeleteTag}
+                                disabled={isDeleting}
+                        >
+                            {isDeleting ? 'Suppression...' : 'Supprimer'}
+                        </button>
+                    </footer>
+                </Dialog.Content>
+            </Dialog.Positioner>
+        </Portal>
+    </Dialog>
+{/if}
 
 <Toast.Group {toaster}>
     {#snippet children(toast)}
