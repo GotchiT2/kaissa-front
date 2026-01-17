@@ -2,6 +2,7 @@
   import {Dialog, FileUpload, Portal} from "@skeletonlabs/skeleton-svelte";
   import {FileIcon, XIcon} from "@lucide/svelte";
   import {invalidateAll} from '$app/navigation';
+  import ImportProgressLoader from './ImportProgressLoader.svelte';
 
   interface Props {
     collectionId: string;
@@ -13,6 +14,12 @@
 
   let files = $state<File[]>([]);
   let isUploading = $state(false);
+  let isModalOpen = $state(false);
+  
+  let progressCurrent = $state(0);
+  let progressTotal = $state(0);
+  let isImportComplete = $state(false);
+  let showProgressLoader = $state(false);
 
   const animation =
     'transition transition-discrete opacity-0 translate-y-[100px] starting:data-[state=open]:opacity-0 starting:data-[state=open]:translate-y-[100px] data-[state=open]:opacity-100 data-[state=open]:translate-y-0';
@@ -31,10 +38,17 @@
     }
 
     isUploading = true;
+    isModalOpen = false;
+    
+    progressCurrent = 0;
+    progressTotal = 0;
+    isImportComplete = false;
+    showProgressLoader = true;
 
     try {
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('stream', 'true');
 
       const response = await fetch(`/api/collections/${collectionId}/import`, {
         method: 'POST',
@@ -44,23 +58,76 @@
       if (!response.ok) {
         const error = await response.json();
         onError?.(error.message || 'Erreur lors de l\'import des parties');
+        showProgressLoader = false;
         return;
       }
 
-      const result = await response.json();
-      onSuccess?.(result.message);
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (!reader) {
+        onError?.('Erreur lors de la lecture du stream');
+        showProgressLoader = false;
+        return;
+      }
+
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (!line.trim()) continue;
+
+          const eventMatch = line.match(/^event: (.+)$/m);
+          const dataMatch = line.match(/^data: (.+)$/m);
+
+          if (eventMatch && dataMatch) {
+            const eventType = eventMatch[1];
+            const data = JSON.parse(dataMatch[1]);
+
+            if (eventType === 'start') {
+              progressTotal = data.total;
+              progressCurrent = 0;
+            } else if (eventType === 'progress') {
+              progressCurrent = data.current;
+              progressTotal = data.total;
+            } else if (eventType === 'complete') {
+              progressCurrent = data.imported;
+              progressTotal = data.total;
+              isImportComplete = true;
+              onSuccess?.(data.message);
+              
+              await invalidateAll();
+            }
+          }
+        }
+      }
 
       files = [];
-      await invalidateAll();
     } catch (err) {
       onError?.('Erreur lors de l\'import des parties');
+      showProgressLoader = false;
     } finally {
       isUploading = false;
     }
   }
+
+  function handleCloseProgressLoader() {
+    showProgressLoader = false;
+    progressCurrent = 0;
+    progressTotal = 0;
+    isImportComplete = false;
+  }
 </script>
 
-<Dialog>
+<Dialog open={isModalOpen} onOpenChange={(details) => isModalOpen = details.open}>
     <Dialog.Trigger class="btn preset-filled">Importer une partie</Dialog.Trigger>
     <Portal>
         <Dialog.Backdrop class="fixed inset-0 z-50 bg-surface-50-950/50"/>
@@ -104,14 +171,23 @@
                     <Dialog.CloseTrigger class="btn preset-tonal" disabled={isUploading}>Annuler</Dialog.CloseTrigger>
                     <button
                             class="btn preset-filled-primary-500"
-                            disabled={isUploading ?? files.length === 0}
+                            disabled={isUploading || files.length === 0}
                             onclick={handleUpload}
                             type="button"
                     >
-                        {isUploading ? 'Import en cours...' : 'Importer'}
+                        Importer
                     </button>
                 </footer>
             </Dialog.Content>
         </Dialog.Positioner>
     </Portal>
 </Dialog>
+
+{#if showProgressLoader}
+    <ImportProgressLoader
+            bind:current={progressCurrent}
+            bind:total={progressTotal}
+            bind:isCompleted={isImportComplete}
+            onClose={handleCloseProgressLoader}
+    />
+{/if}

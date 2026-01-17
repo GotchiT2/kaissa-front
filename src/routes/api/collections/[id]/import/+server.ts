@@ -27,6 +27,7 @@ export const POST: RequestHandler = async ({ request, locals, params }) => {
 
   const formData = await request.formData();
   const file = formData.get("file") as File;
+  const stream = formData.get("stream") as string;
 
   if (!file) {
     throw error(400, "Aucun fichier fourni");
@@ -36,14 +37,132 @@ export const POST: RequestHandler = async ({ request, locals, params }) => {
     throw error(400, "Le fichier doit être au format PGN");
   }
 
+  const content = await file.text();
+  const games = parsePGNFile(content);
+
+  if (games.length === 0) {
+    throw error(400, "Aucune partie valide trouvée dans le fichier");
+  }
+
+  if (stream === "true") {
+    const encoder = new TextEncoder();
+    let closed = false;
+
+    const readableStream = new ReadableStream({
+      async start(controller) {
+        const sendEvent = (event: string, data: unknown) => {
+          if (closed) return;
+          try {
+            controller.enqueue(encoder.encode(`event: ${event}\n`));
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
+          } catch {
+            closed = true;
+          }
+        };
+
+        sendEvent("start", { total: games.length });
+
+        let importedCount = 0;
+
+        for (let i = 0; i < games.length; i++) {
+          const game = games[i];
+          
+          try {
+            await prisma.$transaction(async (tx) => {
+              const partie = await tx.partieTravail.create({
+                data: {
+                  collectionId: collectionId,
+                  titre: `${game.blancNom} vs ${game.noirNom}`,
+                  resultat: game.resultat,
+                  blancNom: game.blancNom,
+                  noirNom: game.noirNom,
+                  blancElo: game.blancElo,
+                  noirElo: game.noirElo,
+                  datePartie: game.datePartie,
+                  event: game.event,
+                  site: game.site,
+                },
+              });
+
+              let previousNodeId: string | null = null;
+              let previousHashPosition: bigint | null = null;
+
+              for (const move of game.parsedMoves) {
+                const positionHash = hashFEN(move.fen);
+
+                const noeud: { id: string } = await tx.coupNoeud.create({
+                  data: {
+                    partieId: partie.id,
+                    parentId: previousNodeId,
+                    coupUci: move.uci,
+                    ply: move.ply,
+                    hashPosition: positionHash,
+                    fen: move.fen,
+                    estPrincipal: true,
+                  },
+                });
+
+                if (previousHashPosition !== null && move.uci) {
+                  const campAuTrait: Camp = move.ply % 2 === 1 ? "BLANCS" : "NOIRS";
+                  
+                  await tx.transitionPartie.create({
+                    data: {
+                      partieId: partie.id,
+                      hashPositionAvant: previousHashPosition,
+                      coupUci: move.uci,
+                      hashPositionApres: positionHash,
+                      ply: move.ply,
+                      estDansPrincipal: true,
+                      campAuTrait,
+                    },
+                  });
+                }
+
+                previousHashPosition = positionHash;
+                previousNodeId = noeud.id;
+              }
+            });
+
+            importedCount++;
+            sendEvent("progress", { current: importedCount, total: games.length });
+          } catch (err) {
+            console.error("Erreur lors de l'import d'une partie:", err);
+          }
+        }
+
+        await prisma.collection.update({
+          where: { id: collectionId },
+          data: { updatedAt: new Date() },
+        });
+
+        await updateAggregates(collectionId);
+
+        sendEvent("complete", { 
+          imported: importedCount, 
+          total: games.length,
+          message: `${importedCount} partie(s) importée(s) avec succès`
+        });
+
+        try {
+          controller.close();
+        } catch {}
+      },
+
+      cancel() {
+        closed = true;
+      }
+    });
+
+    return new Response(readableStream, {
+      headers: {
+        "Content-Type": "text/event-stream; charset=utf-8",
+        "Cache-Control": "no-cache, no-transform",
+        "Connection": "keep-alive",
+      },
+    });
+  }
+
   try {
-    const content = await file.text();
-    const games = parsePGNFile(content);
-
-    if (games.length === 0) {
-      throw error(400, "Aucune partie valide trouvée dans le fichier");
-    }
-
     let importedCount = 0;
 
     for (const game of games) {
@@ -71,7 +190,7 @@ export const POST: RequestHandler = async ({ request, locals, params }) => {
           for (const move of game.parsedMoves) {
             const positionHash = hashFEN(move.fen);
 
-            const noeud = await tx.coupNoeud.create({
+            const noeud: { id: string } = await tx.coupNoeud.create({
               data: {
                 partieId: partie.id,
                 parentId: previousNodeId,
