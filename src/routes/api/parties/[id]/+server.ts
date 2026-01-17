@@ -69,11 +69,7 @@ export const PATCH: RequestHandler = async ({ params, locals, request }) => {
 
   try {
     const body = await request.json();
-    const { isInAnalysis } = body;
-
-    if (typeof isInAnalysis !== "boolean") {
-      throw error(400, "Le champ isInAnalysis doit être un booléen");
-    }
+    const { isInAnalysis, blancNom, noirNom, blancElo, noirElo, event, datePartie } = body;
 
     const partie = await prisma.partieTravail.findUnique({
       where: { id: partieId },
@@ -94,31 +90,69 @@ export const PATCH: RequestHandler = async ({ params, locals, request }) => {
       throw error(403, "Vous n'êtes pas autorisé à modifier cette partie");
     }
 
-    if (isInAnalysis && !partie.isInAnalysis) {
-      const countInAnalysis = await prisma.partieTravail.count({
-        where: {
-          collection: {
-            proprietaireId: user.id,
-          },
-          isInAnalysis: true,
-        },
-      });
+    const updateData: any = {};
 
-      if (countInAnalysis >= MAX_PARTIES_IN_ANALYSIS) {
-        throw error(400, `Vous ne pouvez pas avoir plus de ${MAX_PARTIES_IN_ANALYSIS} parties en analyse simultanément`);
+    if (typeof isInAnalysis === "boolean") {
+      if (isInAnalysis && !partie.isInAnalysis) {
+        const countInAnalysis = await prisma.partieTravail.count({
+          where: {
+            collection: {
+              proprietaireId: user.id,
+            },
+            isInAnalysis: true,
+          },
+        });
+
+        if (countInAnalysis >= MAX_PARTIES_IN_ANALYSIS) {
+          throw error(400, `Vous ne pouvez pas avoir plus de ${MAX_PARTIES_IN_ANALYSIS} parties en analyse simultanément`);
+        }
       }
+      updateData.isInAnalysis = isInAnalysis;
+    }
+
+    if (blancNom !== undefined) {
+      updateData.blancNom = blancNom;
+    }
+
+    if (noirNom !== undefined) {
+      updateData.noirNom = noirNom;
+    }
+
+    if (blancElo !== undefined) {
+      updateData.blancElo = blancElo === null || blancElo === "" ? null : parseInt(blancElo);
+    }
+
+    if (noirElo !== undefined) {
+      updateData.noirElo = noirElo === null || noirElo === "" ? null : parseInt(noirElo);
+    }
+
+    if (event !== undefined) {
+      updateData.event = event;
+    }
+
+    if (datePartie !== undefined) {
+      updateData.datePartie = datePartie ? new Date(datePartie) : null;
+    }
+
+    if (blancNom || noirNom) {
+      updateData.titre = `${blancNom || partie.blancNom} vs ${noirNom || partie.noirNom}`;
     }
 
     const updatedPartie = await prisma.partieTravail.update({
       where: { id: partieId },
-      data: { isInAnalysis },
+      data: updateData,
     });
+
+    let message = "Partie mise à jour avec succès";
+    if (typeof isInAnalysis === "boolean" && Object.keys(updateData).length === 1) {
+      message = isInAnalysis 
+        ? "Partie ajoutée à l'analyse" 
+        : "Partie retirée de l'analyse";
+    }
 
     return json({
       success: true,
-      message: isInAnalysis 
-        ? "Partie ajoutée à l'analyse" 
-        : "Partie retirée de l'analyse",
+      message,
       partie: updatedPartie,
     });
   } catch (err: any) {

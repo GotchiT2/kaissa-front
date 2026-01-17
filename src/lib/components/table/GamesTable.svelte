@@ -10,7 +10,7 @@
   import {createSvelteTable} from '$lib/components/table/data-table.svelte';
   import PaginationOld from '$lib/components/table/PaginationOld.svelte';
   import {Dialog, Portal} from '@skeletonlabs/skeleton-svelte';
-  import {FlaskConicalIcon, TagIcon, Trash2Icon, XIcon} from '@lucide/svelte';
+  import {FlaskConicalIcon, PencilIcon, TagIcon, Trash2Icon, XIcon} from '@lucide/svelte';
   import FlexRender from '$lib/components/table/FlexRender.svelte';
   import {columns} from '$lib/components/table/columns';
   import {invalidateAll} from '$app/navigation';
@@ -45,6 +45,17 @@
   let partieForTags = $state<{ id: string, name: string } | null>(null);
   let selectedTagIds = $state<Set<string>>(new Set());
   let isUpdatingTags = $state(false);
+  
+  let partieToEdit = $state<{
+    id: string;
+    whitePlayer: string;
+    blackPlayer: string;
+    whiteElo: string;
+    blackElo: string;
+    tournament: string;
+    date: string;
+  } | null>(null);
+  let isUpdatingMetadata = $state(false);
 
   let page = $state(1);
   const start = $derived((page - 1) * PAGE_SIZE);
@@ -227,6 +238,76 @@
       isUpdatingTags = false;
     }
   }
+
+  function openEditModal(row: any) {
+    let dateValue = '';
+    if (row.date) {
+      const parts = row.date.split('/');
+      if (parts.length === 3) {
+        dateValue = `${parts[2]}-${parts[1]}-${parts[0]}`;
+      }
+    }
+    
+    partieToEdit = {
+      id: row.id,
+      whitePlayer: row.whitePlayer || '',
+      blackPlayer: row.blackPlayer || '',
+      whiteElo: row.whiteElo?.toString() || '',
+      blackElo: row.blackElo?.toString() || '',
+      tournament: row.tournament || '',
+      date: dateValue,
+    };
+  }
+
+  function closeEditModal() {
+    if (!isUpdatingMetadata) {
+      partieToEdit = null;
+    }
+  }
+
+  async function saveMetadata() {
+    if (!partieToEdit) return;
+
+    isUpdatingMetadata = true;
+
+    try {
+      const dateValue = partieToEdit.date ? new Date(partieToEdit.date).toISOString() : null;
+
+      const response = await fetch(`/api/parties/${partieToEdit.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          blancNom: partieToEdit.whitePlayer || null,
+          noirNom: partieToEdit.blackPlayer || null,
+          blancElo: partieToEdit.whiteElo ? parseInt(partieToEdit.whiteElo) : null,
+          noirElo: partieToEdit.blackElo ? parseInt(partieToEdit.blackElo) : null,
+          event: partieToEdit.tournament || null,
+          datePartie: dateValue,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Erreur lors de la mise à jour');
+      }
+
+      await invalidateAll();
+
+      if (onDeleteSuccess) {
+        onDeleteSuccess('Métadonnées mises à jour avec succès');
+      }
+
+      partieToEdit = null;
+    } catch (error: any) {
+      if (onDeleteError) {
+        onDeleteError(error.message || 'Erreur lors de la mise à jour');
+      }
+    } finally {
+      isUpdatingMetadata = false;
+    }
+  }
 </script>
 
 <div class="table-container space-y-4">
@@ -278,6 +359,14 @@
                     </td>
                     <td class="table-cell-fit">
                         <div class="flex gap-2">
+                            <button
+                                    onclick={() => openEditModal(row.original)}
+                                    class="btn-icon btn-icon-sm hover:preset-filled-primary-500"
+                                    title="Éditer les métadonnées"
+                                    aria-label="Éditer les métadonnées"
+                            >
+                                <PencilIcon class="size-4"/>
+                            </button>
                             <button
                                     onclick={() => openTagsModal(row.original.id, row.original.whitePlayer, row.original.blackPlayer)}
                                     class="btn-icon btn-icon-sm hover:preset-filled-primary-500"
@@ -397,6 +486,117 @@
                                 disabled={isUpdatingTags}
                         >
                             {isUpdatingTags ? 'Enregistrement...' : 'Enregistrer'}
+                        </button>
+                    </footer>
+                </Dialog.Content>
+            </Dialog.Positioner>
+        </Portal>
+    </Dialog>
+{/if}
+
+{#if partieToEdit}
+    <Dialog open={partieToEdit !== null}>
+        <Portal>
+            <Dialog.Backdrop class="fixed inset-0 z-50 bg-surface-50-950/50" onclick={closeEditModal}/>
+            <Dialog.Positioner class="fixed inset-0 z-50 flex justify-center items-center p-4">
+                <Dialog.Content class="card bg-surface-100-900 w-full max-w-md p-4 space-y-4 shadow-xl">
+                    <header class="flex justify-between items-center">
+                        <Dialog.Title class="text-lg font-bold">Éditer les métadonnées</Dialog.Title>
+                        <Dialog.CloseTrigger class="btn-icon hover:preset-tonal" onclick={closeEditModal}
+                                             disabled={isUpdatingMetadata}>
+                            <XIcon class="size-4"/>
+                        </Dialog.CloseTrigger>
+                    </header>
+
+                    <Dialog.Description class="space-y-4">
+                        <div class="space-y-2">
+                            <label class="label" for="whitePlayer">
+                                <span>Joueur blanc</span>
+                                <input
+                                        id="whitePlayer"
+                                        type="text"
+                                        class="input"
+                                        bind:value={partieToEdit.whitePlayer}
+                                        disabled={isUpdatingMetadata}
+                                        placeholder="Nom du joueur blanc"
+                                />
+                            </label>
+
+                            <label class="label" for="whiteElo">
+                                <span>ELO blanc</span>
+                                <input
+                                        id="whiteElo"
+                                        type="number"
+                                        class="input"
+                                        bind:value={partieToEdit.whiteElo}
+                                        disabled={isUpdatingMetadata}
+                                        placeholder="ELO du joueur blanc"
+                                />
+                            </label>
+
+                            <label class="label" for="blackPlayer">
+                                <span>Joueur noir</span>
+                                <input
+                                        id="blackPlayer"
+                                        type="text"
+                                        class="input"
+                                        bind:value={partieToEdit.blackPlayer}
+                                        disabled={isUpdatingMetadata}
+                                        placeholder="Nom du joueur noir"
+                                />
+                            </label>
+
+                            <label class="label" for="blackElo">
+                                <span>ELO noir</span>
+                                <input
+                                        id="blackElo"
+                                        type="number"
+                                        class="input"
+                                        bind:value={partieToEdit.blackElo}
+                                        disabled={isUpdatingMetadata}
+                                        placeholder="ELO du joueur noir"
+                                />
+                            </label>
+
+                            <label class="label" for="tournament">
+                                <span>Tournoi</span>
+                                <input
+                                        id="tournament"
+                                        type="text"
+                                        class="input"
+                                        bind:value={partieToEdit.tournament}
+                                        disabled={isUpdatingMetadata}
+                                        placeholder="Nom du tournoi"
+                                />
+                            </label>
+
+                            <label class="label" for="date">
+                                <span>Date</span>
+                                <input
+                                        id="date"
+                                        type="date"
+                                        class="input"
+                                        bind:value={partieToEdit.date}
+                                        disabled={isUpdatingMetadata}
+                                />
+                            </label>
+                        </div>
+                    </Dialog.Description>
+
+                    <footer class="flex justify-end gap-2">
+                        <button
+                                class="btn preset-tonal"
+                                onclick={closeEditModal}
+                                disabled={isUpdatingMetadata}
+                        >
+                            Annuler
+                        </button>
+                        <button
+                                class="btn preset-filled-primary-500"
+                                onclick={saveMetadata}
+                                disabled={isUpdatingMetadata}
+                        >
+                            {isUpdatingMetadata ? 'Enregistrement...' : 'Enregistrer'}
                         </button>
                     </footer>
                 </Dialog.Content>
