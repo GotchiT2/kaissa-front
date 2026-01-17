@@ -9,8 +9,8 @@
 
   import {createSvelteTable} from '$lib/components/table/data-table.svelte';
   import PaginationOld from '$lib/components/table/PaginationOld.svelte';
-  import {Dialog, Portal} from '@skeletonlabs/skeleton-svelte';
-  import {FlaskConicalIcon, PencilIcon, TagIcon, Trash2Icon, XIcon} from '@lucide/svelte';
+  import {Dialog, Menu, Portal} from '@skeletonlabs/skeleton-svelte';
+  import {EllipsisVertical, FlaskConicalIcon, PencilIcon, TagIcon, Trash2Icon, XIcon} from '@lucide/svelte';
   import FlexRender from '$lib/components/table/FlexRender.svelte';
   import {columns} from '$lib/components/table/columns';
   import {invalidateAll} from '$app/navigation';
@@ -45,7 +45,7 @@
   let partieForTags = $state<{ id: string, name: string } | null>(null);
   let selectedTagIds = $state<Set<string>>(new Set());
   let isUpdatingTags = $state(false);
-  
+
   let partieToEdit = $state<{
     id: string;
     whitePlayer: string;
@@ -247,7 +247,7 @@
         dateValue = `${parts[2]}-${parts[1]}-${parts[0]}`;
       }
     }
-    
+
     partieToEdit = {
       id: row.id,
       whitePlayer: row.whitePlayer || '',
@@ -358,40 +358,66 @@
                         {row.original.notation}
                     </td>
                     <td class="table-cell-fit">
+                        <Menu>
+                            <Menu.Trigger class="btn" title="Ouvrir les actions"
+                                          aria-label="Ouvrir les actions">
+                                <EllipsisVertical focusable="false" aria-hidden="true"/>
+                                <span class="sr-only">Ouvrir les actions</span></Menu.Trigger>
+                            <Portal>
+                                <Menu.Positioner>
+                                    <Menu.Content>
+                                        <Menu.Item value="edit-metadata">
+                                            <button
+                                                    onclick={() => openEditModal(row.original)}
+                                                    title="Éditer les métadonnées"
+                                                    aria-label="Éditer les métadonnées"
+                                            >
+                                                <PencilIcon focusable="false" aria-hidden="true"
+                                                            class="size-4 btn-icon btn-icon-sm"/>
+                                                Éditer les métadonnées
+                                            </button>
+                                        </Menu.Item>
+                                        <Menu.Item value="manage-tags">
+                                            <button
+                                                    onclick={() => openTagsModal(row.original.id, row.original.whitePlayer, row.original.blackPlayer)}
+                                                    title="Gérer les tags"
+                                                    aria-label="Gérer les tags"
+                                            >
+                                                <TagIcon class="size-4 btn-icon btn-icon-sm"/>
+                                                Gérer les tags
+                                            </button>
+                                        </Menu.Item>
+                                        <Menu.Item value="toggle-analysis">
+                                            <button
+                                                    onclick={() => toggleAnalysis(row.original.id, row.original.isInAnalysis)}
+                                                    title={row.original.isInAnalysis ? "Retirer de l'analyse" : "Ajouter à l'analyse"}
+                                                    aria-label={row.original.isInAnalysis ? "Retirer de l'analyse" : "Ajouter à l'analyse"}
+                                                    disabled={togglingAnalysisIds.has(row.original.id)}
+                                            >
+                                                <FlaskConicalIcon focusable="false" aria-hidden="true"
+                                                                  class="size-4 btn-icon btn-icon-sm"/>
+                                                {row.original.isInAnalysis ? "Retirer de l'analyse" : "Ajouter à l'analyse"}
+                                            </button>
+                                        </Menu.Item>
+                                        <Menu.Separator/>
+                                        <Menu.Item value="delete-game">
+                                            <button
+                                                    onclick={() => openDeleteModal(row.original.id, row.original.whitePlayer, row.original.blackPlayer)}
+                                                    title="Supprimer cette partie"
+                                                    aria-label="Supprimer cette partie"
+                                            >
+                                                <Trash2Icon focusable="false" aria-hidden="true"
+                                                            class="size-4 btn-icon btn-icon-sm"/>
+                                                Supprimer la partie
+                                            </button>
+                                        </Menu.Item>
+                                    </Menu.Content>
+                                </Menu.Positioner>
+                            </Portal>
+                        </Menu>
                         <div class="flex gap-2">
-                            <button
-                                    onclick={() => openEditModal(row.original)}
-                                    class="btn-icon btn-icon-sm hover:preset-filled-primary-500"
-                                    title="Éditer les métadonnées"
-                                    aria-label="Éditer les métadonnées"
-                            >
-                                <PencilIcon class="size-4"/>
-                            </button>
-                            <button
-                                    onclick={() => openTagsModal(row.original.id, row.original.whitePlayer, row.original.blackPlayer)}
-                                    class="btn-icon btn-icon-sm hover:preset-filled-primary-500"
-                                    title="Gérer les tags"
-                                    aria-label="Gérer les tags"
-                            >
-                                <TagIcon class="size-4"/>
-                            </button>
-                            <button
-                                    onclick={() => toggleAnalysis(row.original.id, row.original.isInAnalysis)}
-                                    class="btn-icon btn-icon-sm {row.original.isInAnalysis ? 'preset-filled-primary-500' : 'hover:preset-filled-primary-500'}"
-                                    title={row.original.isInAnalysis ? "Retirer de l'analyse" : "Ajouter à l'analyse"}
-                                    aria-label={row.original.isInAnalysis ? "Retirer de l'analyse" : "Ajouter à l'analyse"}
-                                    disabled={togglingAnalysisIds.has(row.original.id)}
-                            >
-                                <FlaskConicalIcon class="size-4"/>
-                            </button>
-                            <button
-                                    onclick={() => openDeleteModal(row.original.id, row.original.whitePlayer, row.original.blackPlayer)}
-                                    class="btn-icon btn-icon-sm hover:preset-filled-error-500"
-                                    title="Supprimer cette partie"
-                                    aria-label="Supprimer cette partie"
-                            >
-                                <Trash2Icon class="size-4"/>
-                            </button>
+
+
                         </div>
                     </td>
                 </tr>
