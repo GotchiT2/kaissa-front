@@ -332,14 +332,6 @@
 
     <div class="flex h-full flex-col justify-start grow gap-4">
         <div class="flex flex-col gap-4 items-center w-full">
-            <Switch dir="rtl" defaultChecked>
-                <Switch.Control>
-                    <Switch.Thumb/>
-                </Switch.Control>
-                <Switch.Label>Notation</Switch.Label>
-                <Switch.HiddenInput/>
-            </Switch>
-
             <div class="notation-text w-full bg-surface-800 p-4 rounded max-h-96 overflow-y-auto">
                 {#each groupedMoves() as row}
                     <span class="move-number">{row.moveNumber}.</span>
