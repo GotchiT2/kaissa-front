@@ -62,6 +62,7 @@
   let eventSource: EventSource | null = null;
   let movetime = 1000;
   let showBestMoves = $state(true);
+  let showAnalysis = $state(true);
 
   board = buildBoard(game);
 
@@ -100,23 +101,23 @@
   $effect(() => {
     currentIndex;
 
-    // 1) Annule un timer précédent si l’utilisateur change vite de coup
     if (analyzeTimer) {
       clearTimeout(analyzeTimer);
       analyzeTimer = null;
     }
 
-    // 2) Ferme l’EventSource en cours (si on relance une nouvelle analyse)
     if (eventSource) {
       eventSource.close();
       eventSource = null;
     }
 
-    // 3) Reset UI
     stockfishLines = [];
     bestmove = "";
 
-    // 4) Rebuild la position (comme tu faisais)
+    if (!showAnalysis) {
+      return;
+    }
+
     game = new Chess();
     const currentMoves = moves();
     for (let i = 0; i < currentIndex; i++) {
@@ -127,12 +128,10 @@
 
     const fen = game.fen();
 
-    // (optionnel) évite de relancer si la FEN n’a pas changé
     if (lastRequestedFen === fen) {
       return;
     }
 
-    // 5) Debounce : on attend que l’état se stabilise
     analyzeTimer = window.setTimeout(() => {
       lastRequestedFen = fen;
 
@@ -162,16 +161,13 @@
         eventSource = null;
       });
 
-      // IMPORTANT: l’EventSource déclenche "error" aussi lors de coupures réseau.
-      // Ici on ferme pour éviter des connexions fantômes.
       eventSource.addEventListener("error", (e) => {
         console.error("Erreur EventSource:", e);
         eventSource?.close();
         eventSource = null;
       });
-    }, 300); // <= ajuste à 200/300/500ms selon la sensation UX
+    }, 300);
 
-    // cleanup de l'effect
     return () => {
       if (analyzeTimer) {
         clearTimeout(analyzeTimer);
@@ -335,7 +331,8 @@
     </div>
 
     <div class="flex h-full flex-col justify-start grow gap-4">
-        <div class="flex flex-col gap-4 items-center w-full">
+        <div class="flex flex-col gap-4 items-center w-full mb-16">
+            <h2 class="h5">Notation</h2>
             <div class="notation-text w-full bg-surface-800 p-4 rounded max-h-96 overflow-y-auto">
                 {#each groupedMoves() as row}
                     <span class="move-number">{row.moveNumber}.</span>
@@ -430,7 +427,7 @@
         </div>
 
         <div class="flex flex-col gap-4 items-center">
-            <Switch dir="rtl" defaultChecked>
+            <Switch dir="rtl" checked={showAnalysis} onCheckedChange={(details) => showAnalysis = details.checked}>
                 <Switch.Control>
                     <Switch.Thumb/>
                 </Switch.Control>
@@ -438,21 +435,25 @@
                 <Switch.HiddenInput/>
             </Switch>
 
-            <div class="flex flex-col gap-4 border border-surface-500 p-4 rounded w-full">
-                {#if bestmove}
-                    <div class="flex items-start gap-4 flex-wrap">
-                        <span class="font-semibold">Meilleur coup: {bestmove}</span>
-                    </div>
-                {/if}
-
-                <div class="bg-surface-900 p-3 rounded max-h-64 overflow-y-auto">
-                    {#if stockfishLines.length === 0}
-                        <p class="text-surface-400">Analyse en cours...</p>
-                    {:else}
-                        <pre class="text-xs font-mono whitespace-pre-wrap">{stockfishLines.join("\n")}</pre>
+            {#if showAnalysis}
+                <div class="flex flex-col gap-4 border border-surface-500 p-4 rounded w-full">
+                    {#if bestmove}
+                        <div class="flex items-start gap-4 flex-wrap">
+                            <span class="font-semibold">Meilleur coup: {bestmove}</span>
+                        </div>
                     {/if}
+
+                    <div class="bg-surface-900 p-3 rounded max-h-64 overflow-y-auto">
+                        {#if stockfishLines.length === 0}
+                            <p class="text-surface-400">Analyse en cours...</p>
+                        {:else}
+                            <pre class="text-xs font-mono whitespace-pre-wrap">{stockfishLines.join("\n")}</pre>
+                        {/if}
+                    </div>
                 </div>
-            </div>
+            {:else}
+                <p class="text-surface-400">L'analyse Stockfish est désactivée.</p>
+            {/if}
         </div>
     </div>
 </div>
