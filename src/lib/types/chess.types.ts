@@ -16,6 +16,7 @@ export interface Collection {
   id: string;
   nom: string;
   creatorId: string;
+  parentId: string | null;
   createdAt: Date;
   updatedAt: Date;
   parties: CollectionGame[];

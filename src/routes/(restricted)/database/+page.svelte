@@ -7,6 +7,7 @@
   import type {CollectionWithGames, GameRow} from '$lib/types/chess.types';
   import CreationCollection from "$lib/components/modales/CreationCollection.svelte";
   import CreationTag from "$lib/components/modales/CreationTag.svelte";
+  import DeletionProgressLoader from "$lib/components/DeletionProgressLoader.svelte";
 
   interface Props {
     data: {
@@ -77,6 +78,7 @@
   let selectedTagId = $state<string | null>(null);
   let viewMode = $state<'collection' | 'analysis' | 'tag'>('collection');
   let tagToDelete = $state<{ id: string, nom: string, partiesCount: number } | null>(null);
+  let collectionToDelete = $state<{ id: string, nom: string, partiesCount: number, subCollectionsCount: number } | null>(null);
   let isDeleting = $state(false);
 
   function formatMoves(coups: any[]): string {
@@ -243,6 +245,91 @@
       isDeleting = false;
     }
   }
+
+  function countSubCollections(node: CollectionNode): number {
+    if (!node.children || node.children.length === 0) return 0;
+    
+    let count = node.children.length;
+    for (const child of node.children) {
+      count += countSubCollections(child);
+    }
+    return count;
+  }
+
+  function countTotalPartiesInCollection(node: CollectionNode): number {
+    let total = node.partiesCount;
+    if (node.children) {
+      for (const child of node.children) {
+        total += countTotalPartiesInCollection(child);
+      }
+    }
+    return total;
+  }
+
+  function findCollectionNode(nodes: CollectionNode[], collectionId: string): CollectionNode | null {
+    for (const node of nodes) {
+      if (node.id === collectionId) return node;
+      if (node.children) {
+        const found = findCollectionNode(node.children, collectionId);
+        if (found) return found;
+      }
+    }
+    return null;
+  }
+
+  function openDeleteCollectionModal(collectionId: string, collectionNom: string) {
+    const node = findCollectionNode(treeNodes, collectionId);
+    if (!node) return;
+
+    const subCollectionsCount = countSubCollections(node);
+    const partiesCount = countTotalPartiesInCollection(node);
+
+    collectionToDelete = {
+      id: collectionId,
+      nom: collectionNom,
+      partiesCount,
+      subCollectionsCount,
+    };
+  }
+
+  function closeDeleteCollectionModal() {
+    if (!isDeleting) {
+      collectionToDelete = null;
+    }
+  }
+
+  async function confirmDeleteCollection() {
+    if (!collectionToDelete) return;
+
+    isDeleting = true;
+    
+    const deletingCollectionId = collectionToDelete.id;
+    collectionToDelete = null;
+
+    try {
+      const response = await fetch(`/api/collections/${deletingCollectionId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Erreur lors de la suppression de la collection');
+      }
+
+      const result = await response.json();
+      
+      toaster.success({ 
+        title: 'Succès', 
+        description: result.message || 'Collection supprimée avec succès. La suppression des données se poursuit en arrière-plan.' 
+      });
+
+      window.location.reload();
+    } catch (err: any) {
+      toaster.error({ title: 'Erreur', description: err.message || 'Erreur lors de la suppression de la collection' });
+    } finally {
+      isDeleting = false;
+    }
+  }
 </script>
 
 <div class="flex h-[90vh] w-full">
@@ -383,15 +470,29 @@
                 <TreeView.BranchControl>
                     <TreeView.BranchIndicator/>
                     <TreeView.BranchText>
-                        <button
-                                onclick={() => handleSelectCollection(node.id)}
-                                class="flex items-center gap-2 flex-1 text-left"
-                                class:preset-filled-primary-500={selectedCollectionId === node.id}
-                        >
-                            <Folder class="size-4"/>
-                            <span>{node.nom}</span>
-                            <span class="opacity-60 ml-2">({formatNumber(node.partiesCount)})</span>
-                        </button>
+                        <div class="flex items-center gap-2 flex-1 group">
+                            <button
+                                    onclick={() => handleSelectCollection(node.id)}
+                                    class="flex items-center gap-2 flex-1 text-left"
+                                    class:preset-filled-primary-500={selectedCollectionId === node.id}
+                            >
+                                <Folder class="size-4"/>
+                                <span>{node.nom}</span>
+                                <span class="opacity-60 ml-2">({formatNumber(node.partiesCount)})</span>
+                            </button>
+                            <button
+                                    class="btn-icon btn-icon-sm hover:preset-filled-error-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    onclick={(e) => {
+                                        e.stopPropagation();
+                                        openDeleteCollectionModal(node.id, node.nom);
+                                    }}
+                                    disabled={isDeleting}
+                                    title="Supprimer la collection"
+                                    aria-label="Supprimer la collection {node.nom}"
+                            >
+                                <Trash2 class="size-4"/>
+                            </button>
+                        </div>
                     </TreeView.BranchText>
                     <CreationCollection
                             {handleToastSuccess}
@@ -408,15 +509,29 @@
             </TreeView.Branch>
         {:else}
             <TreeView.Item>
-                <button
-                        onclick={() => handleSelectCollection(node.id)}
-                        class="flex items-center gap-2 flex-1 text-left px-2 py-1 rounded hover:preset-tonal"
-                        class:preset-filled-primary-500={selectedCollectionId === node.id}
-                >
-                    <Folder class="size-4"/>
-                    <span>{node.nom}</span>
-                    <span class="opacity-60 ml-2">({formatNumber(node.partiesCount)})</span>
-                </button>
+                <div class="flex items-center gap-2 w-full group">
+                    <button
+                            onclick={() => handleSelectCollection(node.id)}
+                            class="flex items-center gap-2 flex-1 text-left px-2 py-1 rounded hover:preset-tonal"
+                            class:preset-filled-primary-500={selectedCollectionId === node.id}
+                    >
+                        <Folder class="size-4"/>
+                        <span>{node.nom}</span>
+                        <span class="opacity-60 ml-2">({formatNumber(node.partiesCount)})</span>
+                    </button>
+                    <button
+                            class="btn-icon btn-icon-sm hover:preset-filled-error-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onclick={(e) => {
+                                e.stopPropagation();
+                                openDeleteCollectionModal(node.id, node.nom);
+                            }}
+                            disabled={isDeleting}
+                            title="Supprimer la collection"
+                            aria-label="Supprimer la collection {node.nom}"
+                    >
+                        <Trash2 class="size-4"/>
+                    </button>
+                </div>
                 <CreationCollection
                         {handleToastSuccess}
                         label="Créer une sous-collection de {node.nom}"
@@ -426,6 +541,65 @@
         {/if}
     </TreeView.NodeProvider>
 {/snippet}
+
+{#if collectionToDelete}
+    <Dialog open={collectionToDelete !== null}>
+        <Portal>
+            <Dialog.Backdrop class="fixed inset-0 z-50 bg-surface-50-950/50" onclick={closeDeleteCollectionModal}/>
+            <Dialog.Positioner class="fixed inset-0 z-50 flex justify-center items-center p-4">
+                <Dialog.Content class="card bg-surface-100-900 w-full max-w-md p-4 space-y-4 shadow-xl">
+                    <header class="flex justify-between items-center">
+                        <Dialog.Title class="text-lg font-bold">Confirmer la suppression</Dialog.Title>
+                        <Dialog.CloseTrigger class="btn-icon hover:preset-tonal" onclick={closeDeleteCollectionModal}
+                                             disabled={isDeleting}>
+                            <XIcon class="size-4"/>
+                        </Dialog.CloseTrigger>
+                    </header>
+
+                    <Dialog.Description class="space-y-2">
+                        <p>Êtes-vous sûr de vouloir supprimer la collection :</p>
+                        <p class="font-semibold text-primary-500">{collectionToDelete.nom}</p>
+                        
+                        {#if collectionToDelete.subCollectionsCount > 0 || collectionToDelete.partiesCount > 0}
+                            <div class="bg-error-500/10 border border-error-500/30 rounded p-3 space-y-1">
+                                <p class="text-sm font-semibold text-error-400">⚠️ Cette action supprimera :</p>
+                                {#if collectionToDelete.partiesCount > 0}
+                                    <p class="text-sm opacity-90">
+                                        • {collectionToDelete.partiesCount} partie{collectionToDelete.partiesCount > 1 ? 's' : ''}
+                                    </p>
+                                {/if}
+                                {#if collectionToDelete.subCollectionsCount > 0}
+                                    <p class="text-sm opacity-90">
+                                        • {collectionToDelete.subCollectionsCount} sous-collection{collectionToDelete.subCollectionsCount > 1 ? 's' : ''}
+                                    </p>
+                                {/if}
+                            </div>
+                        {/if}
+                        
+                        <p class="text-sm opacity-75">Cette action est irréversible.</p>
+                    </Dialog.Description>
+
+                    <footer class="flex justify-end gap-2">
+                        <button
+                                class="btn preset-tonal"
+                                onclick={closeDeleteCollectionModal}
+                                disabled={isDeleting}
+                        >
+                            Annuler
+                        </button>
+                        <button
+                                class="btn preset-filled-error-500"
+                                onclick={confirmDeleteCollection}
+                                disabled={isDeleting}
+                        >
+                            {isDeleting ? 'Suppression...' : 'Supprimer'}
+                        </button>
+                    </footer>
+                </Dialog.Content>
+            </Dialog.Positioner>
+        </Portal>
+    </Dialog>
+{/if}
 
 {#if tagToDelete}
     <Dialog open={tagToDelete !== null}>
@@ -472,6 +646,7 @@
         </Portal>
     </Dialog>
 {/if}
+
 
 <Toast.Group {toaster}>
     {#snippet children(toast)}

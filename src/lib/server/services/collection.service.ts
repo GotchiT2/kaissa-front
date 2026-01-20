@@ -51,6 +51,7 @@ export async function getUserCollections(userId: string) {
   return await prisma.collection.findMany({
     where: {
       proprietaireId: userId,
+      deletedAt: null,
     },
     include: {
       parties: {
@@ -87,6 +88,7 @@ export async function getCollectionById(collectionId: string, userId: string) {
     where: {
       id: collectionId,
       proprietaireId: userId,
+      deletedAt: null,
     },
     include: {
       parties: {
