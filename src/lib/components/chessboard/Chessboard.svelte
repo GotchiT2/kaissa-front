@@ -1,20 +1,185 @@
 <script lang="ts">
   import {Chess} from "chess.js";
-  import {Navigation, Switch} from "@skeletonlabs/skeleton-svelte";
+  import {Switch, Tabs} from "@skeletonlabs/skeleton-svelte";
   import {ChevronFirst, ChevronLast, ChevronLeft, ChevronRight} from "@lucide/svelte";
   import Tile from "$lib/components/chessboard/Tile.svelte";
   import {buildBoard, updateStatus} from "$lib/utils/chessboard";
+  import {hashFEN} from "$lib/utils/positionHash";
 
+  const {parties, collections} = $props();
   let game = new Chess();
 
-  let moves = $state<string[]>([]);
+  let selectedGameIndex = $state(parties[0]?.id || null);
+
+  const selectedPartie = $derived(parties.find(p => p.id === selectedGameIndex));
+
+  const moves = $derived(() => {
+    if (!selectedPartie?.coups || selectedPartie.coups.length === 0) {
+      return [];
+    }
+    
+    const tempGame = new Chess();
+    const movesInSan: string[] = [];
+    
+    for (const coup of selectedPartie.coups) {
+      if (coup.coupUci) {
+        try {
+          const move = tempGame.move({
+            from: coup.coupUci.substring(0, 2),
+            to: coup.coupUci.substring(2, 4),
+            promotion: coup.coupUci.length > 4 ? coup.coupUci[4] : undefined
+          });
+          if (move) {
+            movesInSan.push(move.san);
+          }
+        } catch (e) {
+          console.error("Erreur lors de la conversion du coup:", coup.coupUci, e);
+        }
+      }
+    }
+    
+    return movesInSan;
+  });
+
   let currentIndex = $state(0);
   let board = $state<{ square: string; piece: Piece | null }[][]>([]);
   let selectedSquare = $state<string | null>(null);
   let possibleMoves = $state<string[]>([]);
   let statusMessage = $state<string>("Trait aux Blancs");
+  let selectedCollectionId = $state<string | null>(collections[0]?.id || null);
+
+
+  type MeilleurCoup = {
+    coup: string;
+    nbParties: string;
+    statsVictoires: [number, number, number];
+    elo: number | null;
+  };
+
+  let meilleursCoups: MeilleurCoup[]  = $state([]);
+
+  let stockfishLines: string[] = $state([]);
+  let bestmove = $state("");
+  let eventSource: EventSource | null = null;
+  let movetime = 1000;
+  let showBestMoves = $state(true);
+  let showAnalysis = $state(true);
 
   board = buildBoard(game);
+
+  $effect(() => {
+    if (!selectedCollectionId || !showBestMoves) {
+      meilleursCoups = [];
+      return;
+    }
+
+    currentIndex;
+
+    const fen = game.fen();
+    const hashPosition = hashFEN(fen);
+
+    fetch(`/api/collections/${selectedCollectionId}/position-moves?hashPosition=${hashPosition}`)
+      .then(response => response.json())
+      .then(data => {
+        meilleursCoups = data.moves.map((move => {
+          const statsVictoires = calculePourcentageVictoires(move.victoiresBlancs, move.victoiresNoirs, move.nulles);
+          return {
+            coup: move.coup,
+            nbParties: move.nbParties,
+            statsVictoires,
+            elo: move.eloMoyen,
+          };
+        }));
+      })
+      .catch(error => {
+        console.error('Erreur lors de la récupération des coups:', error);
+      });
+  });
+
+  let analyzeTimer: number | null = null;
+  let lastRequestedFen: string | null = null;
+
+  $effect(() => {
+    currentIndex;
+
+    if (analyzeTimer) {
+      clearTimeout(analyzeTimer);
+      analyzeTimer = null;
+    }
+
+    if (eventSource) {
+      eventSource.close();
+      eventSource = null;
+    }
+
+    stockfishLines = [];
+    bestmove = "";
+
+    if (!showAnalysis) {
+      return;
+    }
+
+    game = new Chess();
+    const currentMoves = moves();
+    for (let i = 0; i < currentIndex; i++) {
+      if (currentMoves[i]) {
+        game.move(currentMoves[i]);
+      }
+    }
+
+    const fen = game.fen();
+
+    if (lastRequestedFen === fen) {
+      return;
+    }
+
+    analyzeTimer = window.setTimeout(() => {
+      lastRequestedFen = fen;
+
+      const id = crypto.randomUUID();
+      const url = `/api/proxy/stream?fen=${encodeURIComponent(fen)}&movetime=${movetime}&id=${id}`;
+
+      console.log("Lancement de l'analyse Stockfish pour:", fen);
+
+      eventSource = new EventSource(url);
+
+      eventSource.addEventListener("queued", () => {
+        console.log("Analyse en attente");
+        stockfishLines = ["Analyse en attente..."];
+      });
+
+      eventSource.addEventListener("info", (e) => {
+        const data = JSON.parse((e as MessageEvent).data);
+        // console.log("Info reçue:", data.line);
+        stockfishLines = [...stockfishLines, data.line];
+      });
+
+      eventSource.addEventListener("bestmove", (e) => {
+        const data = JSON.parse((e as MessageEvent).data);
+        console.log("Meilleur coup:", data.line);
+        bestmove = data.line;
+        eventSource?.close();
+        eventSource = null;
+      });
+
+      eventSource.addEventListener("error", (e) => {
+        console.error("Erreur EventSource:", e);
+        eventSource?.close();
+        eventSource = null;
+      });
+    }, 300);
+
+    return () => {
+      if (analyzeTimer) {
+        clearTimeout(analyzeTimer);
+        analyzeTimer = null;
+      }
+      if (eventSource) {
+        eventSource.close();
+        eventSource = null;
+      }
+    };
+  });
 
   function selectSquare(square: string) {
     selectedSquare = square;
@@ -29,7 +194,7 @@
   function handleTileClick(square: string) {
     const clickedPiece = game.get(square);
 
-    if (currentIndex !== moves.length) return;
+    if (currentIndex !== moves().length) return;
 
     if (!selectedSquare) {
       if (clickedPiece && clickedPiece.color === game.turn()) {
@@ -47,8 +212,7 @@
       const move = game.move({from: selectedSquare, to: square, promotion: "q"});
 
       if (move) {
-        moves.push(move.san);
-        currentIndex = moves.length;
+        currentIndex = moves().length;
         board = buildBoard(game);
         clearSelection();
         statusMessage = updateStatus(game);
@@ -65,8 +229,11 @@
 
   function rebuildPosition() {
     game = new Chess();
+    const currentMoves = moves();
     for (let i = 0; i < currentIndex; i++) {
-      game.move(moves[i]);
+      if (currentMoves[i]) {
+        game.move(currentMoves[i]);
+      }
     }
     board = buildBoard(game);
     statusMessage = updateStatus(game);
@@ -87,7 +254,7 @@
   }
 
   function nextMove() {
-    if (currentIndex < moves.length) {
+    if (currentIndex < moves().length) {
       currentIndex++;
       rebuildPosition();
       clearSelection();
@@ -95,17 +262,18 @@
   }
 
   function resumeGame() {
-    currentIndex = moves.length;
+    currentIndex = moves().length;
     rebuildPosition();
   }
 
   function groupedMoves() {
+    const currentMoves = moves();
     const result = [];
-    for (let i = 0; i < moves.length; i += 2) {
+    for (let i = 0; i < currentMoves.length; i += 2) {
       result.push({
         moveNumber: i / 2 + 1,
-        white: moves[i] ?? "",
-        black: moves[i + 1] ?? "",
+        white: currentMoves[i] ?? "",
+        black: currentMoves[i + 1] ?? "",
         whiteIndex: i + 1,
         blackIndex: i + 2
       });
@@ -113,52 +281,27 @@
     return result;
   }
 
-  const tableData = [
-    {coup: 'c5', frequence: '41%', eval: [47, 4, 49], elo: '1459'},
-    {coup: 'd6', frequence: '28%', eval: [51, 5, 44], elo: '1620'},
-    {coup: 'c5', frequence: '41%', eval: [47, 4, 49], elo: '1459'},
-    {coup: 'd6', frequence: '28%', eval: [51, 5, 44], elo: '1620'},
-    {coup: 'c5', frequence: '41%', eval: [47, 4, 49], elo: '1459'},
-    {coup: 'd6', frequence: '28%', eval: [51, 5, 44], elo: '1620'},
-  ];
+  function calculePourcentageVictoires(nbBlancs: number, nbNoirs: number, nbNulles: number) {
+    const total = nbBlancs + nbNoirs + nbNulles;
+    if (total === 0) {
+      return {victoiresBlancs: 0, victoiresNoirs: 0, nulles: 0};
+    }
+    return [Math.round((nbBlancs / total) * 100), Math.round((nbNoirs / total) * 100), Math.round((nbNulles / total) * 100)]
+  }
 </script>
 
-<Navigation
-        class="grow h-full grid grid-rows-[auto_1fr_auto] gap-4 border-r-1 border-b-primary-100 py-8"
-        layout="sidebar"
->
-    <Navigation.Content class="
-    ml-4 overflow-y-auto">
-        <h3>Historique</h3>
+<div class="flex gap-8 items-start p-8 bg-surface-900 overflow-auto">
+    <div class="flex flex-col items-center gap-4 max-w-[50%]">
+        <Tabs value={selectedGameIndex} onValueChange={(tab) => selectedGameIndex = tab.value}>
+            <Tabs.List>
+                {#each parties as partie}
+                    <Tabs.Trigger class="flex-1" value={partie.id.toString()}>
+                        {partie.titre || 'Partie sans titre'}
+                    </Tabs.Trigger>
+                {/each}
+            </Tabs.List>
+        </Tabs>
 
-        <div class="history">
-            {#each groupedMoves() as row}
-                <div class={"history-row" + (row.moveNumber % 2 === 0 ? ' history-row-light' : '')}>
-                    <div class="move-number">{row.moveNumber}.</div>
-
-                    <button
-                            class="move white
-                                {currentIndex === row.whiteIndex ? 'active' : ''}"
-                            onclick={() => { currentIndex = row.whiteIndex; rebuildPosition(); }}
-                    >
-                        {row.white}
-                    </button>
-
-                    <button
-                            class="move black
-                                {currentIndex === row.blackIndex ? 'active' : ''}"
-                            onclick={() => { currentIndex = row.blackIndex; rebuildPosition(); }}
-                    >
-                        {row.black}
-                    </button>
-                </div>
-            {/each}
-        </div>
-    </Navigation.Content>
-</Navigation>
-
-<div class="grow flex gap-8 items-start p-8 bg-surface-900 overflow-auto">
-    <div class="flex flex-col items-center gap-4">
         <div class="board">
             {#each board as row, r}
                 <div class="rank">
@@ -177,11 +320,11 @@
             <button class="btn preset-tonal" disabled={currentIndex === 0} onclick={prevMove}>
                 <ChevronLeft/>
                 <span class="sr-only">Précédent</span></button>
-            <button class="btn preset-tonal" disabled={currentIndex === moves.length} onclick={nextMove}>
+            <button class="btn preset-tonal" disabled={currentIndex === moves().length} onclick={nextMove}>
                 <ChevronRight/>
                 <span class="sr-only">Suivant</span>
             </button>
-            <button class="btn preset-tonal" disabled={currentIndex === moves.length} onclick={resumeGame}>
+            <button class="btn preset-tonal" disabled={currentIndex === moves().length} onclick={resumeGame}>
                 <ChevronLast/>
                 <span class="sr-only">Aller au dernier coup</span>
             </button>
@@ -189,23 +332,31 @@
     </div>
 
     <div class="flex h-full flex-col justify-start grow gap-4">
-        <div class="flex flex-col gap-4 items-center">
-            <Switch dir="rtl" defaultChecked>
-                <Switch.Control>
-                    <Switch.Thumb/>
-                </Switch.Control>
-                <Switch.Label>Notation</Switch.Label>
-                <Switch.HiddenInput/>
-            </Switch>
-
-            <textarea
-                    class="w-full h-48 bg-surface-800 text-white p-2 rounded resize-none"
-                    readonly
-            >{moves.join(' ')}</textarea>
+        <div class="flex flex-col gap-4 items-center w-full mb-16">
+            <h2 class="h5">Notation</h2>
+            <div class="notation-text w-full bg-surface-800 p-4 rounded max-h-96 overflow-y-auto">
+                {#each groupedMoves() as row}
+                    <span class="move-number">{row.moveNumber}.</span>
+                    <button
+                            class="move-btn {currentIndex === row.whiteIndex ? 'active' : ''}"
+                            onclick={() => { currentIndex = row.whiteIndex; rebuildPosition(); }}
+                    >
+                        {row.white}
+                    </button>
+                    {#if row.black}
+                        <button
+                                class="move-btn {currentIndex === row.blackIndex ? 'active' : ''}"
+                                onclick={() => { currentIndex = row.blackIndex; rebuildPosition(); }}
+                        >
+                            {row.black}
+                        </button>
+                    {/if}
+                {/each}
+            </div>
         </div>
 
-        <div class="flex flex-col gap-4 items-center">
-            <Switch dir="rtl" defaultChecked>
+        <div class="flex flex-col gap-4 items-center mb-16">
+            <Switch dir="rtl" checked={showBestMoves} onCheckedChange={(details) => showBestMoves = details.checked}>
                 <Switch.Control>
                     <Switch.Thumb/>
                 </Switch.Control>
@@ -213,65 +364,71 @@
                 <Switch.HiddenInput/>
             </Switch>
 
-            <label class="label w-fit flex gap-4 items-center self-start">
-                <span class="label-text">Database</span>
-                <select class="select">
-                    <option value="1">Option 1</option>
-                    <option value="2">Option 2</option>
-                    <option value="3">Option 3</option>
-                    <option value="4">Option 4</option>
-                    <option value="5">Option 5</option>
-                </select>
-            </label>
+            {#if showBestMoves}
+                <label class="label w-fit flex gap-4 items-center self-start">
+                    <span class="label-text">Database</span>
+                    <select class="select" bind:value={selectedCollectionId}>
+                        {#if collections.length === 0}
+                            <option value="">Aucune collection disponible</option>
+                        {:else}
+                            {#each collections as collection (collection.id)}
+                                <option value={collection.id}>{collection.nom}</option>
+                            {/each}
+                        {/if}
+                    </select>
+                </label>
 
 
-            <div class="table-wrap border border-surface-500">
-                <table class="table caption-bottom">
-                    <thead>
-                    <tr class="text-white">
-                        <th>Coup</th>
-                        <th>Fréquence</th>
-                        <th>Blanc / Neutre / Noir</th>
-                        <th class="text-right!">ELO Moyen</th>
-                    </tr>
-                    </thead>
-                    <tbody class="[&>tr]:hover:preset-tonal-primary">
-                    {#each tableData as row}
-                        <tr>
-                            <td>{row.coup}</td>
-                            <td>{row.frequence}</td>
-                            <td>
-                                <div class="flex h-6 w-full overflow-hidden rounded-md text-xs font-semibold">
-                                    <div
-                                            class="flex items-center justify-center bg-surface-50 text-black"
-                                            style="width: {row.eval[0]}%"
-                                    >
-                                        {row.eval[0]}%
-                                    </div>
-                                    <div
-                                            class="flex items-center justify-center bg-surface-200 text-black"
-                                            style="width: {row.eval[1]}%"
-                                    >
-                                    </div>
-                                    <div
-                                            class="flex items-center justify-center bg-surface-400 text-white"
-                                            style="width: {row.eval[2]}%"
-                                    >
-                                        {row.eval[2]}%
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="text-right">{row.elo}</td>
+                <div class="table-wrap border border-surface-500">
+                    <table class="table caption-bottom">
+                        <thead>
+                        <tr class="text-white">
+                            <th>Coup</th>
+                            <th>Nombre de parties</th>
+                            <th>Blanc / Neutre / Noir</th>
+                            <th class="text-right!">ELO Moyen</th>
                         </tr>
-                    {/each}
-                    </tbody>
-                </table>
-            </div>
+                        </thead>
+                        <tbody class="[&>tr]:hover:preset-tonal-primary">
+                        {#each meilleursCoups as row}
+                            <tr>
+                                <td>{row.coup}</td>
+                                <td>{row.nbParties}</td>
+                                <td>
+                                    <div class="flex h-6 w-full overflow-hidden rounded-md text-xs font-semibold">
+                                        <div
+                                                class="flex items-center justify-center bg-surface-50 text-black"
+                                                style="width: {row.statsVictoires[0]}%"
+                                        >
+                                            {row.statsVictoires[0]}%
+                                        </div>
+                                        <div
+                                                class="flex items-center justify-center bg-surface-200 text-black"
+                                                style="width: {row.statsVictoires[1]}%"
+                                        >
+                                        </div>
+                                        <div
+                                                class="flex items-center justify-center bg-surface-400 text-white"
+                                                style="width: {row.statsVictoires[2]}%"
+                                        >
+                                            {row.statsVictoires[2]}%
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="text-right">{row.elo !== null ? row.elo : '—'}</td>
+                            </tr>
+                        {/each}
+                        </tbody>
+                    </table>
+                </div>
+            {:else}
+                <p class="text-surface-400">Les meilleurs coups joués dans la base de données ne sont pas affichés.</p>
+            {/if}
 
         </div>
 
         <div class="flex flex-col gap-4 items-center">
-            <Switch dir="rtl" defaultChecked>
+            <Switch dir="rtl" checked={showAnalysis} onCheckedChange={(details) => showAnalysis = details.checked}>
                 <Switch.Control>
                     <Switch.Thumb/>
                 </Switch.Control>
@@ -279,52 +436,25 @@
                 <Switch.HiddenInput/>
             </Switch>
 
-            <div class="flex flex-col gap-4 border border-surface-500 p-4 rounded w-full">
-                <div class="flex items-start gap-4">
-                        <select class="select">
-                            <option value="1">Option 1</option>
-                            <option value="2">Option 2</option>
-                            <option value="3">Option 3</option>
-                            <option value="4">Option 4</option>
-                            <option value="5">Option 5</option>
-                        </select>
-                        <select class="select">
-                            <option value="1">Option 1</option>
-                            <option value="2">Option 2</option>
-                            <option value="3">Option 3</option>
-                            <option value="4">Option 4</option>
-                            <option value="5">Option 5</option>
-                        </select>
-                        <select class="select">
-                            <option value="1">Option 1</option>
-                            <option value="2">Option 2</option>
-                            <option value="3">Option 3</option>
-                            <option value="4">Option 4</option>
-                            <option value="5">Option 5</option>
-                        </select>
-                        <select class="select">
-                            <option value="1">Option 1</option>
-                            <option value="2">Option 2</option>
-                            <option value="3">Option 3</option>
-                            <option value="4">Option 4</option>
-                            <option value="5">Option 5</option>
-                        </select>
-                        <select class="select">
-                            <option value="1">Option 1</option>
-                            <option value="2">Option 2</option>
-                            <option value="3">Option 3</option>
-                            <option value="4">Option 4</option>
-                            <option value="5">Option 5</option>
-                        </select>
-                </div>
+            {#if showAnalysis}
+                <div class="flex flex-col gap-4 border border-surface-500 p-4 rounded w-full">
+                    {#if bestmove}
+                        <div class="flex items-start gap-4 flex-wrap">
+                            <span class="font-semibold">Meilleur coup: {bestmove}</span>
+                        </div>
+                    {/if}
 
-                <p>
-                    (0.31) 1. e4 e5   2. Nf3 Nf6  3. Nxe5 d6   4. Nf3 Nxe4  5. d4 d5   6. Bd3 Bd6   7. O-OO-O   8. Re1 Bf5   9. c4 Bb4    10. Nbd2 c6
-                    (0.22)1. Nf3 d5   2. d4 e6  3. c4 Nf6  4. Bg5 Be7  5. e3 h6  6. Bh4 O-O  7. Nc3 a6  8. Qc2 dxc4  9. Bxc4 b5  10. Bxf6 Bxf6
-                    (0.22)1. d4 d5  2. c4 e6  3. Nf3 Nf6  4. Bg5 Be7  5. e3 h6  6. Bh4 O-O  7. cxd5 exd5  8. Qc2 c6  9. Bd3
-                    (0.22)1. d4 d5  2. c4 e6  3. Nf3 Nf6  4. Bg5 Be7  5. e3 h6  6. Bh4 O-O  7. cxd5 exd5  8. Qc2 c6  9. Bd3
-                </p>
-            </div>
+                    <div class="bg-surface-900 p-3 rounded max-h-64 overflow-y-auto">
+                        {#if stockfishLines.length === 0}
+                            <p class="text-surface-400">Analyse en cours...</p>
+                        {:else}
+                            <pre class="text-xs font-mono whitespace-pre-wrap">{stockfishLines.join("\n")}</pre>
+                        {/if}
+                    </div>
+                </div>
+            {:else}
+                <p class="text-surface-400">L'analyse Stockfish est désactivée.</p>
+            {/if}
         </div>
     </div>
 </div>
@@ -367,48 +497,38 @@
         background: rgba(255, 255, 255, 0.15);
     }
 
-    .history {
+    .notation-text {
         font-family: system-ui, -apple-system, sans-serif;
         font-size: 14px;
-    }
-
-    .history-row {
-        display: grid;
-        grid-template-columns: 32px 1fr 1fr;
-        gap: 6px;
-        padding: 4px 2px;
-        align-items: center;
-    }
-
-    .history-row-light {
-        background: rgba(255, 255, 255, 0.1);
+        line-height: 1.8;
     }
 
     .move-number {
-        text-align: right;
         color: #aaa;
+        margin-right: 4px;
+        margin-left: 8px;
     }
 
-    .move {
-        padding: 3px 6px;
-        border-radius: 4px;
+    .move-number:first-child {
+        margin-left: 0;
+    }
+
+    .move-btn {
+        padding: 2px 4px;
+        margin: 0 2px;
+        border-radius: 3px;
         cursor: pointer;
+        background: transparent;
+        color: inherit;
+        transition: background 0.15s;
     }
 
-    .move:hover {
-        background: rgba(255, 255, 255, 0.05);
+    .move-btn:hover {
+        background: rgba(255, 255, 255, 0.1);
     }
 
-    .move.white {
-        text-align: left;
-    }
-
-    .move.black {
-        text-align: left;
-    }
-
-    .move.active {
-        background: rgba(255, 255, 255, 0.15);
+    .move-btn.active {
+        background: rgba(59, 130, 246, 0.5);
         color: white;
         font-weight: 600;
     }

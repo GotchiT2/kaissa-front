@@ -1,10 +1,15 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+
 [data-theme='kaissa'] {
     --text-scaling: 1.067;
     --base-font-color: var(--color-surface-950);
     --base-font-color-dark: var(--color-surface-50);
-    --base-font-family: system-ui, sans-serif;
+    --base-font-family: Poppins, sans-serif;
     --base-font-size: inherit;
     --base-line-height: inherit;
+    --font-weight-normal: 200;
+    --font-weight-medium: 200;
+    --font-weight-bold: 600;
     --base-font-weight: normal;
     --base-font-style: normal;
     --base-letter-spacing: 0em;

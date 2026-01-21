@@ -34,6 +34,7 @@ COPY --from=build /app/package.json ./package.json
 
 # on copie les dépendances + Prisma Client généré
 COPY --from=build /app/node_modules ./node_modules
+# todo: run prisma migrate
 
 EXPOSE 8080
 CMD ["node", "build"]

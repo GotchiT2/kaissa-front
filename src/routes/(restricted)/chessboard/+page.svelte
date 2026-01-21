@@ -2,11 +2,13 @@
   import ChessBoard from "$lib/components/chessboard/Chessboard.svelte";
   import {Navigation} from "@skeletonlabs/skeleton-svelte";
   import {ChessQueen, Database} from "@lucide/svelte";
+
+  let {data} = $props();
 </script>
 
 <div class="flex h-[90vh] w-full">
     <Navigation
-            class="w-auto h-full bg-[#121212] flex flex-col gap-4"
+            class="min-w-[100px] px-4 h-full bg-[#121212] flex flex-col items-center gap-4"
             layout="sidebar"
     >
         <Navigation.Header class="flex flex-col gap-2 py-4">
@@ -22,6 +24,6 @@
         </Navigation.Header>
     </Navigation>
 
-    <ChessBoard/>
+    <ChessBoard collections={data.collections} parties={data.partiesInAnalysis}/>
 
 </div>

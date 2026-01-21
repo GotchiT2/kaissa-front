@@ -1,52 +1,168 @@
 <script lang="ts">
-  import {ChessQueen, Clock4, Database, Folder, FolderArchive, Hash, Plus, Star, Trash2} from '@lucide/svelte';
-  import type { ComponentType } from 'svelte';
-  import {Navigation} from '@skeletonlabs/skeleton-svelte';
+  import {ChessQueen, Database, FlaskConical, Folder, Tag, Trash2, XIcon} from '@lucide/svelte';
+  import {createToaster, createTreeViewCollection, Dialog, Navigation, Portal, Toast, TreeView} from '@skeletonlabs/skeleton-svelte';
   import {formatNumber} from '$lib/utils/formatNumber';
   import GamesTable from '$lib/components/table/GamesTable.svelte';
   import ImportGame from "$lib/components/ImportGame.svelte";
-  import type { CollectionWithGames, GameRow } from '$lib/types/chess.types';
+  import type {CollectionWithGames, GameRow} from '$lib/types/chess.types';
+  import CreationCollection from "$lib/components/modales/CreationCollection.svelte";
+  import CreationTag from "$lib/components/modales/CreationTag.svelte";
+  import DeletionProgressLoader from "$lib/components/DeletionProgressLoader.svelte";
 
   interface Props {
     data: {
       collections: CollectionWithGames[];
+      partiesInAnalysis: any[];
+      tags: any[];
     };
   }
 
-  let { data }: Props = $props();
+  let {data}: Props = $props();
 
-  interface CollectionDisplay {
+  const toaster = createToaster();
+
+  interface CollectionNode {
     id: string;
-    label: string;
-    href: string;
-    value: number;
-    icon: ComponentType;
+    nom: string;
+    partiesCount: number;
+    collection: CollectionWithGames;
+    children?: CollectionNode[];
   }
 
-  const collectionsData: CollectionDisplay[] = data.collections.map((collection) => ({
-    id: collection.id,
-    label: collection.title,
-    href: `#${collection.id}`,
-    value: collection.games.length,
-    icon: Folder
+  function buildCollectionTree(collections: CollectionWithGames[]): CollectionNode[] {
+    const collectionMap = new Map<string, CollectionNode>();
+    const rootNodes: CollectionNode[] = [];
+
+    collections.forEach(collection => {
+      collectionMap.set(collection.id, {
+        id: collection.id,
+        nom: collection.nom,
+        partiesCount: collection.parties.length || 0,
+        collection,
+        children: []
+      });
+    });
+
+    collections.forEach(collection => {
+      const node = collectionMap.get(collection.id)!;
+      if (collection.parentId) {
+        const parent = collectionMap.get(collection.parentId);
+        if (parent) {
+          parent.children!.push(node);
+        } else {
+          rootNodes.push(node);
+        }
+      } else {
+        rootNodes.push(node);
+      }
+    });
+
+    return rootNodes;
+  }
+
+  const treeNodes = $derived(buildCollectionTree(data.collections));
+
+  const collectionTreeView = $derived(createTreeViewCollection<CollectionNode>({
+    nodeToValue: (node) => node.id,
+    nodeToString: (node) => node.nom,
+    rootNode: {
+      id: 'root',
+      nom: '',
+      partiesCount: 0,
+      collection: {} as CollectionWithGames,
+      children: treeNodes
+    }
   }));
 
-  let selectedCollectionId = $state<string | null>(collectionsData[0]?.id || null);
+  let selectedCollectionId = $state<string | null>(data.collections[0]?.id || null);
+  let selectedTagId = $state<string | null>(null);
+  let viewMode = $state<'collection' | 'analysis' | 'tag'>('collection');
+  let tagToDelete = $state<{ id: string, nom: string, partiesCount: number } | null>(null);
+  let collectionToDelete = $state<{ id: string, nom: string, partiesCount: number, subCollectionsCount: number } | null>(null);
+  let isDeleting = $state(false);
+
+  function formatMoves(coups: any[]): string {
+    if (!coups || coups.length === 0) return '—';
+
+    const moves = coups.slice(0, 8).map((coup, index) => {
+      const moveNumber = Math.floor(index / 2) + 1;
+      const move = coup.coupUci || '';
+
+      if (index % 2 === 0) {
+        return `${moveNumber}. ${move}`;
+      } else {
+        return move;
+      }
+    });
+
+    return moves.join(' ');
+  }
+
+  function normalizeResult(result: string | null | undefined): "1-0" | "0-1" | "½-½" {
+    if (result === "BLANCS") return "1-0";
+    if (result === "NOIRS") return "0-1";
+    if (result === "NULLE") return "½-½";
+    return "½-½";
+  }
 
   const gamesData = $derived.by((): GameRow[] => {
-    if (!selectedCollectionId) return [];
-    
-    const collection = data.collections.find((c) => c.id === selectedCollectionId);
-    if (!collection) return [];
+    if (viewMode === 'analysis') {
+      return data.partiesInAnalysis.map((partie: any) => ({
+        id: partie.id,
+        whitePlayer: partie.blancNom || '?',
+        blackPlayer: partie.noirNom || '?',
+        tournament: partie.event || '?',
+        date: partie.datePartie ? new Date(partie.datePartie).toLocaleDateString() : '?',
+        whiteElo: partie.blancElo || 0,
+        blackElo: partie.noirElo || 0,
+        result: normalizeResult(partie.resultat),
+        notation: formatMoves(partie.coups || []),
+        isInAnalysis: partie.isInAnalysis || false,
+        tagIds: partie.tags?.map((t: any) => t.tagId) || [],
+      }));
+    }
 
-    return collection.games.map((cg) => ({
-      whitePlayer: cg.game.whitePlayer,
-      blackPlayer: cg.game.blackPlayer,
-      tournament: cg.game.tournament || '?',
-      date: cg.game.date ? new Date(cg.game.date).toLocaleDateString() : '?',
-      whiteElo: cg.game.whiteElo || 0,
-      blackElo: cg.game.blackElo || 0,
-      result: cg.game.result || '*'
+    if (viewMode === 'tag') {
+      if (!selectedTagId) return [];
+
+      const tag = data.tags.find((t) => t.id === selectedTagId);
+      if (!tag || !tag.parties) return [];
+
+      return tag.parties.map((partieTag: any) => {
+        const partie = partieTag.partie;
+        return {
+          id: partie.id,
+          whitePlayer: partie.blancNom || '?',
+          blackPlayer: partie.noirNom || '?',
+          tournament: partie.event || '?',
+          date: partie.datePartie ? new Date(partie.datePartie).toLocaleDateString() : '?',
+          whiteElo: partie.blancElo || 0,
+          blackElo: partie.noirElo || 0,
+          result: normalizeResult(partie.resultat),
+          notation: formatMoves(partie.coups || []),
+          isInAnalysis: partie.isInAnalysis || false,
+          tagIds: partie.tags?.map((t: any) => t.tagId) || [],
+        };
+      });
+    }
+
+    if (!selectedCollectionId) return [];
+
+    const collection = data.collections.find((c) => c.id === selectedCollectionId);
+    if (!collection || !collection.parties) return [];
+
+    return collection.parties.map((partie: any) => ({
+      id: partie.id,
+      whitePlayer: partie.blancNom || '?',
+      blackPlayer: partie.noirNom || '?',
+      tournament: partie.event || '?',
+      date: partie.datePartie ? new Date(partie.datePartie).toLocaleDateString() : '?',
+      whiteElo: partie.blancElo || 0,
+      blackElo: partie.noirElo || 0,
+      result: normalizeResult(partie.resultat),
+      notation: formatMoves(partie.coups || []),
+      isInAnalysis: partie.isInAnalysis || false,
+      tagIds: partie.tags?.map((t: any) => t.tagId) || [],
     }));
   });
 
@@ -54,12 +170,171 @@
     data.collections.find((c) => c.id === selectedCollectionId)
   );
 
-  const anchorSidebar: string = 'btn hover:preset-tonal justify-between px-2 w-full flex items-center gap-2';
+  const selectedTag = $derived(
+    data.tags.find((t) => t.id === selectedTagId)
+  );
+
+  const pageTitle = $derived(
+    viewMode === 'analysis'
+      ? 'En Analyse'
+      : viewMode === 'tag'
+        ? selectedTag?.nom || 'Tag'
+        : selectedCollection?.nom || 'Collection'
+  );
+
+  function handleToastSuccess(message: string) {
+    toaster.success({title: 'Succès', description: message});
+  }
+
+  function handleSelectCollection(id: string) {
+    selectedCollectionId = id;
+    viewMode = 'collection';
+  }
+
+  function handleSelectAnalysis() {
+    viewMode = 'analysis';
+  }
+
+  function handleSelectTag(id: string) {
+    selectedTagId = id;
+    viewMode = 'tag';
+  }
+
+  function openDeleteTagModal(tagId: string, tagNom: string, partiesCount: number) {
+    tagToDelete = {
+      id: tagId,
+      nom: tagNom,
+      partiesCount
+    };
+  }
+
+  function closeDeleteTagModal() {
+    if (!isDeleting) {
+      tagToDelete = null;
+    }
+  }
+
+  async function confirmDeleteTag() {
+    if (!tagToDelete) return;
+
+    isDeleting = true;
+
+    try {
+      const response = await fetch(`/api/tags/${tagToDelete.id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Erreur lors de la suppression du tag');
+      }
+
+      toaster.success({ title: 'Succès', description: 'Tag supprimé avec succès' });
+
+      if (viewMode === 'tag' && selectedTagId === tagToDelete.id) {
+        viewMode = 'collection';
+        selectedTagId = null;
+      }
+
+      tagToDelete = null;
+
+      window.location.reload();
+    } catch (err: any) {
+      toaster.error({ title: 'Erreur', description: err.message || 'Erreur lors de la suppression du tag' });
+    } finally {
+      isDeleting = false;
+    }
+  }
+
+  function countSubCollections(node: CollectionNode): number {
+    if (!node.children || node.children.length === 0) return 0;
+    
+    let count = node.children.length;
+    for (const child of node.children) {
+      count += countSubCollections(child);
+    }
+    return count;
+  }
+
+  function countTotalPartiesInCollection(node: CollectionNode): number {
+    let total = node.partiesCount;
+    if (node.children) {
+      for (const child of node.children) {
+        total += countTotalPartiesInCollection(child);
+      }
+    }
+    return total;
+  }
+
+  function findCollectionNode(nodes: CollectionNode[], collectionId: string): CollectionNode | null {
+    for (const node of nodes) {
+      if (node.id === collectionId) return node;
+      if (node.children) {
+        const found = findCollectionNode(node.children, collectionId);
+        if (found) return found;
+      }
+    }
+    return null;
+  }
+
+  function openDeleteCollectionModal(collectionId: string, collectionNom: string) {
+    const node = findCollectionNode(treeNodes, collectionId);
+    if (!node) return;
+
+    const subCollectionsCount = countSubCollections(node);
+    const partiesCount = countTotalPartiesInCollection(node);
+
+    collectionToDelete = {
+      id: collectionId,
+      nom: collectionNom,
+      partiesCount,
+      subCollectionsCount,
+    };
+  }
+
+  function closeDeleteCollectionModal() {
+    if (!isDeleting) {
+      collectionToDelete = null;
+    }
+  }
+
+  async function confirmDeleteCollection() {
+    if (!collectionToDelete) return;
+
+    isDeleting = true;
+    
+    const deletingCollectionId = collectionToDelete.id;
+    collectionToDelete = null;
+
+    try {
+      const response = await fetch(`/api/collections/${deletingCollectionId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Erreur lors de la suppression de la collection');
+      }
+
+      const result = await response.json();
+      
+      toaster.success({ 
+        title: 'Succès', 
+        description: result.message || 'Collection supprimée avec succès. La suppression des données se poursuit en arrière-plan.' 
+      });
+
+      window.location.reload();
+    } catch (err: any) {
+      toaster.error({ title: 'Erreur', description: err.message || 'Erreur lors de la suppression de la collection' });
+    } finally {
+      isDeleting = false;
+    }
+  }
 </script>
 
 <div class="flex h-[90vh] w-full">
     <Navigation
-            class="w-auto h-full bg-[#121212] flex flex-col gap-4"
+            class="w-auto px-4 h-full bg-[#121212] flex flex-col items-center gap-4"
             layout="sidebar"
     >
         <Navigation.Header class="flex flex-col gap-2 py-4">
@@ -82,28 +357,63 @@
         <Navigation.Content class="ml-4 overflow-y-auto">
             <Navigation.Group class="w-full">
                 <Navigation.Label class="capitalize pl-2 flex justify-between">Collections
-                    <button>
-                        <Plus class="size-4 hover:preset-filled-primary-500"/>
-                        <span class="sr-only">Ajouter une collection</span></button>
+                    <CreationCollection {handleToastSuccess} label="Créer une collection"/>
                 </Navigation.Label>
-                <Navigation.Menu class="w-full">
-                    {#each collectionsData as collection (collection.id)}
-                        {@const Icon = collection.icon}
-                        <button
-                                onclick={() => selectedCollectionId = collection.id}
-                                class={anchorSidebar}
-                                class:preset-filled-primary-500={selectedCollectionId === collection.id}
-                                title={collection.label}
-                                aria-label={collection.label}
-                        >
-							<span class="flex items-center gap-2">
-								<Icon class="size-4"/>
-                                {collection.label}
-							</span>
-                            <span class="opacity-60">{formatNumber(collection.value)}</span>
-                        </button>
+                <TreeView collection={collectionTreeView}>
+                    <TreeView.Tree>
+                        {#each collectionTreeView.rootNode.children || [] as node, index (node)}
+                            {@render collectionNode(node, [index])}
+                        {/each}
+                    </TreeView.Tree>
+                </TreeView>
+            </Navigation.Group>
+
+            <Navigation.Group class="w-full mt-4">
+                <Navigation.Label class="capitalize pl-2">En Analyse</Navigation.Label>
+                <button
+                        class="flex items-center gap-2 w-full text-left px-4 py-2 rounded hover:preset-tonal"
+                        class:preset-filled-primary-500={viewMode === 'analysis'}
+                        onclick={handleSelectAnalysis}
+                >
+                    <FlaskConical class="size-4"/>
+                    <span>Parties en analyse</span>
+                    <span class="opacity-60 ml-auto">({data.partiesInAnalysis.length}/5)</span>
+                </button>
+            </Navigation.Group>
+
+            <Navigation.Group class="w-full mt-4">
+                <Navigation.Label class="capitalize pl-2 flex justify-between">Tags
+                    <CreationTag {handleToastSuccess} label="Créer un tag"/>
+                </Navigation.Label>
+                {#if data.tags.length === 0}
+                    <p class="text-sm opacity-60 px-4 py-2">Aucun tag disponible</p>
+                {:else}
+                    {#each data.tags as tag (tag.id)}
+                        <div class="flex items-center gap-2 w-full px-4 py-2 rounded hover:preset-tonal group">
+                            <button
+                                    class="flex items-center gap-2 flex-1 text-left"
+                                    class:preset-filled-primary-500={viewMode === 'tag' && selectedTagId === tag.id}
+                                    onclick={() => handleSelectTag(tag.id)}
+                            >
+                                <Tag class="size-4"/>
+                                <span>{tag.nom}</span>
+                                <span class="opacity-60 ml-auto">({tag._count.parties})</span>
+                            </button>
+                            <button
+                                    class="btn-icon btn-icon-sm hover:preset-filled-error-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    onclick={(e) => {
+                                        e.stopPropagation();
+                                        openDeleteTagModal(tag.id, tag.nom, tag._count.parties);
+                                    }}
+                                    disabled={isDeleting}
+                                    title="Supprimer le tag"
+                                    aria-label="Supprimer le tag {tag.nom}"
+                            >
+                                <Trash2 class="size-4"/>
+                            </button>
+                        </div>
                     {/each}
-                </Navigation.Menu>
+                {/if}
             </Navigation.Group>
 
         </Navigation.Content>
@@ -111,19 +421,241 @@
 
     <div class="grow flex flex-col items-center bg-surface-900 overflow-auto">
         <div class="flex gap-4 items-center my-6">
-            <h1 class="h2 text-primary-500">{selectedCollection?.title || 'Collection'}</h1>
+            <h1 class="h2 text-primary-500">{pageTitle}</h1>
             <p>{gamesData.length} résultat{gamesData.length > 1 ? 's' : ''}</p>
-            <ImportGame/>
+            {#if viewMode === 'collection'}
+                <ImportGame
+                        collectionId={selectedCollectionId || ''}
+                        onError={(message) => toaster.error({ title: 'Erreur', description: message })}
+                        onSuccess={(message) => toaster.success({ title: 'Succès', description: message })}
+                />
+            {/if}
         </div>
 
         {#if gamesData.length > 0}
-            <GamesTable data={gamesData}/>
+            <GamesTable
+                    data={gamesData}
+                    availableTags={data.tags}
+                    onDeleteSuccess={(message) => toaster.success({ title: 'Succès', description: message })}
+                    onDeleteError={(message) => toaster.error({ title: 'Erreur', description: message })}
+                    onAnalysisToggleSuccess={(message) => toaster.success({ title: 'Succès', description: message })}
+                    onAnalysisToggleError={(message) => toaster.error({ title: 'Erreur', description: message })}
+                    onTagsUpdateSuccess={(message) => toaster.success({ title: 'Succès', description: message })}
+                    onTagsUpdateError={(message) => toaster.error({ title: 'Erreur', description: message })}
+            />
         {:else}
             <div class="flex flex-col items-center justify-center h-64 gap-4">
-                <p class="text-lg opacity-60">Aucune partie dans cette collection</p>
-                <ImportGame/>
+                {#if viewMode === 'analysis'}
+                    <FlaskConical class="size-12 opacity-60"/>
+                    <p class="text-lg opacity-60">Aucune partie en analyse</p>
+                    <p class="text-sm opacity-40">Ajoutez jusqu'à 5 parties pour les analyser</p>
+                {:else}
+                    <p class="text-lg opacity-60">Aucune partie dans cette collection</p>
+                    <ImportGame
+                            collectionId={selectedCollectionId || ''}
+                            onSuccess={(message) => toaster.success({ title: 'Succès', description: message })}
+                            onError={(message) => toaster.error({ title: 'Erreur', description: message })}
+                    />
+                {/if}
             </div>
         {/if}
     </div>
 
 </div>
+
+{#snippet collectionNode(node: CollectionNode, indexPath: number[])}
+    <TreeView.NodeProvider value={{ node, indexPath }}>
+        {#if node.children && node.children.length > 0}
+            <TreeView.Branch>
+                <TreeView.BranchControl>
+                    <TreeView.BranchIndicator/>
+                    <TreeView.BranchText>
+                        <div class="flex items-center gap-2 flex-1 group">
+                            <button
+                                    onclick={() => handleSelectCollection(node.id)}
+                                    class="flex items-center gap-2 flex-1 text-left"
+                                    class:preset-filled-primary-500={selectedCollectionId === node.id}
+                            >
+                                <Folder class="size-4"/>
+                                <span>{node.nom}</span>
+                                <span class="opacity-60 ml-2">({formatNumber(node.partiesCount)})</span>
+                            </button>
+                            <button
+                                    class="btn-icon btn-icon-sm hover:preset-filled-error-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    onclick={(e) => {
+                                        e.stopPropagation();
+                                        openDeleteCollectionModal(node.id, node.nom);
+                                    }}
+                                    disabled={isDeleting}
+                                    title="Supprimer la collection"
+                                    aria-label="Supprimer la collection {node.nom}"
+                            >
+                                <Trash2 class="size-4"/>
+                            </button>
+                        </div>
+                    </TreeView.BranchText>
+                    <CreationCollection
+                            {handleToastSuccess}
+                            label="Créer une sous-collection de {node.nom}"
+                            parentId={node.id}
+                    />
+                </TreeView.BranchControl>
+                <TreeView.BranchContent>
+                    <TreeView.BranchIndentGuide/>
+                    {#each node.children as childNode, childIndex (childNode)}
+                        {@render collectionNode(childNode, [...indexPath, childIndex])}
+                    {/each}
+                </TreeView.BranchContent>
+            </TreeView.Branch>
+        {:else}
+            <TreeView.Item>
+                <div class="flex items-center gap-2 w-full group">
+                    <button
+                            onclick={() => handleSelectCollection(node.id)}
+                            class="flex items-center gap-2 flex-1 text-left px-2 py-1 rounded hover:preset-tonal"
+                            class:preset-filled-primary-500={selectedCollectionId === node.id}
+                    >
+                        <Folder class="size-4"/>
+                        <span>{node.nom}</span>
+                        <span class="opacity-60 ml-2">({formatNumber(node.partiesCount)})</span>
+                    </button>
+                    <button
+                            class="btn-icon btn-icon-sm hover:preset-filled-error-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onclick={(e) => {
+                                e.stopPropagation();
+                                openDeleteCollectionModal(node.id, node.nom);
+                            }}
+                            disabled={isDeleting}
+                            title="Supprimer la collection"
+                            aria-label="Supprimer la collection {node.nom}"
+                    >
+                        <Trash2 class="size-4"/>
+                    </button>
+                </div>
+                <CreationCollection
+                        {handleToastSuccess}
+                        label="Créer une sous-collection de {node.nom}"
+                        parentId={node.id}
+                />
+            </TreeView.Item>
+        {/if}
+    </TreeView.NodeProvider>
+{/snippet}
+
+{#if collectionToDelete}
+    <Dialog open={collectionToDelete !== null}>
+        <Portal>
+            <Dialog.Backdrop class="fixed inset-0 z-50 bg-surface-50-950/50" onclick={closeDeleteCollectionModal}/>
+            <Dialog.Positioner class="fixed inset-0 z-50 flex justify-center items-center p-4">
+                <Dialog.Content class="card bg-surface-100-900 w-full max-w-md p-4 space-y-4 shadow-xl">
+                    <header class="flex justify-between items-center">
+                        <Dialog.Title class="text-lg font-bold">Confirmer la suppression</Dialog.Title>
+                        <Dialog.CloseTrigger class="btn-icon hover:preset-tonal" onclick={closeDeleteCollectionModal}
+                                             disabled={isDeleting}>
+                            <XIcon class="size-4"/>
+                        </Dialog.CloseTrigger>
+                    </header>
+
+                    <Dialog.Description class="space-y-2">
+                        <p>Êtes-vous sûr de vouloir supprimer la collection :</p>
+                        <p class="font-semibold text-primary-500">{collectionToDelete.nom}</p>
+                        
+                        {#if collectionToDelete.subCollectionsCount > 0 || collectionToDelete.partiesCount > 0}
+                            <div class="bg-error-500/10 border border-error-500/30 rounded p-3 space-y-1">
+                                <p class="text-sm font-semibold text-error-400">⚠️ Cette action supprimera :</p>
+                                {#if collectionToDelete.partiesCount > 0}
+                                    <p class="text-sm opacity-90">
+                                        • {collectionToDelete.partiesCount} partie{collectionToDelete.partiesCount > 1 ? 's' : ''}
+                                    </p>
+                                {/if}
+                                {#if collectionToDelete.subCollectionsCount > 0}
+                                    <p class="text-sm opacity-90">
+                                        • {collectionToDelete.subCollectionsCount} sous-collection{collectionToDelete.subCollectionsCount > 1 ? 's' : ''}
+                                    </p>
+                                {/if}
+                            </div>
+                        {/if}
+                        
+                        <p class="text-sm opacity-75">Cette action est irréversible.</p>
+                    </Dialog.Description>
+
+                    <footer class="flex justify-end gap-2">
+                        <button
+                                class="btn preset-tonal"
+                                onclick={closeDeleteCollectionModal}
+                                disabled={isDeleting}
+                        >
+                            Annuler
+                        </button>
+                        <button
+                                class="btn preset-filled-error-500"
+                                onclick={confirmDeleteCollection}
+                                disabled={isDeleting}
+                        >
+                            {isDeleting ? 'Suppression...' : 'Supprimer'}
+                        </button>
+                    </footer>
+                </Dialog.Content>
+            </Dialog.Positioner>
+        </Portal>
+    </Dialog>
+{/if}
+
+{#if tagToDelete}
+    <Dialog open={tagToDelete !== null}>
+        <Portal>
+            <Dialog.Backdrop class="fixed inset-0 z-50 bg-surface-50-950/50" onclick={closeDeleteTagModal}/>
+            <Dialog.Positioner class="fixed inset-0 z-50 flex justify-center items-center p-4">
+                <Dialog.Content class="card bg-surface-100-900 w-full max-w-md p-4 space-y-4 shadow-xl">
+                    <header class="flex justify-between items-center">
+                        <Dialog.Title class="text-lg font-bold">Confirmer la suppression</Dialog.Title>
+                        <Dialog.CloseTrigger class="btn-icon hover:preset-tonal" onclick={closeDeleteTagModal}
+                                             disabled={isDeleting}>
+                            <XIcon class="size-4"/>
+                        </Dialog.CloseTrigger>
+                    </header>
+
+                    <Dialog.Description class="space-y-2">
+                        <p>Êtes-vous sûr de vouloir supprimer le tag :</p>
+                        <p class="font-semibold text-primary-500">{tagToDelete.nom}</p>
+                        <p class="text-sm opacity-75">
+                            Ce tag est actuellement lié à {tagToDelete.partiesCount} partie{tagToDelete.partiesCount > 1 ? 's' : ''}.
+                            Toutes ces associations seront supprimées.
+                        </p>
+                        <p class="text-sm opacity-75">Cette action est irréversible.</p>
+                    </Dialog.Description>
+
+                    <footer class="flex justify-end gap-2">
+                        <button
+                                class="btn preset-tonal"
+                                onclick={closeDeleteTagModal}
+                                disabled={isDeleting}
+                        >
+                            Annuler
+                        </button>
+                        <button
+                                class="btn preset-filled-error-500"
+                                onclick={confirmDeleteTag}
+                                disabled={isDeleting}
+                        >
+                            {isDeleting ? 'Suppression...' : 'Supprimer'}
+                        </button>
+                    </footer>
+                </Dialog.Content>
+            </Dialog.Positioner>
+        </Portal>
+    </Dialog>
+{/if}
+
+
+<Toast.Group {toaster}>
+    {#snippet children(toast)}
+        <Toast {toast}>
+            <Toast.Message>
+                <Toast.Title>{toast.title}</Toast.Title>
+                <Toast.Description>{toast.description}</Toast.Description>
+            </Toast.Message>
+            <Toast.CloseTrigger/>
+        </Toast>
+    {/snippet}
+</Toast.Group>

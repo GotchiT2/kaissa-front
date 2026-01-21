@@ -1,6 +1,7 @@
 import { lucia } from '$lib/server/auth';
 import { Argon2id } from 'oslo/password';
 import type { Cookies } from '@sveltejs/kit';
+import { prisma } from '$lib/server/db';
 
 /**
  * Service d'authentification
@@ -42,5 +43,10 @@ export async function createUserSession(userId: string, cookies: Cookies): Promi
 	cookies.set(sessionCookie.name, sessionCookie.value, {
 		path: '.',
 		...sessionCookie.attributes,
+	});
+
+	await prisma.user.update({
+		where: { id: userId },
+		data: { lastLoginAt: new Date() },
 	});
 }

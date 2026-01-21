@@ -19,7 +19,7 @@
 </script>
 
 <button
-        class="tile {(r+c)%2===0 ? 'bg-primary-200':'bg-primary-950'}
+        class="tile {(r+c)%2===0 ? 'bg-primary-300':'bg-primary-800'}
                           {isSelected ? 'inset-ring-4 inset-ring-blue-500 ':''}
                           {isPossibleMove ? 'target':''}"
         onclick={() => handleTileClick(cell.square)}

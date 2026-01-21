@@ -3,16 +3,16 @@
 declare global {
   namespace App {
     interface Locals {
-      user: import('lucia').User | null;
-      session: import('lucia').Session | null;
+      user: import("lucia").User | null;
+      session: import("lucia").Session | null;
     }
   }
 
   interface GameRow {
     id: string;
-    white: string;
+    whitePlayer: string;
     whiteElo: number;
-    black: string;
+    blackPlayer: string;
     blackElo: number;
     result: "1-0" | "0-1" | "½-½";
     date: string;
