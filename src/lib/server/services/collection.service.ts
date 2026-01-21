@@ -116,3 +116,19 @@ export async function getCollectionById(collectionId: string, userId: string) {
     },
   });
 }
+
+export async function getUserCollectionsSimple(userId: string) {
+  return await prisma.collection.findMany({
+    where: {
+      proprietaireId: userId,
+      deletedAt: null,
+    },
+    select: {
+      id: true,
+      nom: true,
+    },
+    orderBy: {
+      nom: "asc",
+    },
+  });
+}
