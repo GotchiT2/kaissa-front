@@ -1,8 +1,10 @@
 <script generics="TData, TValue" lang="ts">
   import {
     getCoreRowModel,
+    getFilteredRowModel,
     getPaginationRowModel,
     getSortedRowModel,
+    type ColumnFiltersState,
     type PaginationState,
     type SortingState
   } from '@tanstack/table-core';
@@ -40,6 +42,7 @@
   }: DataTableProps<GameRow, TValue> = $props();
   let pagination = $state<PaginationState>({pageIndex: 0, pageSize: PAGE_SIZE});
   let sorting = $state<SortingState>([]);
+  let columnFilters = $state<ColumnFiltersState>([]);
   let partieToDelete = $state<{ id: string, name: string } | null>(null);
   let isDeleting = $state(false);
   let togglingAnalysisIds = $state<Set<string>>(new Set());
@@ -73,15 +76,27 @@
       },
       get sorting() {
         return sorting;
+      },
+      get columnFilters() {
+        return columnFilters;
       }
     },
 
     getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
     onSortingChange: (updater) => {
       if (typeof updater === 'function') {
         sorting = updater(sorting);
       } else {
         sorting = updater;
+      }
+    },
+
+    onColumnFiltersChange: (updater) => {
+      if (typeof updater === 'function') {
+        columnFilters = updater(columnFilters);
+      } else {
+        columnFilters = updater;
       }
     },
 
@@ -328,6 +343,91 @@
                         </th>
                     {/each}
                     <th>Actions</th>
+                </tr>
+                <tr>
+                    {#each headerGroup.headers as header (header.id)}
+                        <th>
+                            {#if header.column.getCanFilter()}
+                                {#if header.column.id === 'whiteElo' || header.column.id === 'blackElo'}
+                                    <div class="flex gap-1">
+                                        <input
+                                                type="number"
+                                                class="input input-sm w-full text-xs"
+                                                value={header.column.getFilterValue()?.min ?? ''}
+                                                oninput={(e) => {
+                                                    const currentValue = header.column.getFilterValue() || {};
+                                                    header.column.setFilterValue({
+                                                        ...currentValue,
+                                                        min: e.currentTarget.value ? parseInt(e.currentTarget.value) : undefined
+                                                    });
+                                                }}
+                                                placeholder="Min"
+                                        />
+                                        <input
+                                                type="number"
+                                                class="input input-sm w-full text-xs"
+                                                value={header.column.getFilterValue()?.max ?? ''}
+                                                oninput={(e) => {
+                                                    const currentValue = header.column.getFilterValue() || {};
+                                                    header.column.setFilterValue({
+                                                        ...currentValue,
+                                                        max: e.currentTarget.value ? parseInt(e.currentTarget.value) : undefined
+                                                    });
+                                                }}
+                                                placeholder="Max"
+                                        />
+                                    </div>
+                                {:else if header.column.id === 'date'}
+                                    <div class="flex gap-1">
+                                        <input
+                                                type="date"
+                                                class="input input-sm w-full text-xs"
+                                                value={header.column.getFilterValue()?.min ?? ''}
+                                                oninput={(e) => {
+                                                    const currentValue = header.column.getFilterValue() || {};
+                                                    header.column.setFilterValue({
+                                                        ...currentValue,
+                                                        min: e.currentTarget.value || undefined
+                                                    });
+                                                }}
+                                        />
+                                        <input
+                                                type="date"
+                                                class="input input-sm w-full text-xs"
+                                                value={header.column.getFilterValue()?.max ?? ''}
+                                                oninput={(e) => {
+                                                    const currentValue = header.column.getFilterValue() || {};
+                                                    header.column.setFilterValue({
+                                                        ...currentValue,
+                                                        max: e.currentTarget.value || undefined
+                                                    });
+                                                }}
+                                        />
+                                    </div>
+                                {:else if header.column.id === 'result'}
+                                    <select
+                                            class="select select-sm w-full text-xs"
+                                            value={header.column.getFilterValue() ?? ''}
+                                            onchange={(e) => header.column.setFilterValue(e.currentTarget.value || undefined)}
+                                    >
+                                        <option value="">Tous</option>
+                                        <option value="1-0">1-0</option>
+                                        <option value="0-1">0-1</option>
+                                        <option value="½-½">½-½</option>
+                                    </select>
+                                {:else}
+                                    <input
+                                            type="text"
+                                            class="input input-sm w-full text-xs"
+                                            value={header.column.getFilterValue() ?? ''}
+                                            oninput={(e) => header.column.setFilterValue(e.currentTarget.value)}
+                                            placeholder="Filtrer..."
+                                    />
+                                {/if}
+                            {/if}
+                        </th>
+                    {/each}
+                    <th></th>
                 </tr>
             {/each}
             </thead>

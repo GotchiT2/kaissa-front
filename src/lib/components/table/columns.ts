@@ -24,7 +24,16 @@ export const columns: ColumnDef<GameRow>[] = [
 	},
 	{
 		accessorKey: 'whiteElo',
-		header: 'Elo'
+		header: 'Elo',
+		filterFn: (row, columnId, filterValue) => {
+			if (!filterValue) return true;
+			const { min, max } = filterValue;
+			const value = row.getValue(columnId) as number;
+			if (!value) return true;
+			if (min !== undefined && value < min) return false;
+			if (max !== undefined && value > max) return false;
+			return true;
+		}
 	},
 	{
 		accessorKey: 'blackPlayer',
@@ -47,7 +56,16 @@ export const columns: ColumnDef<GameRow>[] = [
 	},
 	{
 		accessorKey: 'blackElo',
-		header: 'Elo'
+		header: 'Elo',
+		filterFn: (row, columnId, filterValue) => {
+			if (!filterValue) return true;
+			const { min, max } = filterValue;
+			const value = row.getValue(columnId) as number;
+			if (!value) return true;
+			if (min !== undefined && value < min) return false;
+			if (max !== undefined && value > max) return false;
+			return true;
+		}
 	},
 	{
 		accessorKey: 'result',
@@ -58,14 +76,19 @@ export const columns: ColumnDef<GameRow>[] = [
 				onclick: () => {
 					const currentSort = column.getIsSorted();
 					if (currentSort === false) {
-						column.toggleSorting(false); // Set to ascending
+						column.toggleSorting(false);
 					} else if (currentSort === 'asc') {
-						column.toggleSorting(true); // Set to descending
+						column.toggleSorting(true);
 					} else {
-						column.clearSorting(); // Clear sorting (back to unsorted)
+						column.clearSorting();
 					}
 				}
-			})
+			}),
+		filterFn: (row, columnId, filterValue) => {
+			if (!filterValue || filterValue === '') return true;
+			const value = row.getValue(columnId) as string;
+			return value === filterValue;
+		}
 	},
 	{
 		accessorKey: 'date',
@@ -99,6 +122,24 @@ export const columns: ColumnDef<GameRow>[] = [
 			};
 			
 			return parseDate(dateA) - parseDate(dateB);
+		},
+		filterFn: (row, columnId, filterValue) => {
+			if (!filterValue) return true;
+			const { min, max } = filterValue;
+			const dateStr = row.getValue(columnId) as string;
+			
+			if (!dateStr || dateStr === '?') return true;
+			
+			const parts = dateStr.split('/');
+			if (parts.length !== 3) return true;
+			
+			const [day, month, year] = parts.map(p => parseInt(p, 10));
+			const dateTimestamp = new Date(year, month - 1, day).getTime();
+			
+			if (min && dateTimestamp < new Date(min).getTime()) return false;
+			if (max && dateTimestamp > new Date(max).getTime()) return false;
+			
+			return true;
 		}
 	},
 	{
