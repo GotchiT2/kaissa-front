@@ -25,6 +25,7 @@
     onTagsUpdateSuccess?: (message: string) => void;
     onTagsUpdateError?: (message: string) => void;
   };
+
   const PAGE_SIZE = 20;
 
   let {

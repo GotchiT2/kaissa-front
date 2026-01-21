@@ -4,7 +4,7 @@ import ColumnSortButton from '$lib/components/table/ColumnSortButton.svelte';
 
 export const columns: ColumnDef<GameRow>[] = [
 	{
-		accessorKey: 'white',
+		accessorKey: 'whitePlayer',
 		header: ({ column }) =>
 			renderComponent(ColumnSortButton, {
 				columnTitle: 'Blanc',
@@ -12,11 +12,11 @@ export const columns: ColumnDef<GameRow>[] = [
 				onclick: () => {
 					const currentSort = column.getIsSorted();
 					if (currentSort === false) {
-						column.toggleSorting(false); // Set to ascending
+						column.toggleSorting(false);
 					} else if (currentSort === 'asc') {
-						column.toggleSorting(true); // Set to descending
+						column.toggleSorting(true);
 					} else {
-						column.clearSorting(); // Clear sorting (back to unsorted)
+						column.clearSorting();
 					}
 				}
 			}),
@@ -27,7 +27,7 @@ export const columns: ColumnDef<GameRow>[] = [
 		header: 'Elo'
 	},
 	{
-		accessorKey: 'black',
+		accessorKey: 'blackPlayer',
 		header: ({ column }) =>
 			renderComponent(ColumnSortButton, {
 				columnTitle: 'Noir',
@@ -35,14 +35,15 @@ export const columns: ColumnDef<GameRow>[] = [
 				onclick: () => {
 					const currentSort = column.getIsSorted();
 					if (currentSort === false) {
-						column.toggleSorting(false); // Set to ascending
+						column.toggleSorting(false);
 					} else if (currentSort === 'asc') {
-						column.toggleSorting(true); // Set to descending
+						column.toggleSorting(true);
 					} else {
-						column.clearSorting(); // Clear sorting (back to unsorted)
+						column.clearSorting();
 					}
 				}
-			})
+			}),
+		cell: (info) => info.getValue()
 	},
 	{
 		accessorKey: 'blackElo',
@@ -68,11 +69,55 @@ export const columns: ColumnDef<GameRow>[] = [
 	},
 	{
 		accessorKey: 'date',
-		header: 'Date'
+		header: ({ column }) =>
+			renderComponent(ColumnSortButton, {
+				columnTitle: 'Date',
+				sortDirection: column.getIsSorted(),
+				onclick: () => {
+					const currentSort = column.getIsSorted();
+					if (currentSort === false) {
+						column.toggleSorting(false);
+					} else if (currentSort === 'asc') {
+						column.toggleSorting(true);
+					} else {
+						column.clearSorting();
+					}
+				}
+			}),
+		sortingFn: (rowA, rowB, columnId) => {
+			const dateA = rowA.getValue(columnId) as string;
+			const dateB = rowB.getValue(columnId) as string;
+			
+			const parseDate = (dateStr: string): number => {
+				if (!dateStr || dateStr === '?') return 0;
+				const parts = dateStr.split('/');
+				if (parts.length === 3) {
+					const [day, month, year] = parts.map(p => parseInt(p, 10));
+					return new Date(year, month - 1, day).getTime();
+				}
+				return 0;
+			};
+			
+			return parseDate(dateA) - parseDate(dateB);
+		}
 	},
 	{
 		accessorKey: 'tournament',
-		header: 'Tournoi',
+		header: ({ column }) =>
+			renderComponent(ColumnSortButton, {
+				columnTitle: 'Tournoi',
+				sortDirection: column.getIsSorted(),
+				onclick: () => {
+					const currentSort = column.getIsSorted();
+					if (currentSort === false) {
+						column.toggleSorting(false);
+					} else if (currentSort === 'asc') {
+						column.toggleSorting(true);
+					} else {
+						column.clearSorting();
+					}
+				}
+			}),
 		cell: (info) => info.getValue()
 	},
 	{
