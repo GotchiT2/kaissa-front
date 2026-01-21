@@ -332,8 +332,8 @@
             {/each}
             </thead>
             <tbody>
-            {#each table.getRowModel().rows as row (row.id)}
-                <tr class={row.id % 2 === 0 ? 'bg-surface-500' : ''}>
+            {#each table.getRowModel().rows as row, index (row.id)}
+                <tr class={index % 2 === 0 ? 'bg-surface-500' : ''}>
                     <td class="table-cell-fit">
                         {row.original.whitePlayer}
                     </td>
