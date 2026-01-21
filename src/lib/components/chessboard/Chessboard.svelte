@@ -53,6 +53,7 @@
     coup: string;
     nbParties: string;
     statsVictoires: [number, number, number];
+    elo: number | null;
   };
 
   let meilleursCoups: MeilleurCoup[]  = $state([]);
@@ -86,7 +87,7 @@
             coup: move.coup,
             nbParties: move.nbParties,
             statsVictoires,
-            // elo: move.eloMoyen.toFixed(0)
+            elo: move.eloMoyen,
           };
         }));
       })
@@ -414,7 +415,7 @@
                                         </div>
                                     </div>
                                 </td>
-    <!--                            <td class="text-right">{row.elo}</td>-->
+                                <td class="text-right">{row.elo !== null ? row.elo : '—'}</td>
                             </tr>
                         {/each}
                         </tbody>

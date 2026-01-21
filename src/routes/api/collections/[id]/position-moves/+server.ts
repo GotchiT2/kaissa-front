@@ -42,14 +42,52 @@ export const GET: RequestHandler = async ({ params, url, locals }) => {
       take: 6,
     });
 
+    const movesWithElo = await Promise.all(
+      topMoves.map(async (move) => {
+        const transitions = await prisma.transitionPartie.findMany({
+          where: {
+            hashPositionAvant: hashPositionBigInt,
+            coupUci: move.coupUci,
+            partie: {
+              collectionId,
+            },
+          },
+          include: {
+            partie: {
+              select: {
+                blancElo: true,
+                noirElo: true,
+              },
+            },
+          },
+        });
+
+        const eloValues = transitions
+          .map(t => {
+            if (t.partie.blancElo && t.partie.noirElo) {
+              return (t.partie.blancElo + t.partie.noirElo) / 2;
+            }
+            return null;
+          })
+          .filter((elo): elo is number => elo !== null);
+
+        const eloMoyen = eloValues.length > 0
+          ? Math.round(eloValues.reduce((sum, elo) => sum + elo, 0) / eloValues.length)
+          : null;
+
+        return {
+          coup: move.coupUci,
+          nbParties: Number(move.nbParties),
+          victoiresBlancs: Number(move.victoiresBlancs),
+          nulles: Number(move.nulles),
+          victoiresNoirs: Number(move.victoiresNoirs),
+          eloMoyen,
+        };
+      })
+    );
+
     return json({
-      moves: topMoves.map((move) => ({
-        coup: move.coupUci,
-        nbParties: Number(move.nbParties),
-        victoiresBlancs: Number(move.victoiresBlancs),
-        nulles: Number(move.nulles),
-        victoiresNoirs: Number(move.victoiresNoirs),
-      })),
+      moves: movesWithElo,
     });
   } catch (error) {
     console.error("Erreur lors de la récupération des meilleurs coups:", error);
