@@ -313,7 +313,7 @@
 
 <div class="table-container space-y-4">
     <div class="overflow-x-auto pl-0">
-        <table class="md:table table-hover md:table-compact table-auto w-full text-xs">
+        <table class="md:table table-hover md:table-compact text-xs">
             <thead>
             {#each table.getHeaderGroups() as headerGroup (headerGroup.id)}
                 <tr>
