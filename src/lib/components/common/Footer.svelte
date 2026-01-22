@@ -6,23 +6,23 @@
 <footer class="w-full bg-[#121212] border-t-1 border-t-primary-100" role="contentinfo">
     <nav class="text-white">
         <ul class="flex flex-col items-center md:items-start">
-            <li class="mb-1"><a class="hover:underline hover:text-primary-500 transition-all" href="/legals">{$_('footer.links.legal')}</a></li>
+            <li class="mb-1"><a class="hover:underline hover:text-primary-500 transition-all" href="/legals">{$_('common.footer.links.legal')}</a></li>
             <li class="mb-1"><a class="hover:underline hover:text-primary-500 transition-all"
-                                href="/politique-de-confidentialite">{$_('footer.links.privacy')}</a></li>
+                                href="/politique-de-confidentialite">{$_('common.footer.links.privacy')}</a></li>
             <li class="mb-2">
-                <a class="hover:underline hover:text-primary-500 transition-all" href="/cgv">{$_('footer.links.terms')}</a>
+                <a class="hover:underline hover:text-primary-500 transition-all" href="/cgv">{$_('common.footer.links.terms')}</a>
             </li>
         </ul>
 
         <ul class="mt-4 flex flex-wrap items-center justify-center gap-4 md:justify-start">
             <li>
                 <a
-                        aria-label={$_('footer.social.facebookLabel')}
+                        aria-label={$_('common.footer.social.facebookLabel')}
                         href="https://www.facebook.com/"
                         rel="noopener noreferrer"
                         target="_blank"
                 >
-                    <span class="sr-only">{$_('footer.social.facebookLabel')}</span>
+                    <span class="sr-only">{$_('common.footer.social.facebookLabel')}</span>
 
                     <SVG class="h-8 w-8" viewBox="0 0 448 512">
                         <path
@@ -34,12 +34,12 @@
 
             <li>
                 <a
-                        aria-label={$_('footer.social.instagramLabel')}
+                        aria-label={$_('common.footer.social.instagramLabel')}
                         href="https://www.instagram.com/"
                         rel="noopener noreferrer"
                         target="_blank"
                 >
-                    <span class="sr-only">{$_('footer.social.instagramLabel')}</span>
+                    <span class="sr-only">{$_('common.footer.social.instagramLabel')}</span>
 
                     <SVG class="h-8 w-8" viewBox="0 0 448 512">
                         <path
@@ -52,12 +52,12 @@
 
             <li>
                 <a
-                        aria-label={$_('footer.social.tiktokLabel')}
+                        aria-label={$_('common.footer.social.tiktokLabel')}
                         href="https://www.tiktok.com/"
                         rel="noopener noreferrer"
                         target="_blank"
                 >
-                    <span class="sr-only">{$_('footer.social.tiktokLabel')}</span>
+                    <span class="sr-only">{$_('common.footer.social.tiktokLabel')}</span>
                     <SVG class="h-8 w-8" viewBox="0 0 512 512">
                         <path
                                 d="M448 209.9a210.1 210.1 0 0 1 -122.8-39.3V349.4A162.6 162.6 0 1 1 185 188.3V278.2a74.6 74.6 0 1 0 52.2 71.2V0l88 0a121.2 121.2 0 0 0 1.9 22.2h0A122.2 122.2 0 0 0 381 102.4a121.4 121.4 0 0 0 67 20.1z"
@@ -70,7 +70,7 @@
 
     <div class="flex flex-col items-center md:items-start">
         <img alt="Kaissa" class="w-32" src="/kaissa-logo.png"/>
-        <p class="mt-2">{$_('footer.copyright')}</p>
+        <p class="mt-2">{$_('common.footer.copyright')}</p>
     </div>
 </footer>
 
