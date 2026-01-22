@@ -1,0 +1,49 @@
+{
+  "title": "Legal Notice.",
+  "tagline": "Think deeper, play smarter.",
+  "sections": {
+    "editor": {
+      "title": "Website Publisher",
+      "companyName": "Company name:",
+      "companyNameValue": "Pionics",
+      "legalForm": "Legal Form:",
+      "legalFormValue": "Simplified joint-stock company (SAS)",
+      "capital": "Share Capital:",
+      "capitalValue": "5,000.00 Euros",
+      "headquarters": "Registered office:",
+      "headquartersValue": "31 rue de Cugnaux, Building B, Apartment 66, 31300 Toulouse",
+      "registrationNumber": "RCS registration number:",
+      "registrationNumberValue": "938 387 768 R.C.S. Toulouse",
+      "vat": "Intra-Community VAT number:",
+      "vatValue": "VAT exemption",
+      "email": "Email:",
+      "director": "Publication director:",
+      "directorValue": "Thibault Souloumiac"
+    },
+    "hosting": {
+      "title": "Hosting provider",
+      "name": "Host name:",
+      "nameValue": "ReadyMag"
+    },
+    "intellectualProperty": {
+      "title": "Intellectual property:",
+      "content": "The content of the site (texts, images, graphics, logo, databases, etc.) is the exclusive property of Pionics, unless otherwise stated. Any reproduction, modification or use without prior written authorization is strictly prohibited and may constitute counterfeiting sanctioned by articles L.335-2 and following of the Intellectual Property Code."
+    },
+    "gdpr": {
+      "title": "Processing of personal data (GDPR):",
+      "content": "Personal data collected is processed in accordance with GDPR regulations. You have the right to access, rectify, object, limit processing, delete and port your data. To exercise these rights, please contact: "
+    },
+    "cookies": {
+      "title": "Cookies:",
+      "content": "This site does not use any tracking cookies, audience measurement tools, or third-party trackers (advertising or social networks). Only cookies strictly necessary for the operation of the site may be used, in accordance with article 82 of the French Data Protection Act."
+    },
+    "liability": {
+      "title": "Liability:",
+      "content": "Pionics declines all responsibility for any interruptions or malfunctions of the site. Pionics cannot be held responsible for any direct or indirect damage related to the use of the site."
+    },
+    "law": {
+      "title": "Applicable law and jurisdiction:",
+      "content": "These legal notices are governed by French law. In the event of a dispute, the parties undertake to seek an amicable solution before any legal action. In the absence of an amicable agreement, the competent courts will be those within the jurisdiction of Pionics' registered office. Last update: 01/07/2025"
+    }
+  }
+}

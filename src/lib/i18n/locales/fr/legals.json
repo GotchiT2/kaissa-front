@@ -1,0 +1,49 @@
+{
+  "title": "Mentions légales.",
+  "tagline": "Think deeper, play smarter.",
+  "sections": {
+    "editor": {
+      "title": "Éditeur du site",
+      "companyName": "Nom de l'entreprise :",
+      "companyNameValue": "Pionics",
+      "legalForm": "Forme Juridique :",
+      "legalFormValue": "Société par actions simplifiée (SAS)",
+      "capital": "Capital Social :",
+      "capitalValue": "5 000,00 Euros",
+      "headquarters": "Siège social :",
+      "headquartersValue": "31 rue de Cugnaux, Bâtiment B, Appartement 66, 31300 Toulouse",
+      "registrationNumber": "Numéro d'immatriculation au RCS :",
+      "registrationNumberValue": "938 387 768 R.C.S. Toulouse",
+      "vat": "Numéro de TVA intracommunautaire :",
+      "vatValue": "Exonération de TVA",
+      "email": "Email :",
+      "director": "Directeur de la publication :",
+      "directorValue": "Thibault Souloumiac"
+    },
+    "hosting": {
+      "title": "Hébergeur",
+      "name": "Nom de l'hébergeur :",
+      "nameValue": "ReadyMag"
+    },
+    "intellectualProperty": {
+      "title": "Propriété intellectuelle :",
+      "content": "Le contenu du site (textes, images, graphismes, logo, bases de données, etc.) est la propriété exclusive de Pionics, sauf mentions contraires. Toute reproduction, modification ou utilisation sans autorisation préalable écrite est strictement interdite et susceptible de constituer une contrefaçon sanctionnée par les articles L.335-2 et suivants du Code de la Propriété Intellectuelle."
+    },
+    "gdpr": {
+      "title": "Traitement des données personnelles (RGPD) :",
+      "content": "Les données personnelles collectées sont traitées conformément à la réglementation RGPD. Vous disposez d'un droit d'accès, de rectification, d'opposition, de limitation du traitement, d'effacement et de portabilité des données vous concernant. Pour exercer ces droits, veuillez contacter : "
+    },
+    "cookies": {
+      "title": "Cookies :",
+      "content": "Ce site n'utilise aucun cookie de suivi, ni outil de mesure d'audience, ni traceur tiers (publicitaire ou de réseaux sociaux). Seuls des cookies strictement nécessaires au fonctionnement du site peuvent être utilisés, conformément à l'article 82 de la loi Informatique et Libertés."
+    },
+    "liability": {
+      "title": "Responsabilité :",
+      "content": "Pionics décline toute responsabilité pour d'éventuelles interruptions ou dysfonctionnements du site. Pionics ne saurait être tenu responsable d'éventuels dommages directs ou indirects liés à l'utilisation du site."
+    },
+    "law": {
+      "title": "Droit applicable et juridiction compétente :",
+      "content": "Les présentes mentions légales sont régies par le droit français. En cas de litige, les parties s'engagent à rechercher une solution amiable avant toute action judiciaire. À défaut d'accord amiable, les tribunaux compétents seront ceux relevant de la juridiction du siège social de Pionics. Date de mise à jour : 01/07/2025"
+    }
+  }
+}
