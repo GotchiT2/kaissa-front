@@ -64,8 +64,11 @@ export const GET: RequestHandler = async ({ params, url, locals }) => {
 
         const eloValues = transitions
           .map(t => {
-            if (t.partie.blancElo && t.partie.noirElo) {
-              return (t.partie.blancElo + t.partie.noirElo) / 2;
+            if (t.campAuTrait === 'BLANCS' && t.partie.blancElo) {
+              return t.partie.blancElo;
+            }
+            if (t.campAuTrait === 'NOIRS' && t.partie.noirElo) {
+              return t.partie.noirElo;
             }
             return null;
           })

@@ -11,7 +11,6 @@
     analysis: StockfishAnalysis;
     showAnalysis: boolean;
     moveNumber: string;
-    turn: 'w' | 'b';
   } = $props();
 
   const formattedLine = $derived(() => {
