@@ -61,8 +61,8 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
     const { avant, apres, nagCoup, nagPosition } = await request.json();
 
     if (avant !== undefined && avant !== null) {
-      if (avant.length > 250) {
-        return json({ message: 'Comment before move is too long (max 250 characters)' }, { status: 400 });
+      if (avant.length > 2000) {
+        return json({ message: 'Comment before move is too long (max 2000 characters)' }, { status: 400 });
       }
 
       if (avant.trim() === '') {
@@ -93,8 +93,8 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
     }
 
     if (apres !== undefined && apres !== null) {
-      if (apres.length > 250) {
-        return json({ message: 'Comment after move is too long (max 250 characters)' }, { status: 400 });
+      if (apres.length > 2000) {
+        return json({ message: 'Comment after move is too long (max 2000 characters)' }, { status: 400 });
       }
 
       if (apres.trim() === '') {

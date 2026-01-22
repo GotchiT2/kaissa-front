@@ -149,12 +149,12 @@
                                 bind:value={commentAvant}
                                 class="textarea w-full"
                                 id="comment-avant"
-                                maxlength="250"
+                                maxlength="2000"
                                 placeholder={$_('chessboard.comments.beforeMovePlaceholder')}
                                 rows="3"
                         ></textarea>
                         <p class="text-sm text-surface-600-400 mt-1">
-                            {commentAvant.length}/250 {$_('chessboard.comments.characters')}
+                            {commentAvant.length}/2000 {$_('chessboard.comments.characters')}
                         </p>
                     </div>
 
@@ -166,12 +166,12 @@
                                 bind:value={commentApres}
                                 class="textarea w-full"
                                 id="comment-apres"
-                                maxlength="250"
+                                maxlength="2000"
                                 placeholder={$_('chessboard.comments.afterMovePlaceholder')}
                                 rows="3"
                         ></textarea>
                         <p class="text-sm text-surface-600-400 mt-1">
-                            {commentApres.length}/250 {$_('chessboard.comments.characters')}
+                            {commentApres.length}/2000 {$_('chessboard.comments.characters')}
                         </p>
                     </div>
 
