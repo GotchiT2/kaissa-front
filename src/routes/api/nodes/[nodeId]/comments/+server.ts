@@ -12,23 +12,36 @@ export const GET: RequestHandler = async ({ params, locals }) => {
   const { nodeId } = params;
 
   try {
-    const comments = await prisma.commentaireNoeud.findMany({
-      where: {
-        noeudId: nodeId,
-      },
-      select: {
-        id: true,
-        type: true,
-        contenu: true,
-      },
-    });
+    const [comments, node] = await Promise.all([
+      prisma.commentaireNoeud.findMany({
+        where: {
+          noeudId: nodeId,
+        },
+        select: {
+          id: true,
+          type: true,
+          contenu: true,
+        },
+      }),
+      prisma.coupNoeud.findUnique({
+        where: {
+          id: nodeId,
+        },
+        select: {
+          nagCoup: true,
+          nagPosition: true,
+        },
+      }),
+    ]);
 
-    const commentsMap = {
+    const response = {
       avant: comments.find(c => c.type === 'AVANT')?.contenu || '',
       apres: comments.find(c => c.type === 'APRES')?.contenu || '',
+      nagCoup: node?.nagCoup || null,
+      nagPosition: node?.nagPosition || null,
     };
 
-    return json(commentsMap);
+    return json(response);
   } catch (error) {
     console.error('Error fetching comments:', error);
     return json({ message: 'Failed to fetch comments' }, { status: 500 });
@@ -45,7 +58,7 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
   const { nodeId } = params;
 
   try {
-    const { avant, apres } = await request.json();
+    const { avant, apres, nagCoup, nagPosition } = await request.json();
 
     if (avant !== undefined && avant !== null) {
       if (avant.length > 250) {
@@ -111,7 +124,21 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
       }
     }
 
-    return json({ message: 'Comments updated successfully' });
+    if (nagCoup !== undefined) {
+      await prisma.coupNoeud.update({
+        where: { id: nodeId },
+        data: { nagCoup: nagCoup === null || nagCoup === 0 ? null : nagCoup },
+      });
+    }
+
+    if (nagPosition !== undefined) {
+      await prisma.coupNoeud.update({
+        where: { id: nodeId },
+        data: { nagPosition: nagPosition === null || nagPosition === 0 ? null : nagPosition },
+      });
+    }
+
+    return json({ message: 'Comments and annotations updated successfully' });
   } catch (error) {
     console.error('Error updating comments:', error);
     return json({ message: 'Failed to update comments' }, { status: 500 });

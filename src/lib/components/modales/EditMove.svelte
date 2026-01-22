@@ -13,8 +13,31 @@
 
   let commentAvant = $state('');
   let commentApres = $state('');
+  let nagCoup = $state<number | null>(null);
+  let nagPosition = $state<number | null>(null);
   let isSaving = $state(false);
   let errorMessage = $state('');
+
+  const moveAnnotations = [
+    { value: 0, label: $_('chessboard.nag.none') },
+    { value: 1, label: '! ' + $_('chessboard.nag.move.good') },
+    { value: 2, label: '? ' + $_('chessboard.nag.move.mistake') },
+    { value: 3, label: '!! ' + $_('chessboard.nag.move.brilliant') },
+    { value: 4, label: '?? ' + $_('chessboard.nag.move.blunder') },
+    { value: 5, label: '!? ' + $_('chessboard.nag.move.interesting') },
+    { value: 6, label: '?! ' + $_('chessboard.nag.move.dubious') },
+  ];
+
+  const positionAnnotations = [
+    { value: 0, label: $_('chessboard.nag.none') },
+    { value: 13, label: '∞ ' + $_('chessboard.nag.position.unclear') },
+    { value: 14, label: '+= ' + $_('chessboard.nag.position.slightWhite') },
+    { value: 15, label: '=+ ' + $_('chessboard.nag.position.slightBlack') },
+    { value: 16, label: '± ' + $_('chessboard.nag.position.moderateWhite') },
+    { value: 17, label: '∓ ' + $_('chessboard.nag.position.moderateBlack') },
+    { value: 18, label: '+- ' + $_('chessboard.nag.position.decisiveWhite') },
+    { value: 19, label: '-+ ' + $_('chessboard.nag.position.decisiveBlack') },
+  ];
 
   async function loadComments() {
     try {
@@ -23,6 +46,8 @@
         const data = await response.json();
         commentAvant = data.avant || '';
         commentApres = data.apres || '';
+        nagCoup = data.nagCoup || 0;
+        nagPosition = data.nagPosition || 0;
       }
     } catch (error) {
       console.error('Error loading comments:', error);
@@ -42,6 +67,8 @@
         body: JSON.stringify({
           avant: commentAvant,
           apres: commentApres,
+          nagCoup: nagCoup === 0 ? null : nagCoup,
+          nagPosition: nagPosition === 0 ? null : nagPosition,
         }),
       });
 
@@ -80,12 +107,44 @@
                     </Dialog.CloseTrigger>
                 </header>
 
-                <form class="space-y-4"
-                      onsubmit={(e) => { e.preventDefault(); handleSaveComments(); }}>
-                    <div>
-                        <label class="block text-sm font-medium mb-2" for="comment-avant">
-                            {$_('chessboard.comments.beforeMove')}
-                        </label>
+        <form class="space-y-4"
+              onsubmit={(e) => { e.preventDefault(); handleSaveComments(); }}>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium mb-2" for="nag-coup">
+                {$_('chessboard.nag.moveAnnotation')}
+              </label>
+              <select
+                bind:value={nagCoup}
+                class="select w-full"
+                id="nag-coup"
+              >
+                {#each moveAnnotations as annotation}
+                  <option value={annotation.value}>{annotation.label}</option>
+                {/each}
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium mb-2" for="nag-position">
+                {$_('chessboard.nag.positionAnnotation')}
+              </label>
+              <select
+                bind:value={nagPosition}
+                class="select w-full"
+                id="nag-position"
+              >
+                {#each positionAnnotations as annotation}
+                  <option value={annotation.value}>{annotation.label}</option>
+                {/each}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-2" for="comment-avant">
+              {$_('chessboard.comments.beforeMove')}
+            </label>
                         <textarea
                                 bind:value={commentAvant}
                                 class="textarea w-full"

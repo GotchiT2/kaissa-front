@@ -38,5 +38,27 @@
     "characters": "characters",
     "saveSuccess": "Comments saved successfully",
     "saveError": "Error saving comments"
+  },
+  "nag": {
+    "none": "None",
+    "moveAnnotation": "Move annotation",
+    "positionAnnotation": "Position annotation",
+    "move": {
+      "good": "Good move",
+      "mistake": "Mistake",
+      "brilliant": "Brilliant move",
+      "blunder": "Blunder",
+      "interesting": "Interesting move",
+      "dubious": "Dubious move"
+    },
+    "position": {
+      "unclear": "Unclear position",
+      "slightWhite": "Slight advantage for White",
+      "slightBlack": "Slight advantage for Black",
+      "moderateWhite": "Moderate advantage for White",
+      "moderateBlack": "Moderate advantage for Black",
+      "decisiveWhite": "Decisive advantage for White",
+      "decisiveBlack": "Decisive advantage for Black"
+    }
   }
 }

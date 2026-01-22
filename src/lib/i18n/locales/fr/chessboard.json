@@ -38,5 +38,27 @@
     "characters": "caractères",
     "saveSuccess": "Commentaires sauvegardés avec succès",
     "saveError": "Erreur lors de la sauvegarde des commentaires"
+  },
+  "nag": {
+    "none": "Aucune",
+    "moveAnnotation": "Annotation de coup",
+    "positionAnnotation": "Annotation de position",
+    "move": {
+      "good": "Bon coup",
+      "mistake": "Erreur",
+      "brilliant": "Coup brillant",
+      "blunder": "Gaffe",
+      "interesting": "Coup intéressant",
+      "dubious": "Coup douteux"
+    },
+    "position": {
+      "unclear": "Position peu claire",
+      "slightWhite": "Léger avantage blanc",
+      "slightBlack": "Léger avantage noir",
+      "moderateWhite": "Avantage blanc",
+      "moderateBlack": "Avantage noir",
+      "decisiveWhite": "Avantage décisif blanc",
+      "decisiveBlack": "Avantage décisif noir"
+    }
   }
 }

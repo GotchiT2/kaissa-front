@@ -161,6 +161,8 @@ model CoupNoeud {
   hashPosition  BigInt
   fen           String?
   estPrincipal  Boolean             @default(false)
+  nagCoup       Int?
+  nagPosition   Int?
   createdAt     DateTime            @default(now())
   updatedAt     DateTime            @updatedAt
   partie        PartieTravail       @relation(fields: [partieId], references: [id], onDelete: Cascade)
