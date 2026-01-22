@@ -16,7 +16,8 @@
     "disabled": "Les meilleurs coups joués dans la base de données ne sont pas affichés."
   },
   "game": {
-    "untitled": "Partie sans titre"
+    "untitled": "Partie sans titre",
+    "close": "Fermer la partie"
   },
   "navigation": {
     "first": "Aller au premier coup",

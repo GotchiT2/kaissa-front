@@ -16,7 +16,8 @@
     "disabled": "Best moves from the database are not displayed."
   },
   "game": {
-    "untitled": "Untitled game"
+    "untitled": "Untitled game",
+    "close": "Close game"
   },
   "navigation": {
     "first": "Go to first move",

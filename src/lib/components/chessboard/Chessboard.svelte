@@ -1,19 +1,19 @@
 <script lang="ts">
-  import { Chess } from "chess.js";
-  import { onMount, onDestroy } from "svelte";
+  import {Chess} from "chess.js";
+  import {onDestroy, onMount} from "svelte";
   import Tile from "$lib/components/chessboard/Tile.svelte";
   import GameSelector from "$lib/components/chessboard/GameSelector.svelte";
   import NavigationControls from "$lib/components/chessboard/NavigationControls.svelte";
   import MoveNotation from "$lib/components/chessboard/MoveNotation.svelte";
   import BestMovesPanel from "$lib/components/chessboard/BestMovesPanel.svelte";
   import AnalysisPanel from "$lib/components/chessboard/AnalysisPanel.svelte";
-  import { buildBoard, updateStatus } from "$lib/utils/chessboard";
-  import { hashFEN } from "$lib/utils/positionHash";
-  import { convertUciToSan, groupMovesByPair, rebuildGamePosition } from "$lib/utils/chessNotation";
-  import { fetchBestMoves, type BestMove } from "$lib/services/bestMovesService";
-  import { StockfishService, type StockfishAnalysis } from "$lib/services/stockfishService";
+  import {buildBoard, updateStatus} from "$lib/utils/chessboard";
+  import {hashFEN} from "$lib/utils/positionHash";
+  import {convertUciToSan, groupMovesByPair, rebuildGamePosition} from "$lib/utils/chessNotation";
+  import {type BestMove, fetchBestMoves} from "$lib/services/bestMovesService";
+  import {type StockfishAnalysis, StockfishService} from "$lib/services/stockfishService";
 
-  const { parties, collections } = $props();
+  const {parties, collections} = $props();
 
   let game = new Chess();
   let selectedGameIndex = $state(parties[0]?.id || null);
@@ -86,7 +86,7 @@
 
   function selectSquare(square: string) {
     selectedSquare = square;
-    const moves = game.moves({ square: square as any, verbose: true }) as any[];
+    const moves = game.moves({square: square as any, verbose: true}) as any[];
     possibleMoves = moves.map((m) => m.to);
   }
 
@@ -113,7 +113,7 @@
     }
 
     if (possibleMoves.includes(square)) {
-      const move = game.move({ from: selectedSquare, to: square, promotion: "q" });
+      const move = game.move({from: selectedSquare, to: square, promotion: "q"});
 
       if (move) {
         currentIndex = moves().length;
@@ -171,59 +171,62 @@
 </script>
 
 <div class="flex gap-8 items-start p-8 bg-surface-900 overflow-auto">
-  <div class="flex flex-col items-center gap-4 max-w-[50%]">
-    <GameSelector {parties} bind:selectedGameIndex />
+    <div class="flex flex-col items-center gap-4 max-w-[50%]">
+        <div class="w-full mb-4 overflow-auto">
 
-    <div class="board">
-      {#each board as row, r (r)}
-        <div class="rank">
-          {#each row as cell, c (cell.square)}
-            <Tile
-              {cell}
-              {r}
-              {c}
-              isSelected={selectedSquare === cell.square}
-              isPossibleMove={possibleMoves.includes(cell.square)}
-              {handleTileClick}
-            />
-          {/each}
+            <GameSelector bind:selectedGameIndex {parties}/>
         </div>
-      {/each}
+
+        <div class="board">
+            {#each board as row, r (r)}
+                <div class="rank">
+                    {#each row as cell, c (cell.square)}
+                        <Tile
+                                {cell}
+                                {r}
+                                {c}
+                                isSelected={selectedSquare === cell.square}
+                                isPossibleMove={possibleMoves.includes(cell.square)}
+                                {handleTileClick}
+                        />
+                    {/each}
+                </div>
+            {/each}
+        </div>
+        <h2 class="h4">{statusMessage}</h2>
+        <NavigationControls
+                {currentIndex}
+                onFirst={firstMove}
+                onLast={lastMove}
+                onNext={nextMove}
+                onPrevious={prevMove}
+                totalMoves={moves().length}
+        />
     </div>
-    <h2 class="h4">{statusMessage}</h2>
-    <NavigationControls
-      {currentIndex}
-      totalMoves={moves().length}
-      onFirst={firstMove}
-      onPrevious={prevMove}
-      onNext={nextMove}
-      onLast={lastMove}
-    />
-  </div>
 
-  <div class="flex h-full flex-col justify-start grow gap-4">
-    <MoveNotation {groupedMoves} {currentIndex} onMoveClick={handleMoveClick} />
+    <div class="flex h-full flex-col justify-start grow gap-4">
+        <MoveNotation {currentIndex} {groupedMoves} onMoveClick={handleMoveClick}/>
 
-    <BestMovesPanel
-      {collections}
-      bind:selectedCollectionId
-      {meilleursCoups}
-      bind:showBestMoves
-    />
+        <BestMovesPanel
+                bind:selectedCollectionId
+                bind:showBestMoves
+                {collections}
+                {meilleursCoups}
+        />
 
-    <AnalysisPanel analysis={stockfishAnalysis} bind:showAnalysis />
-  </div>
+        <AnalysisPanel analysis={stockfishAnalysis} bind:showAnalysis/>
+    </div>
 </div>
 
 <style>
-  .board {
-    display: flex;
-    width: fit-content;
-    flex-direction: column;
-    border: 2px solid #333;
-  }
+    .board {
+        display: flex;
+        width: fit-content;
+        flex-direction: column;
+        border: 2px solid #333;
+    }
 
-  .rank {
-    display: flex;
-  }
+    .rank {
+        display: flex;
+    }
 </style>
