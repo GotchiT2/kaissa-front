@@ -1,0 +1,21 @@
+{
+  "title": "Mon compte",
+  "profile": {
+    "title": "Informations personnelles",
+    "editButton": "Modifier",
+    "editTitle": "Modifier mes informations",
+    "firstName": "Prénom",
+    "lastName": "Nom",
+    "email": "Adresse email",
+    "nationality": "Nationalité",
+    "requiredFields": "Tous les champs sont obligatoires",
+    "updateError": "Erreur lors de la mise à jour du profil",
+    "updateSuccess": "Profil mis à jour avec succès"
+  },
+  "statistics": {
+    "title": "Mes statistiques",
+    "collections": "Collections",
+    "games": "Parties",
+    "tags": "Tags"
+  }
+}

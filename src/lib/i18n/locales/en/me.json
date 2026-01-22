@@ -1,0 +1,21 @@
+{
+  "title": "My account",
+  "profile": {
+    "title": "Personal information",
+    "editButton": "Edit",
+    "editTitle": "Edit my information",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "email": "Email address",
+    "nationality": "Nationality",
+    "requiredFields": "All fields are required",
+    "updateError": "Error updating profile",
+    "updateSuccess": "Profile updated successfully"
+  },
+  "statistics": {
+    "title": "My statistics",
+    "collections": "Collections",
+    "games": "Games",
+    "tags": "Tags"
+  }
+}

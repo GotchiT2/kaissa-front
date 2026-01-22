@@ -4,6 +4,7 @@ import database from './database.json';
 import chessboard from './chessboard.json';
 import errors from './errors.json';
 import home from './home.json';
+import me from './me.json';
 
 export default {
   common,
@@ -12,4 +13,5 @@ export default {
   chessboard,
   errors,
   home,
+  me,
 };
