@@ -1,0 +1,36 @@
+{
+  "generic": {
+    "unknown": "An unknown error occurred",
+    "networkError": "Network connection error",
+    "serverError": "Server error",
+    "unauthorized": "Unauthorized",
+    "forbidden": "Access forbidden",
+    "notFound": "Resource not found",
+    "validationError": "Validation error"
+  },
+  "auth": {
+    "invalidCredentials": "Invalid email or password",
+    "sessionExpired": "Your session has expired",
+    "emailAlreadyExists": "This email is already in use",
+    "passwordTooShort": "Password must be at least 8 characters",
+    "passwordTooWeak": "Password is too weak"
+  },
+  "collection": {
+    "notFound": "Collection not found",
+    "deleteFailed": "Error deleting collection",
+    "createFailed": "Error creating collection",
+    "accessDenied": "Unauthorized access to this collection"
+  },
+  "tag": {
+    "notFound": "Tag not found",
+    "deleteFailed": "Error deleting tag",
+    "createFailed": "Error creating tag",
+    "nameRequired": "Tag name is required"
+  },
+  "game": {
+    "notFound": "Game not found",
+    "deleteFailed": "Error deleting game",
+    "importFailed": "Error importing games",
+    "invalidPgn": "Invalid PGN format"
+  }
+}

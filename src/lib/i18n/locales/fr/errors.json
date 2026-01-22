@@ -1,0 +1,36 @@
+{
+  "generic": {
+    "unknown": "Une erreur inconnue s'est produite",
+    "networkError": "Erreur de connexion réseau",
+    "serverError": "Erreur serveur",
+    "unauthorized": "Non autorisé",
+    "forbidden": "Accès interdit",
+    "notFound": "Ressource non trouvée",
+    "validationError": "Erreur de validation"
+  },
+  "auth": {
+    "invalidCredentials": "Email ou mot de passe incorrect",
+    "sessionExpired": "Votre session a expiré",
+    "emailAlreadyExists": "Cet email est déjà utilisé",
+    "passwordTooShort": "Le mot de passe doit contenir au moins 8 caractères",
+    "passwordTooWeak": "Le mot de passe est trop faible"
+  },
+  "collection": {
+    "notFound": "Collection non trouvée",
+    "deleteFailed": "Erreur lors de la suppression de la collection",
+    "createFailed": "Erreur lors de la création de la collection",
+    "accessDenied": "Accès non autorisé à cette collection"
+  },
+  "tag": {
+    "notFound": "Tag non trouvé",
+    "deleteFailed": "Erreur lors de la suppression du tag",
+    "createFailed": "Erreur lors de la création du tag",
+    "nameRequired": "Le nom du tag est requis"
+  },
+  "game": {
+    "notFound": "Partie non trouvée",
+    "deleteFailed": "Erreur lors de la suppression de la partie",
+    "importFailed": "Erreur lors de l'importation des parties",
+    "invalidPgn": "Format PGN invalide"
+  }
+}

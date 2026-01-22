@@ -2,6 +2,7 @@
   import {Plus, XIcon} from "@lucide/svelte";
   import {Dialog, Portal} from "@skeletonlabs/skeleton-svelte";
   import {invalidateAll} from "$app/navigation";
+  import { _ } from '$lib/i18n';
 
   const {label, handleToastSuccess}: {
     label: string,
@@ -16,12 +17,12 @@
     errorMessage = '';
 
     if (!tagName.trim()) {
-      errorMessage = 'Le nom du tag est requis';
+      errorMessage = $_('database.tags.nameRequired');
       return;
     }
 
     if (tagName.trim().length > 50) {
-      errorMessage = 'Le nom du tag ne peut pas dépasser 50 caractères';
+      errorMessage = $_('database.tags.nameTooLong');
       return;
     }
 
@@ -40,16 +41,16 @@
 
       if (!response.ok) {
         const error = await response.json();
-        errorMessage = error.message || 'Erreur lors de la création du tag';
+        errorMessage = error.message || $_('database.tags.createError');
         return;
       }
 
-      handleToastSuccess('Tag créé avec succès')
+      handleToastSuccess($_('database.tags.createSuccess'))
 
       tagName = '';
       await invalidateAll();
     } catch (err) {
-      errorMessage = 'Erreur lors de la création du tag';
+      errorMessage = $_('database.tags.createError');
     } finally {
       isSubmitting = false;
     }
@@ -78,7 +79,7 @@
                       onsubmit={(e) => { e.preventDefault(); handleCreateTag(); }}>
                     <div>
                         <label class="block text-sm font-medium mb-2" for="tag-name">
-                            Nom du tag
+                            {$_('database.tags.name')}
                         </label>
 
                         <input
@@ -87,7 +88,7 @@
                                 disabled={isSubmitting}
                                 id="tag-name"
                                 maxlength="50"
-                                placeholder="Ex: Finale, Défense Sicilienne..."
+                                placeholder={$_('database.tags.namePlaceholder')}
                                 required
                                 type="text"
                         />
@@ -96,13 +97,13 @@
                         {/if}
                     </div>
 
-                    <Dialog.CloseTrigger class="btn preset-tonal">Annuler</Dialog.CloseTrigger>
+                    <Dialog.CloseTrigger class="btn preset-tonal">{$_('common.actions.cancel')}</Dialog.CloseTrigger>
                     <button
                             class="btn preset-filled-primary-500"
                             disabled={isSubmitting}
                             type="submit"
                     >
-                        {isSubmitting ? 'Création...' : 'Créer'}
+                        {isSubmitting ? $_('common.messages.creating') : $_('common.actions.create')}
                     </button>
                 </form>
             </Dialog.Content>

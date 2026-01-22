@@ -1,13 +1,16 @@
 import type { ColumnDef } from '@tanstack/table-core';
 import { renderComponent } from '$lib/components/table/render-helpers';
 import ColumnSortButton from '$lib/components/table/ColumnSortButton.svelte';
+import { derived } from 'svelte/store';
+import { _ } from '$lib/i18n';
 
-export const columns: ColumnDef<GameRow>[] = [
-	{
-		accessorKey: 'whitePlayer',
-		header: ({ column }) =>
-			renderComponent(ColumnSortButton, {
-				columnTitle: 'Blanc',
+export const columns = derived(_, ($t) => {
+	return [
+		{
+			accessorKey: 'whitePlayer',
+			header: ({ column }) =>
+				renderComponent(ColumnSortButton, {
+					columnTitle: $t('database.columns.whitePlayer'),
 				sortDirection: column.getIsSorted(),
 				onclick: () => {
 					const currentSort = column.getIsSorted();
@@ -21,10 +24,10 @@ export const columns: ColumnDef<GameRow>[] = [
 				}
 			}),
 		cell: (info) => info.getValue()
-	},
-	{
-		accessorKey: 'whiteElo',
-		header: 'Elo',
+		},
+		{
+			accessorKey: 'whiteElo',
+			header: $t('database.columns.elo'),
 		filterFn: (row, columnId, filterValue) => {
 			if (!filterValue) return true;
 			const { min, max } = filterValue;
@@ -34,12 +37,12 @@ export const columns: ColumnDef<GameRow>[] = [
 			if (max !== undefined && value > max) return false;
 			return true;
 		}
-	},
-	{
-		accessorKey: 'blackPlayer',
-		header: ({ column }) =>
-			renderComponent(ColumnSortButton, {
-				columnTitle: 'Noir',
+		},
+		{
+			accessorKey: 'blackPlayer',
+			header: ({ column }) =>
+				renderComponent(ColumnSortButton, {
+					columnTitle: $t('database.columns.blackPlayer'),
 				sortDirection: column.getIsSorted(),
 				onclick: () => {
 					const currentSort = column.getIsSorted();
@@ -53,10 +56,10 @@ export const columns: ColumnDef<GameRow>[] = [
 				}
 			}),
 		cell: (info) => info.getValue()
-	},
-	{
-		accessorKey: 'blackElo',
-		header: 'Elo',
+		},
+		{
+			accessorKey: 'blackElo',
+			header: $t('database.columns.elo'),
 		filterFn: (row, columnId, filterValue) => {
 			if (!filterValue) return true;
 			const { min, max } = filterValue;
@@ -66,12 +69,12 @@ export const columns: ColumnDef<GameRow>[] = [
 			if (max !== undefined && value > max) return false;
 			return true;
 		}
-	},
-	{
-		accessorKey: 'result',
-		header: ({ column }) =>
-			renderComponent(ColumnSortButton, {
-				columnTitle: 'Rés.',
+		},
+		{
+			accessorKey: 'result',
+			header: ({ column }) =>
+				renderComponent(ColumnSortButton, {
+					columnTitle: $t('database.columns.result'),
 				sortDirection: column.getIsSorted(),
 				onclick: () => {
 					const currentSort = column.getIsSorted();
@@ -89,12 +92,12 @@ export const columns: ColumnDef<GameRow>[] = [
 			const value = row.getValue(columnId) as string;
 			return value === filterValue;
 		}
-	},
-	{
-		accessorKey: 'date',
-		header: ({ column }) =>
-			renderComponent(ColumnSortButton, {
-				columnTitle: 'Date',
+		},
+		{
+			accessorKey: 'date',
+			header: ({ column }) =>
+				renderComponent(ColumnSortButton, {
+					columnTitle: $t('database.columns.date'),
 				sortDirection: column.getIsSorted(),
 				onclick: () => {
 					const currentSort = column.getIsSorted();
@@ -141,12 +144,12 @@ export const columns: ColumnDef<GameRow>[] = [
 			
 			return true;
 		}
-	},
-	{
-		accessorKey: 'tournament',
-		header: ({ column }) =>
-			renderComponent(ColumnSortButton, {
-				columnTitle: 'Tournoi',
+		},
+		{
+			accessorKey: 'tournament',
+			header: ({ column }) =>
+				renderComponent(ColumnSortButton, {
+					columnTitle: $t('database.columns.tournament'),
 				sortDirection: column.getIsSorted(),
 				onclick: () => {
 					const currentSort = column.getIsSorted();
@@ -160,9 +163,10 @@ export const columns: ColumnDef<GameRow>[] = [
 				}
 			}),
 		cell: (info) => info.getValue()
-	},
-	{
-		accessorKey: 'notation',
-		header: 'Notation'
-	}
-];
+		},
+		{
+			accessorKey: 'notation',
+			header: $t('database.columns.notation')
+		}
+	] as ColumnDef<GameRow>[];
+});

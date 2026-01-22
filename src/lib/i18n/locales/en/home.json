@@ -1,0 +1,89 @@
+{
+  "tagline": "Think deeper, play smarter.",
+  "hero": {
+    "title": "The new generation of chess analysis software.",
+    "subtitle": "Faster, smoother, more modern. Accessible everywhere, for all levels"
+  },
+  "features": {
+    "intuitive": {
+      "title": "Intuitive game management",
+      "description": "Collections, filters, tags, everything is simple and fast."
+    },
+    "statistics": {
+      "title": "Smart statistics",
+      "description": "Most played moves with winning percentages."
+    },
+    "stockfish": {
+      "title": "Stockfish analysis",
+      "description": "Best move and variations accessible instantly."
+    },
+    "cloud": {
+      "title": "Cloud backup",
+      "description": "Access your games wherever you are."
+    },
+    "scan": {
+      "title": "Smart scan (in development)",
+      "description": "Take a photo, your game is added automatically."
+    }
+  },
+  "vision": {
+    "text": "Kaissa is not just an alternative, ",
+    "emphasis": "it's a new way of thinking about chess analysis."
+  },
+  "unique": {
+    "title": "What makes Kaissa unique?",
+    "point1": "An interface designed with and for players: {modern}, fluid and {pleasant} to use.",
+    "point2": "{approach}: Classify, filter and find your games easily.",
+    "point3": "Powerful and easy-to-use tools: {simplified}, {rethought} and {stockfish} integration.",
+    "point4": "A rich and living backlog: {evolving} thanks to our community of passionate players.",
+    "modern": "Modern",
+    "pleasant": "enjoyable",
+    "approach": "A smart approach to game databases",
+    "simplified": "Simplified annotation",
+    "rethought": "rethought analysis",
+    "stockfish": "Stockfish",
+    "evolving": "Kaissa evolves every day"
+  },
+  "team": {
+    "erwan": {
+      "role": "Co-founder of Kaissa",
+      "bio1": "Always at tournaments and on the road, I needed a simple, fast tool accessible everywhere, from any device.",
+      "bio2": "Not a complicated system, but a clear space to analyze, review and progress, directly online.",
+      "bio3": "This application was born from this need and that of many other players."
+    },
+    "thibault": {
+      "role": "Co-founder of Kaissa",
+      "bio1": "When I discovered chess a few years ago, I wanted to progress seriously, but I realized that the available tools weren't made for that: too complicated, too old, or simply not adapted for beginners.",
+      "bio2": "With Erwan, we decided to create Kaissa: an application easy to use and powerful enough to help the most experienced players.",
+      "bio3": "My role is to lead the product design so that Kaissa unleashes its full potential, for you."
+    },
+    "anthony": {
+      "role": "UX designer",
+      "bio1": "I was contacted by Thibault to bring my expertise in the field of user experience.",
+      "bio2": "Kaissa's challenge is significant: solving the ergonomic problems of game analysis applications and offering a modern, fluid, and ultra-powerful solution.",
+      "bio3": "Today, I am very proud of what Pionics has developed!"
+    },
+    "theo": {
+      "role": "CTO of Kaissa",
+      "bio1": "--",
+      "bio2": "--",
+      "bio3": "--"
+    }
+  },
+  "quote": "Chess is the art of {analysis}",
+  "quoteAuthor": "Mikhail Botvinnik",
+  "analysis": "analysis",
+  "beta": {
+    "title": "Private Beta Access",
+    "subtitle": "Participate in the launch of Kaissa and test the application in preview!",
+    "benefit1": "FREE access to the Beta",
+    "benefit2": "A notification as soon as the service opens",
+    "benefit3": "Give your opinion and influence future developments.",
+    "cta": "TRY KAISSA",
+    "limited": "(limited spots)"
+  },
+  "partners": {
+    "title": "Our partners"
+  },
+  "cta": "TRY KAISSA"
+}

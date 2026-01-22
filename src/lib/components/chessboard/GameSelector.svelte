@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Tabs } from "@skeletonlabs/skeleton-svelte";
+  import { _ } from '$lib/i18n';
 
   interface Partie {
     id: number;
@@ -25,7 +26,7 @@
   <Tabs.List>
     {#each parties as partie (partie.id)}
       <Tabs.Trigger class="flex-1" value={partie.id.toString()}>
-        {partie.titre || 'Partie sans titre'}
+        {partie.titre || $_('chessboard.game.untitled')}
       </Tabs.Trigger>
     {/each}
   </Tabs.List>

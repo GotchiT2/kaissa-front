@@ -1,0 +1,30 @@
+{
+  "analysis": {
+    "title": "Analysis",
+    "bestMove": "Best move",
+    "analyzing": "Analyzing...",
+    "disabled": "Stockfish analysis is disabled."
+  },
+  "bestMoves": {
+    "title": "Best moves played",
+    "database": "Database",
+    "noCollection": "No collection available",
+    "move": "Move",
+    "gamesCount": "Number of games",
+    "winStats": "White / Draw / Black",
+    "avgElo": "Average ELO",
+    "disabled": "Best moves from the database are not displayed."
+  },
+  "game": {
+    "untitled": "Untitled game"
+  },
+  "navigation": {
+    "first": "Go to first move",
+    "previous": "Previous",
+    "next": "Next",
+    "last": "Go to last move"
+  },
+  "notation": {
+    "title": "Notation"
+  }
+}

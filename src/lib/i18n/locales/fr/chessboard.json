@@ -1,0 +1,30 @@
+{
+  "analysis": {
+    "title": "Analyse",
+    "bestMove": "Meilleur coup",
+    "analyzing": "Analyse en cours...",
+    "disabled": "L'analyse Stockfish est désactivée."
+  },
+  "bestMoves": {
+    "title": "Meilleurs coups joués",
+    "database": "Database",
+    "noCollection": "Aucune collection disponible",
+    "move": "Coup",
+    "gamesCount": "Nombre de parties",
+    "winStats": "Blanc / Neutre / Noir",
+    "avgElo": "ELO Moyen",
+    "disabled": "Les meilleurs coups joués dans la base de données ne sont pas affichés."
+  },
+  "game": {
+    "untitled": "Partie sans titre"
+  },
+  "navigation": {
+    "first": "Aller au premier coup",
+    "previous": "Précédent",
+    "next": "Suivant",
+    "last": "Aller au dernier coup"
+  },
+  "notation": {
+    "title": "Notation"
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "app": {
+    "name": "Kaissa",
+    "tagline": "Votre assistant d'analyse d'échecs"
+  },
+  "nav": {
+    "chessboard": "Échiquier",
+    "database": "Base de données",
+    "profile": "Profil",
+    "logout": "Déconnexion"
+  },
+  "actions": {
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "create": "Créer",
+    "import": "Importer",
+    "export": "Exporter",
+    "search": "Rechercher",
+    "filter": "Filtrer",
+    "close": "Fermer",
+    "confirm": "Confirmer",
+    "back": "Retour",
+    "next": "Suivant",
+    "previous": "Précédent",
+    "first": "Premier",
+    "last": "Dernier",
+    "clear": "Effacer"
+  },
+  "messages": {
+    "success": "Succès",
+    "error": "Erreur",
+    "warning": "Attention",
+    "info": "Information",
+    "loading": "Chargement...",
+    "deleting": "Suppression...",
+    "saving": "Enregistrement...",
+    "creating": "Création..."
+  },
+  "footer": {
+    "links": {
+      "legal": "Mentions Légales",
+      "privacy": "Politique de Confidentialité",
+      "terms": "Conditions Générales de Vente"
+    },
+    "social": {
+      "facebookLabel": "Page Facebook de Kaissa (lien externe)",
+      "instagramLabel": "Page Instagram de Kaissa (lien externe)",
+      "tiktokLabel": "Compte Tiktok de Kaissa (lien externe)"
+    },
+    "copyright": "©Kaissa 2025 - Tous droits réservés"
+  }
+}

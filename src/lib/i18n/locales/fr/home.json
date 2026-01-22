@@ -1,0 +1,89 @@
+{
+  "tagline": "Think deeper, play smarter.",
+  "hero": {
+    "title": "La nouvelle génération de logiciel d'analyse d'échecs.",
+    "subtitle": "Plus rapide, plus fluide, plus moderne. Accessible partout, pour tous les niveaux"
+  },
+  "features": {
+    "intuitive": {
+      "title": "Gestion intuitive des parties",
+      "description": "Collections, filtres, tags, tout est simple et rapide."
+    },
+    "statistics": {
+      "title": "Statistiques intelligentes",
+      "description": "Coups les plus joués avec pourcentages de victoire."
+    },
+    "stockfish": {
+      "title": "Analyse par Stockfish",
+      "description": "Meilleur coup et variantes accessibles instantanément."
+    },
+    "cloud": {
+      "title": "Sauvegarde en ligne",
+      "description": "Accédez à vos parties où que vous soyez."
+    },
+    "scan": {
+      "title": "Scan intelligent (en cours de développement)",
+      "description": "Prenez une photo, votre partie est ajoutée automatiquement."
+    }
+  },
+  "vision": {
+    "text": "Kaissa n'est pas une simple alternative, ",
+    "emphasis": "c'est une nouvelle façon de penser l'analyse d'échecs."
+  },
+  "unique": {
+    "title": "Ce qui rend Kaissa unique ?",
+    "point1": "Une interface pensée avec et pour les joueurs : {modern}, fluide et {pleasant} à utiliser.",
+    "point2": "{approach} : Classez, filtrez et retrouvez vos parties facilement.",
+    "point3": "Des outils puissants et simples à prendre en main : {simplified}, {rethought} et intégration de {stockfish}.",
+    "point4": "Un backlog riche et vivant : {evolving} grâce à notre communauté de joueurs passionnés.",
+    "modern": "Moderne",
+    "pleasant": "agréable",
+    "approach": "Une approche intelligente des bases de parties",
+    "simplified": "Annotation simplifiée",
+    "rethought": "analyse repensée",
+    "stockfish": "Stockfish",
+    "evolving": "Kaissa évolue chaque jour"
+  },
+  "team": {
+    "erwan": {
+      "role": "Co-fondateur de Kaissa",
+      "bio1": "Toujours en tournoi et sur la route, j'avais besoin d'un outil simple, rapide et accessible partout, depuis n'importe quel appareil.",
+      "bio2": "Pas une usine à gaz, mais un espace clair pour analyser, réviser et progresser, directement en ligne.",
+      "bio3": "Cette application est née de ce besoin et de celui de beaucoup d'autres joueurs."
+    },
+    "thibault": {
+      "role": "Co-fondateur de Kaissa",
+      "bio1": "Quand j'ai découvert les échecs il y a quelques années, j'ai voulu progresser sérieusement, mais je me suis rendu compte que les outils disponibles n'étaient pas faits pour ça : trop compliqués, trop anciens, ou simplement pas adaptés aux débutants.",
+      "bio2": "Avec Erwan, on a décidé de créer Kaissa : une application facile à prendre en main et assez puissante pour aider les joueurs les plus expérimentés.",
+      "bio3": "Mon rôle est de piloter la conception du produit afin que Kaissa libère tout son potentiel, pour vous."
+    },
+    "anthony": {
+      "role": "UX designer",
+      "bio1": "J'ai été contacté par Thibault pour apporter mon expertise dans le domaine de l'expérience utilisateur.",
+      "bio2": "L'enjeu de Kaissa est de taille : résoudre les problèmes d'ergonomie des applications d'analyse de partie et proposer une solution moderne, fluide, et ultra puissante.",
+      "bio3": "Aujourd'hui, je suis super fier de ce que Pionics a développé !"
+    },
+    "theo": {
+      "role": "CTO de Kaissa",
+      "bio1": "--",
+      "bio2": "--",
+      "bio3": "--"
+    }
+  },
+  "quote": "Les échecs sont l'art de l'analyse",
+  "quoteAuthor": "Mikhaïl Botvinnik",
+  "analysis": "analyse",
+  "beta": {
+    "title": "Accès à la Bêta privée",
+    "subtitle": "Participez au lancement de Kaissa et testez l'application en avant-première !",
+    "benefit1": "Accès GRATUIT à la Bêta",
+    "benefit2": "Une notification dès l'ouverture du service",
+    "benefit3": "Donnez votre avis et influencez les prochaines évolutions.",
+    "cta": "ESSAYER KAISSA",
+    "limited": "(places limitées)"
+  },
+  "partners": {
+    "title": "Nos partenaires"
+  },
+  "cta": "ESSAYER KAISSA"
+}

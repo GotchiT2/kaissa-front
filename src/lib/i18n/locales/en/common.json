@@ -1,0 +1,54 @@
+{
+  "app": {
+    "name": "Kaissa",
+    "tagline": "Your chess analysis assistant"
+  },
+  "nav": {
+    "chessboard": "Chessboard",
+    "database": "Database",
+    "profile": "Profile",
+    "logout": "Logout"
+  },
+  "actions": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "import": "Import",
+    "export": "Export",
+    "search": "Search",
+    "filter": "Filter",
+    "close": "Close",
+    "confirm": "Confirm",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "first": "First",
+    "last": "Last",
+    "clear": "Clear"
+  },
+  "messages": {
+    "success": "Success",
+    "error": "Error",
+    "warning": "Warning",
+    "info": "Information",
+    "loading": "Loading...",
+    "deleting": "Deleting...",
+    "saving": "Saving...",
+    "creating": "Creating..."
+  },
+  "footer": {
+    "links": {
+      "legal": "Legal Notice",
+      "privacy": "Privacy Policy",
+      "terms": "Terms of Sale"
+    },
+    "social": {
+      "facebookLabel": "Kaissa Facebook Page (external link)",
+      "instagramLabel": "Kaissa Instagram Page (external link)",
+      "tiktokLabel": "Kaissa TikTok Account (external link)"
+    },
+    "copyright": "©Kaissa 2025 - All rights reserved"
+  }
+}

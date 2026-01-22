@@ -70,7 +70,9 @@
     get data() {
       return data;
     },
-    columns,
+    get columns() {
+      return $columns;
+    },
     state: {
       get pagination() {
         return pagination;
@@ -137,19 +139,19 @@
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Erreur lors de la suppression');
+        throw new Error(error.message || $_('database.games.deleteError'));
       }
 
       await invalidateAll();
 
       if (onDeleteSuccess) {
-        onDeleteSuccess('Partie supprimée avec succès');
+        onDeleteSuccess($_('database.games.deleteSuccess'));
       }
 
       partieToDelete = null;
     } catch (error: any) {
       if (onDeleteError) {
-        onDeleteError(error.message || 'Erreur lors de la suppression');
+        onDeleteError(error.message || $_('database.games.deleteError'));
       }
     } finally {
       isDeleting = false;
@@ -171,20 +173,20 @@
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Erreur lors de la mise à jour');
+        throw new Error(error.message || $_('database.table.updateError'));
       }
 
       await invalidateAll();
 
       if (onAnalysisToggleSuccess) {
         const message = !currentStatus
-          ? 'Partie ajoutée à l\'analyse'
-          : 'Partie retirée de l\'analyse';
+          ? $_('database.table.addedToAnalysis')
+          : $_('database.table.removedFromAnalysis');
         onAnalysisToggleSuccess(message);
       }
     } catch (error: any) {
       if (onAnalysisToggleError) {
-        onAnalysisToggleError(error.message || 'Erreur lors de la mise à jour');
+        onAnalysisToggleError(error.message || $_('database.table.updateError'));
       }
     } finally {
       togglingAnalysisIds.delete(id);
@@ -236,20 +238,20 @@
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Erreur lors de la mise à jour des tags');
+        throw new Error(error.message || $_('database.table.tagsUpdateError'));
       }
 
       await invalidateAll();
 
       if (onTagsUpdateSuccess) {
-        onTagsUpdateSuccess('Tags mis à jour avec succès');
+        onTagsUpdateSuccess($_('database.table.tagsUpdateSuccess'));
       }
 
       partieForTags = null;
       selectedTagIds = new Set();
     } catch (error: any) {
       if (onTagsUpdateError) {
-        onTagsUpdateError(error.message || 'Erreur lors de la mise à jour des tags');
+        onTagsUpdateError(error.message || $_('database.table.tagsUpdateError'));
       }
     } finally {
       isUpdatingTags = false;
@@ -307,19 +309,19 @@
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Erreur lors de la mise à jour');
+        throw new Error(error.message || $_('database.table.updateError'));
       }
 
       await invalidateAll();
 
       if (onDeleteSuccess) {
-        onDeleteSuccess('Métadonnées mises à jour avec succès');
+        onDeleteSuccess($_('database.table.metadataUpdateSuccess'));
       }
 
       partieToEdit = null;
     } catch (error: any) {
       if (onDeleteError) {
-        onDeleteError(error.message || 'Erreur lors de la mise à jour');
+        onDeleteError(error.message || $_('database.table.updateError'));
       }
     } finally {
       isUpdatingMetadata = false;
@@ -343,7 +345,7 @@
                             {/if}
                         </th>
                     {/each}
-                    <th>Actions</th>
+                    <th>{$_('database.table.actions')}</th>
                 </tr>
                 <tr>
                     {#each headerGroup.headers as header (header.id)}
@@ -362,7 +364,7 @@
                                                         min: e.currentTarget.value ? parseInt(e.currentTarget.value) : undefined
                                                     });
                                                 }}
-                                                placeholder="Min"
+                                                placeholder={$_('database.table.min')}
                                         />
                                         <input
                                                 type="number"
@@ -375,7 +377,7 @@
                                                         max: e.currentTarget.value ? parseInt(e.currentTarget.value) : undefined
                                                     });
                                                 }}
-                                                placeholder="Max"
+                                                placeholder={$_('database.table.max')}
                                         />
                                     </div>
                                 {:else if header.column.id === 'date'}
@@ -411,7 +413,7 @@
                                             value={header.column.getFilterValue() ?? ''}
                                             onchange={(e) => header.column.setFilterValue(e.currentTarget.value || undefined)}
                                     >
-                                        <option value="">Tous</option>
+                                        <option value="">{$_('database.table.all')}</option>
                                         <option value="1-0">1-0</option>
                                         <option value="0-1">0-1</option>
                                         <option value="½-½">½-½</option>
@@ -461,56 +463,56 @@
                     </td>
                     <td class="table-cell-fit">
                         <Menu>
-                            <Menu.Trigger class="btn" title="Ouvrir les actions"
-                                          aria-label="Ouvrir les actions">
+                            <Menu.Trigger class="btn" title={$_('database.table.openActions')}
+                                          aria-label={$_('database.table.openActions')}>
                                 <EllipsisVertical focusable="false" aria-hidden="true"/>
-                                <span class="sr-only">Ouvrir les actions</span></Menu.Trigger>
+                                <span class="sr-only">{$_('database.table.openActions')}</span></Menu.Trigger>
                             <Portal>
                                 <Menu.Positioner>
                                     <Menu.Content>
                                         <Menu.Item value="edit-metadata">
                                             <button
                                                     onclick={() => openEditModal(row.original)}
-                                                    title="Éditer les métadonnées"
-                                                    aria-label="Éditer les métadonnées"
+                                                    title={$_('database.table.editMetadata')}
+                                                    aria-label={$_('database.table.editMetadata')}
                                             >
                                                 <PencilIcon focusable="false" aria-hidden="true"
                                                             class="size-4 btn-icon btn-icon-sm"/>
-                                                Éditer les métadonnées
+                                                {$_('database.table.editMetadata')}
                                             </button>
                                         </Menu.Item>
                                         <Menu.Item value="manage-tags">
                                             <button
                                                     onclick={() => openTagsModal(row.original.id, row.original.whitePlayer, row.original.blackPlayer)}
-                                                    title="Gérer les tags"
-                                                    aria-label="Gérer les tags"
+                                                    title={$_('database.table.manageTags')}
+                                                    aria-label={$_('database.table.manageTags')}
                                             >
                                                 <TagIcon class="size-4 btn-icon btn-icon-sm"/>
-                                                Gérer les tags
+                                                {$_('database.table.manageTags')}
                                             </button>
                                         </Menu.Item>
                                         <Menu.Item value="toggle-analysis">
                                             <button
                                                     onclick={() => toggleAnalysis(row.original.id, row.original.isInAnalysis)}
-                                                    title={row.original.isInAnalysis ? "Retirer de l'analyse" : "Ajouter à l'analyse"}
-                                                    aria-label={row.original.isInAnalysis ? "Retirer de l'analyse" : "Ajouter à l'analyse"}
+                                                    title={row.original.isInAnalysis ? $_('database.analysis.removeFromAnalysis') : $_('database.analysis.addToAnalysis')}
+                                                    aria-label={row.original.isInAnalysis ? $_('database.analysis.removeFromAnalysis') : $_('database.analysis.addToAnalysis')}
                                                     disabled={togglingAnalysisIds.has(row.original.id)}
                                             >
                                                 <FlaskConicalIcon focusable="false" aria-hidden="true"
                                                                   class="size-4 btn-icon btn-icon-sm"/>
-                                                {row.original.isInAnalysis ? "Retirer de l'analyse" : "Ajouter à l'analyse"}
+                                                {row.original.isInAnalysis ? $_('database.analysis.removeFromAnalysis') : $_('database.analysis.addToAnalysis')}
                                             </button>
                                         </Menu.Item>
                                         <Menu.Separator/>
                                         <Menu.Item value="delete-game">
                                             <button
                                                     onclick={() => openDeleteModal(row.original.id, row.original.whitePlayer, row.original.blackPlayer)}
-                                                    title="Supprimer cette partie"
-                                                    aria-label="Supprimer cette partie"
+                                                    title={$_('database.table.deleteGame')}
+                                                    aria-label={$_('database.table.deleteGame')}
                                             >
                                                 <Trash2Icon focusable="false" aria-hidden="true"
                                                             class="size-4 btn-icon btn-icon-sm"/>
-                                                Supprimer la partie
+                                                {$_('database.table.deleteGame')}
                                             </button>
                                         </Menu.Item>
                                     </Menu.Content>
@@ -525,7 +527,7 @@
                 </tr>
             {:else}
                 <tr>
-                    <td colspan={columns.length + 1} class="h-24 text-center">No results.</td>
+                    <td colspan={$columns.length + 1} class="h-24 text-center">{$_('database.table.noResults')}</td>
                 </tr>
             {/each}
             </tbody>
@@ -545,7 +547,7 @@
             <Dialog.Positioner class="fixed inset-0 z-50 flex justify-center items-center p-4">
                 <Dialog.Content class="card bg-surface-100-900 w-full max-w-md p-4 space-y-4 shadow-xl">
                     <header class="flex justify-between items-center">
-                        <Dialog.Title class="text-lg font-bold">Gérer les tags</Dialog.Title>
+                        <Dialog.Title class="text-lg font-bold">{$_('database.table.manageTags')}</Dialog.Title>
                         <Dialog.CloseTrigger class="btn-icon hover:preset-tonal" onclick={closeTagsModal}
                                              disabled={isUpdatingTags}>
                             <XIcon class="size-4"/>
@@ -553,12 +555,12 @@
                     </header>
 
                     <Dialog.Description class="space-y-2">
-                        <p>Sélectionnez les tags pour :</p>
+                        <p>{$_('database.table.selectTagsFor')}</p>
                         <p class="font-semibold text-primary-500">{partieForTags.name}</p>
 
                         <div class="space-y-2 mt-4 max-h-64 overflow-y-auto">
                             {#if availableTags.length === 0}
-                                <p class="text-sm opacity-60">Aucun tag disponible. Créez-en un d'abord.</p>
+                                <p class="text-sm opacity-60">{$_('database.table.noTagsAvailable')}</p>
                             {:else}
                                 {#each availableTags as tag (tag.id)}
                                     <label class="flex items-center gap-2 p-2 rounded hover:preset-tonal cursor-pointer">
@@ -582,14 +584,14 @@
                                 onclick={closeTagsModal}
                                 disabled={isUpdatingTags}
                         >
-                            Annuler
+                            {$_('common.actions.cancel')}
                         </button>
                         <button
                                 class="btn preset-filled-primary-500"
                                 onclick={saveTags}
                                 disabled={isUpdatingTags}
                         >
-                            {isUpdatingTags ? 'Enregistrement...' : 'Enregistrer'}
+                            {isUpdatingTags ? $_('common.messages.saving') : $_('common.actions.save')}
                         </button>
                     </footer>
                 </Dialog.Content>
@@ -605,7 +607,7 @@
             <Dialog.Positioner class="fixed inset-0 z-50 flex justify-center items-center p-4">
                 <Dialog.Content class="card bg-surface-100-900 w-full max-w-md p-4 space-y-4 shadow-xl">
                     <header class="flex justify-between items-center">
-                        <Dialog.Title class="text-lg font-bold">Éditer les métadonnées</Dialog.Title>
+                        <Dialog.Title class="text-lg font-bold">{$_('database.table.editMetadata')}</Dialog.Title>
                         <Dialog.CloseTrigger class="btn-icon hover:preset-tonal" onclick={closeEditModal}
                                              disabled={isUpdatingMetadata}>
                             <XIcon class="size-4"/>
@@ -615,67 +617,67 @@
                     <Dialog.Description class="space-y-4">
                         <div class="space-y-2">
                             <label class="label" for="whitePlayer">
-                                <span>Joueur blanc</span>
+                                <span>{$_('database.table.whitePlayer')}</span>
                                 <input
                                         id="whitePlayer"
                                         type="text"
                                         class="input"
                                         bind:value={partieToEdit.whitePlayer}
                                         disabled={isUpdatingMetadata}
-                                        placeholder="Nom du joueur blanc"
+                                        placeholder={$_('database.table.whitePlayerName')}
                                 />
                             </label>
 
                             <label class="label" for="whiteElo">
-                                <span>ELO blanc</span>
+                                <span>{$_('database.table.whiteElo')}</span>
                                 <input
                                         id="whiteElo"
                                         type="number"
                                         class="input"
                                         bind:value={partieToEdit.whiteElo}
                                         disabled={isUpdatingMetadata}
-                                        placeholder="ELO du joueur blanc"
+                                        placeholder={$_('database.table.whitePlayerElo')}
                                 />
                             </label>
 
                             <label class="label" for="blackPlayer">
-                                <span>Joueur noir</span>
+                                <span>{$_('database.table.blackPlayer')}</span>
                                 <input
                                         id="blackPlayer"
                                         type="text"
                                         class="input"
                                         bind:value={partieToEdit.blackPlayer}
                                         disabled={isUpdatingMetadata}
-                                        placeholder="Nom du joueur noir"
+                                        placeholder={$_('database.table.blackPlayerName')}
                                 />
                             </label>
 
                             <label class="label" for="blackElo">
-                                <span>ELO noir</span>
+                                <span>{$_('database.table.blackElo')}</span>
                                 <input
                                         id="blackElo"
                                         type="number"
                                         class="input"
                                         bind:value={partieToEdit.blackElo}
                                         disabled={isUpdatingMetadata}
-                                        placeholder="ELO du joueur noir"
+                                        placeholder={$_('database.table.blackPlayerElo')}
                                 />
                             </label>
 
                             <label class="label" for="tournament">
-                                <span>Tournoi</span>
+                                <span>{$_('database.table.tournament')}</span>
                                 <input
                                         id="tournament"
                                         type="text"
                                         class="input"
                                         bind:value={partieToEdit.tournament}
                                         disabled={isUpdatingMetadata}
-                                        placeholder="Nom du tournoi"
+                                        placeholder={$_('database.table.tournamentName')}
                                 />
                             </label>
 
                             <label class="label" for="date">
-                                <span>Date</span>
+                                <span>{$_('database.table.date')}</span>
                                 <input
                                         id="date"
                                         type="date"
@@ -693,14 +695,14 @@
                                 onclick={closeEditModal}
                                 disabled={isUpdatingMetadata}
                         >
-                            Annuler
+                            {$_('common.actions.cancel')}
                         </button>
                         <button
                                 class="btn preset-filled-primary-500"
                                 onclick={saveMetadata}
                                 disabled={isUpdatingMetadata}
                         >
-                            {isUpdatingMetadata ? 'Enregistrement...' : 'Enregistrer'}
+                            {isUpdatingMetadata ? $_('common.messages.saving') : $_('common.actions.save')}
                         </button>
                     </footer>
                 </Dialog.Content>
@@ -716,7 +718,7 @@
             <Dialog.Positioner class="fixed inset-0 z-50 flex justify-center items-center p-4">
                 <Dialog.Content class="card bg-surface-100-900 w-full max-w-md p-4 space-y-4 shadow-xl">
                     <header class="flex justify-between items-center">
-                        <Dialog.Title class="text-lg font-bold">Confirmer la suppression</Dialog.Title>
+                        <Dialog.Title class="text-lg font-bold">{$_('database.table.confirmDelete')}</Dialog.Title>
                         <Dialog.CloseTrigger class="btn-icon hover:preset-tonal" onclick={closeDeleteModal}
                                              disabled={isDeleting}>
                             <XIcon class="size-4"/>
@@ -724,9 +726,9 @@
                     </header>
 
                     <Dialog.Description class="space-y-2">
-                        <p>Êtes-vous sûr de vouloir supprimer la partie :</p>
+                        <p>{$_('database.table.deleteGameWarning')}</p>
                         <p class="font-semibold text-primary-500">{partieToDelete.name}</p>
-                        <p class="text-sm opacity-75">Cette action est irréversible.</p>
+                        <p class="text-sm opacity-75">{$_('database.table.irreversible')}</p>
                     </Dialog.Description>
 
                     <footer class="flex justify-end gap-2">
@@ -735,14 +737,14 @@
                                 onclick={closeDeleteModal}
                                 disabled={isDeleting}
                         >
-                            Annuler
+                            {$_('common.actions.cancel')}
                         </button>
                         <button
                                 class="btn preset-filled-error-500"
                                 onclick={confirmDelete}
                                 disabled={isDeleting}
                         >
-                            {isDeleting ? 'Suppression...' : 'Supprimer'}
+                            {isDeleting ? $_('common.messages.deleting') : $_('common.actions.delete')}
                         </button>
                     </footer>
                 </Dialog.Content>

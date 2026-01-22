@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Switch } from "@skeletonlabs/skeleton-svelte";
   import type { StockfishAnalysis } from "$lib/services/stockfishService";
+  import { _ } from '$lib/i18n';
 
   let {
     analysis,
@@ -16,7 +17,7 @@
     <Switch.Control>
       <Switch.Thumb/>
     </Switch.Control>
-    <Switch.Label>Analyse</Switch.Label>
+    <Switch.Label>{$_('chessboard.analysis.title')}</Switch.Label>
     <Switch.HiddenInput/>
   </Switch>
 
@@ -24,19 +25,19 @@
     <div class="flex flex-col gap-4 border border-surface-500 p-4 rounded w-full">
       {#if analysis.bestmove}
         <div class="flex items-start gap-4 flex-wrap">
-          <span class="font-semibold">Meilleur coup: {analysis.bestmove}</span>
+          <span class="font-semibold">{$_('chessboard.analysis.bestMove')}: {analysis.bestmove}</span>
         </div>
       {/if}
 
       <div class="bg-surface-900 p-3 rounded max-h-64 overflow-y-auto">
         {#if analysis.lines.length === 0}
-          <p class="text-surface-400">Analyse en cours...</p>
+          <p class="text-surface-400">{$_('chessboard.analysis.analyzing')}</p>
         {:else}
           <pre class="text-xs font-mono whitespace-pre-wrap">{analysis.lines.join("\n")}</pre>
         {/if}
       </div>
     </div>
   {:else}
-    <p class="text-surface-400">L'analyse Stockfish est désactivée.</p>
+    <p class="text-surface-400">{$_('chessboard.analysis.disabled')}</p>
   {/if}
 </div>

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { CheckCircle, Loader2, XIcon } from '@lucide/svelte';
   import { fly } from 'svelte/transition';
+  import { _ } from '$lib/i18n';
 
   interface Props {
     current: number;
@@ -28,19 +29,19 @@
         <div class="flex flex-col">
           <span class="font-semibold">
             {#if isCompleted}
-              Suppression terminée
+              {$_('database.deletion.completed')}
             {:else}
-              Suppression en cours...
+              {$_('database.deletion.inProgress')}
             {/if}
           </span>
           <span class="text-sm opacity-75">
             {#if isCompleted}
-              {current} partie{current > 1 ? 's' : ''} supprimée{current > 1 ? 's' : ''}
+              {$_('database.deletion.completedGames', { values: { count: current } })}
               {#if subCollectionsCount > 0}
-                et {subCollectionsCount} collection{subCollectionsCount > 1 ? 's' : ''}
+                {$_('database.deletion.andCollections', { values: { count: subCollectionsCount } })}
               {/if}
             {:else}
-              {current}/{total} partie{total > 1 ? 's' : ''} supprimée{current > 1 ? 's' : ''}
+              {$_('database.deletion.progressText', { values: { current, total } })}
             {/if}
           </span>
         </div>
@@ -49,7 +50,7 @@
         <button
           class="btn-icon btn-icon-sm hover:preset-tonal"
           onclick={onClose}
-          aria-label="Fermer"
+          aria-label={$_('common.actions.close')}
         >
           <XIcon class="size-4" />
         </button>

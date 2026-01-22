@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Switch } from "@skeletonlabs/skeleton-svelte";
   import type { BestMove } from "$lib/services/bestMovesService";
+  import { _ } from '$lib/i18n';
 
   interface Collection {
     id: string;
@@ -25,16 +26,16 @@
     <Switch.Control>
       <Switch.Thumb/>
     </Switch.Control>
-    <Switch.Label>Meilleurs coups joués</Switch.Label>
+    <Switch.Label>{$_('chessboard.bestMoves.title')}</Switch.Label>
     <Switch.HiddenInput/>
   </Switch>
 
   {#if showBestMoves}
     <label class="label w-fit flex gap-4 items-center self-start">
-      <span class="label-text">Database</span>
+      <span class="label-text">{$_('chessboard.bestMoves.database')}</span>
       <select class="select" bind:value={selectedCollectionId}>
         {#if collections.length === 0}
-          <option value="">Aucune collection disponible</option>
+          <option value="">{$_('chessboard.bestMoves.noCollection')}</option>
         {:else}
           {#each collections as collection (collection.id)}
             <option value={collection.id}>{collection.nom}</option>
@@ -47,10 +48,10 @@
       <table class="table caption-bottom">
         <thead>
           <tr class="text-white">
-            <th>Coup</th>
-            <th>Nombre de parties</th>
-            <th>Blanc / Neutre / Noir</th>
-            <th class="text-right!">ELO Moyen</th>
+            <th>{$_('chessboard.bestMoves.move')}</th>
+            <th>{$_('chessboard.bestMoves.gamesCount')}</th>
+            <th>{$_('chessboard.bestMoves.winStats')}</th>
+            <th class="text-right!">{$_('chessboard.bestMoves.avgElo')}</th>
           </tr>
         </thead>
         <tbody class="[&>tr]:hover:preset-tonal-primary">
@@ -86,6 +87,6 @@
       </table>
     </div>
   {:else}
-    <p class="text-surface-400">Les meilleurs coups joués dans la base de données ne sont pas affichés.</p>
+    <p class="text-surface-400">{$_('chessboard.bestMoves.disabled')}</p>
   {/if}
 </div>

@@ -2,6 +2,7 @@
   import {Plus, XIcon} from "@lucide/svelte";
   import {Dialog, Portal} from "@skeletonlabs/skeleton-svelte";
   import {invalidateAll} from "$app/navigation";
+  import { _ } from '$lib/i18n';
 
   const {label, handleToastSuccess, parentId}: {
     label: string,
@@ -18,12 +19,12 @@
     errorMessage = '';
 
     if (!collectionName.trim()) {
-      errorMessage = 'Le nom de la collection est requis';
+      errorMessage = $_('database.collections.nameRequired');
       return;
     }
 
     if (collectionName.trim().length > 100) {
-      errorMessage = 'Le nom de la collection ne peut pas dépasser 100 caractères';
+      errorMessage = $_('database.collections.nameTooLong');
       return;
     }
 
@@ -43,17 +44,17 @@
 
       if (!response.ok) {
         const error = await response.json();
-        errorMessage = error.message || 'Erreur lors de la création de la collection';
+        errorMessage = error.message || $_('database.collections.createError');
         return;
       }
 
-      handleToastSuccess('Collection créée avec succès')
+      handleToastSuccess($_('database.collections.createSuccess'))
 
       collectionName = '';
       parentCollectionId = undefined;
       await invalidateAll();
     } catch (err) {
-      errorMessage = 'Erreur lors de la création de la collection';
+      errorMessage = $_('database.collections.createError');
     } finally {
       isSubmitting = false;
     }
@@ -82,7 +83,7 @@
                       onsubmit={(e) => { e.preventDefault(); handleCreateCollection(); }}>
                     <div>
                         <label class="block text-sm font-medium mb-2" for="collection-name">
-                            Nom de la collection
+                            {$_('database.collections.name')}
                         </label>
 
                         <input
@@ -91,7 +92,7 @@
                                 disabled={isSubmitting}
                                 id="collection-name"
                                 maxlength="100"
-                                placeholder="Ex: Mes parties de tournoi"
+                                placeholder={$_('database.collections.namePlaceholder')}
                                 required
                                 type="text"
                         />
@@ -100,13 +101,13 @@
                         {/if}
                     </div>
 
-                    <Dialog.CloseTrigger class="btn preset-tonal">Annuler</Dialog.CloseTrigger>
+                    <Dialog.CloseTrigger class="btn preset-tonal">{$_('common.actions.cancel')}</Dialog.CloseTrigger>
                     <button
                             class="btn preset-filled-primary-500"
                             disabled={isSubmitting}
                             type="submit"
                     >
-                        {isSubmitting ? 'Création...' : 'Créer'}
+                        {isSubmitting ? $_('common.messages.creating') : $_('common.actions.create')}
                     </button>
                 </form>
             </Dialog.Content>

@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { GroupedMove } from "$lib/utils/chessNotation";
+  import { _ } from '$lib/i18n';
 
   let {
     groupedMoves,
@@ -13,7 +14,7 @@
 </script>
 
 <div class="flex flex-col gap-4 items-center w-full mb-16">
-  <h2 class="h5">Notation</h2>
+  <h2 class="h5">{$_('chessboard.notation.title')}</h2>
   <div class="notation-text w-full bg-surface-800 p-4 rounded max-h-96 overflow-y-auto">
     {#each groupedMoves as row}
       <span class="move-number">{row.moveNumber}.</span>
