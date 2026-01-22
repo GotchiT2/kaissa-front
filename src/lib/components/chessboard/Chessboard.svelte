@@ -66,6 +66,24 @@
     stockfishService?.destroy();
   });
 
+  function updateAnalysis() {
+    const fen = game.fen();
+    
+    if (selectedCollectionId && showBestMoves) {
+      const hashPosition = hashFEN(fen);
+      fetchBestMoves(selectedCollectionId, hashPosition.toString()).then((fetchedMoves) => {
+        meilleursCoups = fetchedMoves;
+      });
+    }
+    
+    if (showAnalysis) {
+      const prochainCoupId = game.moveNumber();
+      const prochainJoueur = game.turn() === 'w' ? '.' : '...';
+      prochainCoupDisplay = `${prochainCoupId}${prochainJoueur}`;
+      stockfishService.analyze(fen, 1000, 300);
+    }
+  }
+
   $effect(() => {
     if (!selectedCollectionId || !showBestMoves) {
       meilleursCoups = [];
@@ -73,6 +91,7 @@
     }
 
     currentIndex;
+    freePlayMoves;
 
     const fen = game.fen();
     const hashPosition = hashFEN(fen);
@@ -84,6 +103,7 @@
 
   $effect(() => {
     currentIndex;
+    freePlayMoves;
 
     if (!showAnalysis) {
       return;
@@ -92,7 +112,11 @@
     const prochainCoupId = game.moveNumber();
     const prochainJoueur = game.turn() === 'w' ? '.' : '...';
     prochainCoupDisplay = `${prochainCoupId}${prochainJoueur}`;
-    game = rebuildGamePosition(moves(), currentIndex);
+    
+    if (!freePlayMode) {
+      game = rebuildGamePosition(moves(), currentIndex);
+    }
+    
     const fen = game.fen();
     stockfishService.analyze(fen, 1000, 300);
   });
@@ -131,6 +155,7 @@
       if (move) {
         if (freePlayMode) {
           freePlayMoves = [...freePlayMoves, move.lan];
+          updateAnalysis();
         } else {
           currentIndex = moves().length;
         }
