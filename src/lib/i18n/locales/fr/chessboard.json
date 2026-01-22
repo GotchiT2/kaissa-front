@@ -26,5 +26,17 @@
   },
   "notation": {
     "title": "Notation"
+  },
+  "comments": {
+    "title": "Commentaires",
+    "editButton": "Éditer le coup",
+    "editTitle": "Éditer le coup",
+    "beforeMove": "Commentaire avant le coup",
+    "afterMove": "Commentaire après le coup",
+    "beforeMovePlaceholder": "Ajoutez un commentaire avant le coup...",
+    "afterMovePlaceholder": "Ajoutez un commentaire après le coup...",
+    "characters": "caractères",
+    "saveSuccess": "Commentaires sauvegardés avec succès",
+    "saveError": "Erreur lors de la sauvegarde des commentaires"
   }
 }

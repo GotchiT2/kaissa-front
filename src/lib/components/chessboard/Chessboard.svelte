@@ -43,7 +43,7 @@
     return convertUciToSan(selectedPartie.coups);
   });
 
-  const groupedMoves = $derived(groupMovesByPair(moves()));
+  const groupedMoves = $derived(groupMovesByPair(moves(), selectedPartie?.coups));
 
   onMount(() => {
     board = buildBoard(game);

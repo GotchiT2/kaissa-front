@@ -6,6 +6,8 @@ export interface GroupedMove {
   black: string;
   whiteIndex: number;
   blackIndex: number;
+  whiteNodeId?: string;
+  blackNodeId?: string;
 }
 
 export function convertUciToSan(coups: Array<{ coupUci: string | null }>): string[] {
@@ -32,7 +34,7 @@ export function convertUciToSan(coups: Array<{ coupUci: string | null }>): strin
   return movesInSan;
 }
 
-export function groupMovesByPair(moves: string[]): GroupedMove[] {
+export function groupMovesByPair(moves: string[], coups?: Array<{ id: string }>): GroupedMove[] {
   const result: GroupedMove[] = [];
   for (let i = 0; i < moves.length; i += 2) {
     result.push({
@@ -40,7 +42,9 @@ export function groupMovesByPair(moves: string[]): GroupedMove[] {
       white: moves[i] ?? "",
       black: moves[i + 1] ?? "",
       whiteIndex: i + 1,
-      blackIndex: i + 2
+      blackIndex: i + 2,
+      whiteNodeId: coups?.[i]?.id,
+      blackNodeId: coups?.[i + 1]?.id
     });
   }
   return result;

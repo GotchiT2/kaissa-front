@@ -26,5 +26,17 @@
   },
   "notation": {
     "title": "Notation"
+  },
+  "comments": {
+    "title": "Comments",
+    "editButton": "Edit move",
+    "editTitle": "Edit move",
+    "beforeMove": "Comment before move",
+    "afterMove": "Comment after move",
+    "beforeMovePlaceholder": "Add a comment before the move...",
+    "afterMovePlaceholder": "Add a comment after the move...",
+    "characters": "characters",
+    "saveSuccess": "Comments saved successfully",
+    "saveError": "Error saving comments"
   }
 }

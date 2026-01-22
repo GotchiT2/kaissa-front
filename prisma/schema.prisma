@@ -37,6 +37,11 @@ enum CalculStatut {
   ERREUR
 }
 
+enum TypeCommentaire {
+  AVANT
+  APRES
+}
+
 // ============================================================================
 // UTILISATEUR
 // ============================================================================
@@ -174,13 +179,15 @@ model CoupNoeud {
 // ============================================================================
 
 model CommentaireNoeud {
-  id        String    @id @default(cuid())
+  id        String          @id @default(cuid())
   noeudId   String
+  type      TypeCommentaire
   contenu   String
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  noeud     CoupNoeud @relation(fields: [noeudId], references: [id], onDelete: Cascade)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  noeud     CoupNoeud       @relation(fields: [noeudId], references: [id], onDelete: Cascade)
 
+  @@unique([noeudId, type])
   @@index([noeudId])
 }
 
