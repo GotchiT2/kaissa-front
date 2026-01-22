@@ -3,7 +3,7 @@
   import { _ } from '$lib/i18n';
 
   interface Partie {
-    id: number;
+    id: string;
     titre: string | null;
   }
 
@@ -12,13 +12,13 @@
     selectedGameIndex = $bindable()
   }: {
     parties: Partie[];
-    selectedGameIndex: number | null;
+    selectedGameIndex: string | null;
   } = $props();
 
-  const stringValue = $derived(selectedGameIndex?.toString() ?? null);
+  const stringValue = $derived(selectedGameIndex ?? null);
 
   function handleChange(tab: { value: string }) {
-    selectedGameIndex = parseInt(tab.value);
+    selectedGameIndex = tab.value;
   }
 </script>
 
