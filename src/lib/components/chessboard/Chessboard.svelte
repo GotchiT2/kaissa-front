@@ -10,15 +10,15 @@
   import EvaluationBar from "$lib/components/chessboard/EvaluationBar.svelte";
   import {buildBoard, updateStatus} from "$lib/utils/chessboard";
   import {hashFEN} from "$lib/utils/positionHash";
-  import {convertUciToSan, groupMovesByPair, rebuildGamePosition} from "$lib/utils/chessNotation";
   import {type BestMove, fetchBestMoves} from "$lib/services/bestMovesService";
   import {type StockfishAnalysis, StockfishService} from "$lib/services/stockfishService";
+  import {buildMoveTree, flattenMoveTree, buildPathToNode, type MoveNode, type DisplayLine} from "$lib/utils/variations";
 
   const {parties, collections} = $props();
 
   let game = new Chess();
   let selectedGameIndex = $state(parties[0]?.id || null);
-  let currentIndex = $state(0);
+  let currentNodeId = $state<string | null>(null);
   let board = $state<{ square: string; piece: Piece | null }[][]>([]);
   let selectedSquare = $state<string | null>(null);
   let possibleMoves = $state<string[]>([]);
@@ -41,19 +41,22 @@
   let stockfishService: StockfishService;
   let prochainCoupDisplay: string = $state('');
   let freePlayMode = $state(false);
-  let freePlayMoves = $state<string[]>([]);
-  let basePositionIndex = $state(0);
+  let baseNodeId = $state<string | null>(null);
 
   const selectedPartie = $derived(parties.find((p: any) => p.id === selectedGameIndex));
 
-  const moves = $derived(() => {
+  const moveTree = $derived(() => {
     if (!selectedPartie?.coups || selectedPartie.coups.length === 0) {
-      return [];
+      return null;
     }
-    return convertUciToSan(selectedPartie.coups);
+    return buildMoveTree(selectedPartie.coups as MoveNode[]);
   });
 
-  const groupedMoves = $derived(groupMovesByPair(moves(), selectedPartie?.coups));
+  const displayLines = $derived(() => {
+    const tree = moveTree();
+    if (!tree) return [];
+    return flattenMoveTree(tree);
+  });
 
   onMount(() => {
     board = buildBoard(game);
@@ -85,13 +88,10 @@
   }
 
   $effect(() => {
-    if (!selectedCollectionId || !showBestMoves) {
+    if (!selectedCollectionId || !showBestMoves || !currentNodeId) {
       meilleursCoups = [];
       return;
     }
-
-    currentIndex;
-    freePlayMoves;
 
     const fen = game.fen();
     const hashPosition = hashFEN(fen);
@@ -102,10 +102,7 @@
   });
 
   $effect(() => {
-    currentIndex;
-    freePlayMoves;
-
-    if (!showAnalysis) {
+    if (!showAnalysis || !currentNodeId) {
       return;
     }
 
@@ -113,18 +110,14 @@
     const prochainJoueur = game.turn() === 'w' ? '.' : '...';
     prochainCoupDisplay = `${prochainCoupId}${prochainJoueur}`;
     
-    if (!freePlayMode) {
-      game = rebuildGamePosition(moves(), currentIndex);
-    }
-    
     const fen = game.fen();
     stockfishService.analyze(fen, 1000, 300);
   });
 
   function selectSquare(square: string) {
     selectedSquare = square;
-    const moves = game.moves({square: square as any, verbose: true}) as any[];
-    possibleMoves = moves.map((m) => m.to);
+    const legalMoves = game.moves({square: square as any, verbose: true}) as any[];
+    possibleMoves = legalMoves.map((m: { to: string }) => m.to);
   }
 
   function clearSelection() {
@@ -132,10 +125,34 @@
     possibleMoves = [];
   }
 
-  function handleTileClick(square: string) {
-    const clickedPiece = game.get(square as any);
+  function rebuildPositionFromNode(nodeId: string | null) {
+    if (!nodeId) {
+      game = new Chess();
+      board = buildBoard(game);
+      statusMessage = updateStatus(game);
+      return;
+    }
 
-    if (!freePlayMode && currentIndex !== moves().length) return;
+    const tree = moveTree();
+    if (!tree) return;
+
+    const path = buildPathToNode(tree, nodeId);
+    game = new Chess();
+
+    for (const node of path) {
+      if (node.coupUci) {
+        game.move(node.coupUci as any);
+      }
+    }
+
+    board = buildBoard(game);
+    statusMessage = updateStatus(game);
+  }
+
+  function handleTileClick(square: string) {
+    const clickedPiece = game.get(square);
+
+    if (!freePlayMode) return;
 
     if (!selectedSquare) {
       if (clickedPiece && clickedPiece.color === game.turn()) {
@@ -153,11 +170,8 @@
       const move = game.move({from: selectedSquare, to: square, promotion: "q"});
 
       if (move) {
-        if (freePlayMode) {
-          freePlayMoves = [...freePlayMoves, move.lan];
-          updateAnalysis();
-        } else {
-          currentIndex = moves().length;
+        if (freePlayMode && currentNodeId) {
+          createVariation(currentNodeId, move.lan);
         }
         board = buildBoard(game);
         clearSelection();
@@ -173,52 +187,57 @@
     }
   }
 
-  function rebuildPosition() {
-    game = rebuildGamePosition(moves(), currentIndex);
-    board = buildBoard(game);
-    statusMessage = updateStatus(game);
-  }
+  async function createVariation(parentNodeId: string, coupUci: string) {
+    try {
+      const response = await fetch(`/api/nodes/${parentNodeId}/variations`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ coupUci }),
+      });
 
-  function firstMove() {
-    currentIndex = 0;
-    rebuildPosition();
-    clearSelection();
-  }
+      if (!response.ok) {
+        throw new Error('Erreur lors de la création de la variante');
+      }
 
-  function prevMove() {
-    if (currentIndex > 0) {
-      currentIndex--;
-      rebuildPosition();
-      clearSelection();
+      const newNode = await response.json();
+      currentNodeId = newNode.id;
+      
+      await reloadPartie();
+    } catch (error) {
+      console.error('Erreur lors de la création de la variante:', error);
     }
   }
 
-  function nextMove() {
-    if (currentIndex < moves().length) {
-      currentIndex++;
-      rebuildPosition();
-      clearSelection();
+  async function reloadPartie() {
+    try {
+      const response = await fetch(`/api/parties/${selectedPartie.id}`);
+      if (!response.ok) {
+        throw new Error('Erreur lors du rechargement de la partie');
+      }
+
+      const updatedPartie = await response.json();
+      const partieIndex = parties.findIndex((p: any) => p.id === selectedPartie.id);
+      if (partieIndex !== -1) {
+        parties[partieIndex] = updatedPartie;
+      }
+    } catch (error) {
+      console.error('Erreur lors du rechargement de la partie:', error);
     }
   }
 
-  function lastMove() {
-    currentIndex = moves().length;
-    rebuildPosition();
-  }
-
-  function handleMoveClick(index: number) {
-    currentIndex = index;
-    basePositionIndex = index;
+  function handleMoveClick(nodeId: string) {
+    currentNodeId = nodeId;
+    baseNodeId = nodeId;
     freePlayMode = true;
-    freePlayMoves = [];
-    rebuildPosition();
+    rebuildPositionFromNode(nodeId);
   }
 
   function exitFreePlayMode() {
     freePlayMode = false;
-    freePlayMoves = [];
-    currentIndex = basePositionIndex;
-    rebuildPosition();
+    currentNodeId = baseNodeId;
+    rebuildPositionFromNode(baseNodeId);
     clearSelection();
   }
 </script>
@@ -261,18 +280,10 @@
                 </button>
             </div>
         {/if}
-        <NavigationControls
-                {currentIndex}
-                onFirst={firstMove}
-                onLast={lastMove}
-                onNext={nextMove}
-                onPrevious={prevMove}
-                totalMoves={moves().length}
-        />
     </div>
 
     <div class="flex h-full flex-col justify-start grow gap-4">
-        <MoveNotation {currentIndex} {groupedMoves} onMoveClick={handleMoveClick}/>
+        <MoveNotation {currentNodeId} displayLines={displayLines()} onMoveClick={handleMoveClick}/>
 
         <BestMovesPanel
                 bind:selectedCollectionId
