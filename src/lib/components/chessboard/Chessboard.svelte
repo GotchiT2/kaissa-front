@@ -7,6 +7,7 @@
   import MoveNotation from "$lib/components/chessboard/MoveNotation.svelte";
   import BestMovesPanel from "$lib/components/chessboard/BestMovesPanel.svelte";
   import AnalysisPanel from "$lib/components/chessboard/AnalysisPanel.svelte";
+  import EvaluationBar from "$lib/components/chessboard/EvaluationBar.svelte";
   import {buildBoard, updateStatus} from "$lib/utils/chessboard";
   import {hashFEN} from "$lib/utils/positionHash";
   import {convertUciToSan, groupMovesByPair, rebuildGamePosition} from "$lib/utils/chessNotation";
@@ -29,7 +30,8 @@
   let stockfishAnalysis = $state<StockfishAnalysis>({
     lines: [],
     bestmove: "",
-    isAnalyzing: false
+    isAnalyzing: false,
+    wdl: null
   });
 
   let stockfishService: StockfishService;
@@ -177,21 +179,27 @@
             <GameSelector bind:selectedGameIndex {parties}/>
         </div>
 
-        <div class="board">
-            {#each board as row, r (r)}
-                <div class="rank">
-                    {#each row as cell, c (cell.square)}
-                        <Tile
-                                {cell}
-                                {r}
-                                {c}
-                                isSelected={selectedSquare === cell.square}
-                                isPossibleMove={possibleMoves.includes(cell.square)}
-                                {handleTileClick}
-                        />
-                    {/each}
-                </div>
-            {/each}
+        <div class="board-container">
+            {#if showAnalysis}
+                <EvaluationBar wdl={stockfishAnalysis.wdl}/>
+            {/if}
+
+            <div class="board">
+                {#each board as row, r (r)}
+                    <div class="rank">
+                        {#each row as cell, c (cell.square)}
+                            <Tile
+                                    {cell}
+                                    {r}
+                                    {c}
+                                    isSelected={selectedSquare === cell.square}
+                                    isPossibleMove={possibleMoves.includes(cell.square)}
+                                    {handleTileClick}
+                            />
+                        {/each}
+                    </div>
+                {/each}
+            </div>
         </div>
         <h2 class="h4">{statusMessage}</h2>
         <NavigationControls
@@ -219,6 +227,13 @@
 </div>
 
 <style>
+    .board-container {
+        display: flex;
+        align-items: stretch;
+        gap: 1rem;
+        height: fit-content;
+    }
+
     .board {
         display: flex;
         width: fit-content;

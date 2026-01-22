@@ -1,7 +1,14 @@
+export interface WDLData {
+  whiteWin: number;
+  draw: number;
+  blackWin: number;
+}
+
 export interface StockfishAnalysis {
   lines: string[];
   bestmove: string;
   isAnalyzing: boolean;
+  wdl: WDLData | null;
 }
 
 export class StockfishService {
@@ -11,6 +18,7 @@ export class StockfishService {
   private onUpdate: (analysis: StockfishAnalysis) => void;
   private stockfishLines: string[] = [];
   private bestmove: string = "";
+  private wdl: WDLData | null = null;
 
   constructor(onUpdate: (analysis: StockfishAnalysis) => void) {
     this.onUpdate = onUpdate;
@@ -50,7 +58,20 @@ export class StockfishService {
 
     this.eventSource.addEventListener("info", (e) => {
       const data = JSON.parse((e as MessageEvent).data);
-      this.stockfishLines = [...this.stockfishLines, data.line];
+      const line = data.line;
+      this.stockfishLines = [...this.stockfishLines, line];
+      
+      if (line.includes("info depth")) {
+        const wdlMatch = line.match(/wdl\s+(\d+)\s+(\d+)\s+(\d+)/);
+        if (wdlMatch) {
+          this.wdl = {
+            whiteWin: parseInt(wdlMatch[1]),
+            draw: parseInt(wdlMatch[2]),
+            blackWin: parseInt(wdlMatch[3])
+          };
+        }
+      }
+      
       this.notifyUpdate(true);
     });
 
@@ -72,7 +93,8 @@ export class StockfishService {
     this.onUpdate({
       lines: this.stockfishLines,
       bestmove: this.bestmove,
-      isAnalyzing
+      isAnalyzing,
+      wdl: this.wdl
     });
   }
 
