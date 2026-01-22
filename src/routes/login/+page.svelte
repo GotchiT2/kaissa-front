@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import type { ActionData } from './$types';
+	import { _ } from '$lib/i18n';
 
 	let { form }: { form: ActionData } = $props();
 
@@ -10,16 +11,16 @@
 </script>
 
 <svelte:head>
-	<title>Se connecter - Kaissa</title>
+	<title>{$_('auth.login.title')} - Kaissa</title>
 </svelte:head>
 
 <div class="container mx-auto flex min-h-screen items-center justify-center px-4 py-8">
 	<div class="w-full max-w-md">
 		<div class="card variant-glass-surface p-8">
 			<header class="mb-6 text-center">
-				<h1 class="text-3xl font-bold">Connexion</h1>
+				<h1 class="text-3xl font-bold">{$_('auth.login.title')}</h1>
 				<p class="mt-2 text-surface-600-300-token">
-					Accédez à votre compte Kaissa
+					{$_('common.app.tagline')}
 				</p>
 			</header>
 
@@ -44,7 +45,7 @@
 				<div class="space-y-4">
 					<!-- Email -->
 					<label class="label">
-						<span>Adresse email</span>
+						<span>{$_('auth.login.email')}</span>
 						<input
 							bind:value={email}
 							class="input"
@@ -58,7 +59,7 @@
 
 					<!-- Mot de passe -->
 					<label class="label">
-						<span>Mot de passe</span>
+						<span>{$_('auth.login.password')}</span>
 						<input
 							bind:value={password}
 							class="input"
@@ -77,17 +78,17 @@
 					type="submit"
 				>
 					{#if isSubmitting}
-						<span class="animate-pulse">Connexion en cours...</span>
+						<span class="animate-pulse">{$_('common.messages.loading')}</span>
 					{:else}
-						Se connecter
+						{$_('auth.login.submit')}
 					{/if}
 				</button>
 			</form>
 
 			<footer class="mt-6 space-y-3 text-center">
 				<p class="text-sm text-surface-600-300-token">
-					Vous n'avez pas encore de compte ?
-					<a class="anchor text-primary-500" href="/register">Créer un compte</a>
+					{$_('auth.login.noAccount')}
+					<a class="anchor text-primary-500" href="/register">{$_('auth.login.register')}</a>
 				</p>
 			</footer>
 		</div>

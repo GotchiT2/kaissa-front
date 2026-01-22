@@ -1,13 +1,30 @@
 <script lang="ts">
   import {ChessQueen, Database, FlaskConical, Folder, Tag, Trash2, XIcon} from '@lucide/svelte';
-  import {createToaster, createTreeViewCollection, Dialog, Navigation, Portal, Toast, TreeView} from '@skeletonlabs/skeleton-svelte';
+  import {
+    createToaster,
+    createTreeViewCollection,
+    Dialog,
+    Navigation,
+    Portal,
+    Toast,
+    TreeView
+  } from '@skeletonlabs/skeleton-svelte';
   import {formatNumber} from '$lib/utils/formatNumber';
+  import {_} from '$lib/i18n';
   import GamesTable from '$lib/components/table/GamesTable.svelte';
   import ImportGame from "$lib/components/ImportGame.svelte";
   import type {CollectionWithGames, GameRow} from '$lib/types/chess.types';
   import CreationCollection from "$lib/components/modales/CreationCollection.svelte";
   import CreationTag from "$lib/components/modales/CreationTag.svelte";
-  import DeletionProgressLoader from "$lib/components/DeletionProgressLoader.svelte";
+  import {
+    buildCollectionTree,
+    type CollectionNode,
+    countSubCollections,
+    countTotalPartiesInCollection,
+    findCollectionNode
+  } from "$lib/utils/collectionTree";
+  import {formatMoves, normalizeResult} from "$lib/utils/gameData";
+
 
   interface Props {
     data: {
@@ -20,45 +37,6 @@
   let {data}: Props = $props();
 
   const toaster = createToaster();
-
-  interface CollectionNode {
-    id: string;
-    nom: string;
-    partiesCount: number;
-    collection: CollectionWithGames;
-    children?: CollectionNode[];
-  }
-
-  function buildCollectionTree(collections: CollectionWithGames[]): CollectionNode[] {
-    const collectionMap = new Map<string, CollectionNode>();
-    const rootNodes: CollectionNode[] = [];
-
-    collections.forEach(collection => {
-      collectionMap.set(collection.id, {
-        id: collection.id,
-        nom: collection.nom,
-        partiesCount: collection.parties.length || 0,
-        collection,
-        children: []
-      });
-    });
-
-    collections.forEach(collection => {
-      const node = collectionMap.get(collection.id)!;
-      if (collection.parentId) {
-        const parent = collectionMap.get(collection.parentId);
-        if (parent) {
-          parent.children!.push(node);
-        } else {
-          rootNodes.push(node);
-        }
-      } else {
-        rootNodes.push(node);
-      }
-    });
-
-    return rootNodes;
-  }
 
   const treeNodes = $derived(buildCollectionTree(data.collections));
 
@@ -78,32 +56,13 @@
   let selectedTagId = $state<string | null>(null);
   let viewMode = $state<'collection' | 'analysis' | 'tag'>('collection');
   let tagToDelete = $state<{ id: string, nom: string, partiesCount: number } | null>(null);
-  let collectionToDelete = $state<{ id: string, nom: string, partiesCount: number, subCollectionsCount: number } | null>(null);
+  let collectionToDelete = $state<{
+    id: string,
+    nom: string,
+    partiesCount: number,
+    subCollectionsCount: number
+  } | null>(null);
   let isDeleting = $state(false);
-
-  function formatMoves(coups: any[]): string {
-    if (!coups || coups.length === 0) return '—';
-
-    const moves = coups.slice(0, 8).map((coup, index) => {
-      const moveNumber = Math.floor(index / 2) + 1;
-      const move = coup.coupUci || '';
-
-      if (index % 2 === 0) {
-        return `${moveNumber}. ${move}`;
-      } else {
-        return move;
-      }
-    });
-
-    return moves.join(' ');
-  }
-
-  function normalizeResult(result: string | null | undefined): "1-0" | "0-1" | "½-½" {
-    if (result === "BLANCS") return "1-0";
-    if (result === "NOIRS") return "0-1";
-    if (result === "NULLE") return "½-½";
-    return "½-½";
-  }
 
   const gamesData = $derived.by((): GameRow[] => {
     if (viewMode === 'analysis') {
@@ -176,14 +135,14 @@
 
   const pageTitle = $derived(
     viewMode === 'analysis'
-      ? 'En Analyse'
+      ? $_('database.analysis.title')
       : viewMode === 'tag'
         ? selectedTag?.nom || 'Tag'
         : selectedCollection?.nom || 'Collection'
   );
 
   function handleToastSuccess(message: string) {
-    toaster.success({title: 'Succès', description: message});
+    toaster.success({title: $_('common.messages.success'), description: message});
   }
 
   function handleSelectCollection(id: string) {
@@ -226,10 +185,10 @@
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Erreur lors de la suppression du tag');
+        throw new Error(error.message || $_('errors.tag.deleteFailed'));
       }
 
-      toaster.success({ title: 'Succès', description: 'Tag supprimé avec succès' });
+      toaster.success({title: $_('common.messages.success'), description: $_('database.tags.deleteSuccess')});
 
       if (viewMode === 'tag' && selectedTagId === tagToDelete.id) {
         viewMode = 'collection';
@@ -240,41 +199,13 @@
 
       window.location.reload();
     } catch (err: any) {
-      toaster.error({ title: 'Erreur', description: err.message || 'Erreur lors de la suppression du tag' });
+      toaster.error({
+        title: $_('common.messages.error'),
+        description: err.message || $_('errors.tag.deleteFailed')
+      });
     } finally {
       isDeleting = false;
     }
-  }
-
-  function countSubCollections(node: CollectionNode): number {
-    if (!node.children || node.children.length === 0) return 0;
-    
-    let count = node.children.length;
-    for (const child of node.children) {
-      count += countSubCollections(child);
-    }
-    return count;
-  }
-
-  function countTotalPartiesInCollection(node: CollectionNode): number {
-    let total = node.partiesCount;
-    if (node.children) {
-      for (const child of node.children) {
-        total += countTotalPartiesInCollection(child);
-      }
-    }
-    return total;
-  }
-
-  function findCollectionNode(nodes: CollectionNode[], collectionId: string): CollectionNode | null {
-    for (const node of nodes) {
-      if (node.id === collectionId) return node;
-      if (node.children) {
-        const found = findCollectionNode(node.children, collectionId);
-        if (found) return found;
-      }
-    }
-    return null;
   }
 
   function openDeleteCollectionModal(collectionId: string, collectionNom: string) {
@@ -302,7 +233,7 @@
     if (!collectionToDelete) return;
 
     isDeleting = true;
-    
+
     const deletingCollectionId = collectionToDelete.id;
     collectionToDelete = null;
 
@@ -313,19 +244,22 @@
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Erreur lors de la suppression de la collection');
+        throw new Error(error.message || $_('errors.collection.deleteFailed'));
       }
 
       const result = await response.json();
-      
-      toaster.success({ 
-        title: 'Succès', 
-        description: result.message || 'Collection supprimée avec succès. La suppression des données se poursuit en arrière-plan.' 
+
+      toaster.success({
+        title: $_('common.messages.success'),
+        description: result.message || $_('database.collections.deleteSuccess')
       });
 
       window.location.reload();
     } catch (err: any) {
-      toaster.error({ title: 'Erreur', description: err.message || 'Erreur lors de la suppression de la collection' });
+      toaster.error({
+        title: $_('common.messages.error'),
+        description: err.message || $_('errors.collection.deleteFailed')
+      });
     } finally {
       isDeleting = false;
     }
@@ -356,8 +290,8 @@
     >
         <Navigation.Content class="ml-4 overflow-y-auto">
             <Navigation.Group class="w-full">
-                <Navigation.Label class="capitalize pl-2 flex justify-between">Collections
-                    <CreationCollection {handleToastSuccess} label="Créer une collection"/>
+                <Navigation.Label class="capitalize pl-2 flex justify-between">{$_('database.collections.title')}
+                    <CreationCollection {handleToastSuccess} label={$_('database.collections.create')}/>
                 </Navigation.Label>
                 <TreeView collection={collectionTreeView}>
                     <TreeView.Tree>
@@ -369,24 +303,24 @@
             </Navigation.Group>
 
             <Navigation.Group class="w-full mt-4">
-                <Navigation.Label class="capitalize pl-2">En Analyse</Navigation.Label>
+                <Navigation.Label class="capitalize pl-2">{$_('database.analysis.title')}</Navigation.Label>
                 <button
                         class="flex items-center gap-2 w-full text-left px-4 py-2 rounded hover:preset-tonal"
                         class:preset-filled-primary-500={viewMode === 'analysis'}
                         onclick={handleSelectAnalysis}
                 >
                     <FlaskConical class="size-4"/>
-                    <span>Parties en analyse</span>
+                    <span>{$_('database.analysis.inAnalysis')}</span>
                     <span class="opacity-60 ml-auto">({data.partiesInAnalysis.length}/5)</span>
                 </button>
             </Navigation.Group>
 
             <Navigation.Group class="w-full mt-4">
-                <Navigation.Label class="capitalize pl-2 flex justify-between">Tags
-                    <CreationTag {handleToastSuccess} label="Créer un tag"/>
+                <Navigation.Label class="capitalize pl-2 flex justify-between">{$_('database.tags.title')}
+                    <CreationTag {handleToastSuccess} label={$_('database.tags.create')}/>
                 </Navigation.Label>
                 {#if data.tags.length === 0}
-                    <p class="text-sm opacity-60 px-4 py-2">Aucun tag disponible</p>
+                    <p class="text-sm opacity-60 px-4 py-2">{$_('database.tags.noTags')}</p>
                 {:else}
                     {#each data.tags as tag (tag.id)}
                         <div class="flex items-center gap-2 w-full px-4 py-2 rounded hover:preset-tonal group">
@@ -406,8 +340,8 @@
                                         openDeleteTagModal(tag.id, tag.nom, tag._count.parties);
                                     }}
                                     disabled={isDeleting}
-                                    title="Supprimer le tag"
-                                    aria-label="Supprimer le tag {tag.nom}"
+                                    title={`${$_('database.tags.delete')} ${tag.nom}`}
+                                    aria-label={`${$_('database.tags.delete')} ${tag.nom}`}
                             >
                                 <Trash2 class="size-4"/>
                             </button>
@@ -422,12 +356,12 @@
     <div class="grow flex flex-col items-center bg-surface-900 overflow-auto">
         <div class="flex gap-4 items-center my-6">
             <h1 class="h2 text-primary-500">{pageTitle}</h1>
-            <p>{gamesData.length} résultat{gamesData.length > 1 ? 's' : ''}</p>
+            <p>{$_('database.games.resultsPlural', {values: {count: gamesData.length}})}</p>
             {#if viewMode === 'collection'}
                 <ImportGame
                         collectionId={selectedCollectionId || ''}
-                        onError={(message) => toaster.error({ title: 'Erreur', description: message })}
-                        onSuccess={(message) => toaster.success({ title: 'Succès', description: message })}
+                        onError={(message) => toaster.error({ title: $_('common.messages.error'), description: message })}
+                        onSuccess={(message) => toaster.success({ title: $_('common.messages.success'), description: message })}
                 />
             {/if}
         </div>
@@ -436,25 +370,25 @@
             <GamesTable
                     data={gamesData}
                     availableTags={data.tags}
-                    onDeleteSuccess={(message) => toaster.success({ title: 'Succès', description: message })}
-                    onDeleteError={(message) => toaster.error({ title: 'Erreur', description: message })}
-                    onAnalysisToggleSuccess={(message) => toaster.success({ title: 'Succès', description: message })}
-                    onAnalysisToggleError={(message) => toaster.error({ title: 'Erreur', description: message })}
-                    onTagsUpdateSuccess={(message) => toaster.success({ title: 'Succès', description: message })}
-                    onTagsUpdateError={(message) => toaster.error({ title: 'Erreur', description: message })}
+                    onDeleteSuccess={(message) => toaster.success({ title: $_('common.messages.success'), description: message })}
+                    onDeleteError={(message) => toaster.error({ title: $_('common.messages.error'), description: message })}
+                    onAnalysisToggleSuccess={(message) => toaster.success({ title: $_('common.messages.success'), description: message })}
+                    onAnalysisToggleError={(message) => toaster.error({ title: $_('common.messages.error'), description: message })}
+                    onTagsUpdateSuccess={(message) => toaster.success({ title: $_('common.messages.success'), description: message })}
+                    onTagsUpdateError={(message) => toaster.error({ title: $_('common.messages.error'), description: message })}
             />
         {:else}
             <div class="flex flex-col items-center justify-center h-64 gap-4">
                 {#if viewMode === 'analysis'}
                     <FlaskConical class="size-12 opacity-60"/>
-                    <p class="text-lg opacity-60">Aucune partie en analyse</p>
-                    <p class="text-sm opacity-40">Ajoutez jusqu'à 5 parties pour les analyser</p>
+                    <p class="text-lg opacity-60">{$_('database.analysis.noParties')}</p>
+                    <p class="text-sm opacity-40">{$_('database.games.noGames')}</p>
                 {:else}
-                    <p class="text-lg opacity-60">Aucune partie dans cette collection</p>
+                    <p class="text-lg opacity-60">{$_('database.analysis.addInfo')}</p>
                     <ImportGame
                             collectionId={selectedCollectionId || ''}
-                            onSuccess={(message) => toaster.success({ title: 'Succès', description: message })}
-                            onError={(message) => toaster.error({ title: 'Erreur', description: message })}
+                            onSuccess={(message) => toaster.success({ title: $_('common.messages.success'), description: message })}
+                            onError={(message) => toaster.error({ title: $_('common.messages.error'), description: message })}
                     />
                 {/if}
             </div>
@@ -487,8 +421,8 @@
                                         openDeleteCollectionModal(node.id, node.nom);
                                     }}
                                     disabled={isDeleting}
-                                    title="Supprimer la collection"
-                                    aria-label="Supprimer la collection {node.nom}"
+                                    title={`${$_('database.collections.delete')} ${node.nom}`}
+                                    aria-label={`${$_('database.collections.delete')} ${node.nom}`}
                             >
                                 <Trash2 class="size-4"/>
                             </button>
@@ -496,7 +430,7 @@
                     </TreeView.BranchText>
                     <CreationCollection
                             {handleToastSuccess}
-                            label="Créer une sous-collection de {node.nom}"
+                            label={`${$_('database.collections.createSubCollection')} ${node.nom}`}
                             parentId={node.id}
                     />
                 </TreeView.BranchControl>
@@ -526,15 +460,15 @@
                                 openDeleteCollectionModal(node.id, node.nom);
                             }}
                             disabled={isDeleting}
-                            title="Supprimer la collection"
-                            aria-label="Supprimer la collection {node.nom}"
+                            title={`${$_('database.collections.delete')} ${node.nom}`}
+                            aria-label={`${$_('database.collections.delete')} ${node.nom}`}
                     >
                         <Trash2 class="size-4"/>
                     </button>
                 </div>
                 <CreationCollection
                         {handleToastSuccess}
-                        label="Créer une sous-collection de {node.nom}"
+                        label={`${$_('database.collections.createSubCollection')} ${node.nom}`}
                         parentId={node.id}
                 />
             </TreeView.Item>
@@ -549,7 +483,8 @@
             <Dialog.Positioner class="fixed inset-0 z-50 flex justify-center items-center p-4">
                 <Dialog.Content class="card bg-surface-100-900 w-full max-w-md p-4 space-y-4 shadow-xl">
                     <header class="flex justify-between items-center">
-                        <Dialog.Title class="text-lg font-bold">Confirmer la suppression</Dialog.Title>
+                        <Dialog.Title
+                                class="text-lg font-bold">{$_('database.collections.confirmDelete')}</Dialog.Title>
                         <Dialog.CloseTrigger class="btn-icon hover:preset-tonal" onclick={closeDeleteCollectionModal}
                                              disabled={isDeleting}>
                             <XIcon class="size-4"/>
@@ -557,26 +492,27 @@
                     </header>
 
                     <Dialog.Description class="space-y-2">
-                        <p>Êtes-vous sûr de vouloir supprimer la collection :</p>
+                        <p>{$_('database.collections.deleteWarning')}</p>
                         <p class="font-semibold text-primary-500">{collectionToDelete.nom}</p>
-                        
+
                         {#if collectionToDelete.subCollectionsCount > 0 || collectionToDelete.partiesCount > 0}
                             <div class="bg-error-500/10 border border-error-500/30 rounded p-3 space-y-1">
-                                <p class="text-sm font-semibold text-error-400">⚠️ Cette action supprimera :</p>
+                                <p class="text-sm font-semibold text-error-400">
+                                    ⚠️ {$_('database.collections.willDelete')}</p>
                                 {#if collectionToDelete.partiesCount > 0}
                                     <p class="text-sm opacity-90">
-                                        • {collectionToDelete.partiesCount} partie{collectionToDelete.partiesCount > 1 ? 's' : ''}
+                                        • {$_('database.collections.partiesPlural', {values: {count: collectionToDelete.partiesCount}})}
                                     </p>
                                 {/if}
                                 {#if collectionToDelete.subCollectionsCount > 0}
                                     <p class="text-sm opacity-90">
-                                        • {collectionToDelete.subCollectionsCount} sous-collection{collectionToDelete.subCollectionsCount > 1 ? 's' : ''}
+                                        • {$_('database.collections.subCollectionsPlural', {values: {count: collectionToDelete.subCollectionsCount}})}
                                     </p>
                                 {/if}
                             </div>
                         {/if}
-                        
-                        <p class="text-sm opacity-75">Cette action est irréversible.</p>
+
+                        <p class="text-sm opacity-75">{$_('database.collections.irreversible')}</p>
                     </Dialog.Description>
 
                     <footer class="flex justify-end gap-2">
@@ -585,14 +521,14 @@
                                 onclick={closeDeleteCollectionModal}
                                 disabled={isDeleting}
                         >
-                            Annuler
+                            $_('common.messages.cancel')
                         </button>
                         <button
                                 class="btn preset-filled-error-500"
                                 onclick={confirmDeleteCollection}
                                 disabled={isDeleting}
                         >
-                            {isDeleting ? 'Suppression...' : 'Supprimer'}
+                            {isDeleting ? $_('common.messages.deleting') : $_('common.actions.delete')}
                         </button>
                     </footer>
                 </Dialog.Content>
@@ -608,7 +544,7 @@
             <Dialog.Positioner class="fixed inset-0 z-50 flex justify-center items-center p-4">
                 <Dialog.Content class="card bg-surface-100-900 w-full max-w-md p-4 space-y-4 shadow-xl">
                     <header class="flex justify-between items-center">
-                        <Dialog.Title class="text-lg font-bold">Confirmer la suppression</Dialog.Title>
+                        <Dialog.Title class="text-lg font-bold">{$_('database.tags.confirmDelete')}</Dialog.Title>
                         <Dialog.CloseTrigger class="btn-icon hover:preset-tonal" onclick={closeDeleteTagModal}
                                              disabled={isDeleting}>
                             <XIcon class="size-4"/>
@@ -616,13 +552,13 @@
                     </header>
 
                     <Dialog.Description class="space-y-2">
-                        <p>Êtes-vous sûr de vouloir supprimer le tag :</p>
+                        <p>{$_('database.tags.deleteWarning')}</p>
                         <p class="font-semibold text-primary-500">{tagToDelete.nom}</p>
                         <p class="text-sm opacity-75">
-                            Ce tag est actuellement lié à {tagToDelete.partiesCount} partie{tagToDelete.partiesCount > 1 ? 's' : ''}.
-                            Toutes ces associations seront supprimées.
+                            {$_('database.tags.linkedToPlural', {values: {count: tagToDelete.partiesCount}})}
+                            {$_('database.tags.associationsWillBeDeleted')})}
                         </p>
-                        <p class="text-sm opacity-75">Cette action est irréversible.</p>
+                        <p class="text-sm opacity-75">{$_('database.tags.irreversible')})}</p>
                     </Dialog.Description>
 
                     <footer class="flex justify-end gap-2">
@@ -631,14 +567,14 @@
                                 onclick={closeDeleteTagModal}
                                 disabled={isDeleting}
                         >
-                            Annuler
+                            {$_('common.actions.cancel')})}
                         </button>
                         <button
                                 class="btn preset-filled-error-500"
                                 onclick={confirmDeleteTag}
                                 disabled={isDeleting}
                         >
-                            {isDeleting ? 'Suppression...' : 'Supprimer'}
+                            {isDeleting ? $_('common.messages.deleting') : $_('common.actions.delete')}
                         </button>
                     </footer>
                 </Dialog.Content>

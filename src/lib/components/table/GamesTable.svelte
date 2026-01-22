@@ -1,10 +1,10 @@
 <script generics="TData, TValue" lang="ts">
   import {
+    type ColumnFiltersState,
     getCoreRowModel,
     getFilteredRowModel,
     getPaginationRowModel,
     getSortedRowModel,
-    type ColumnFiltersState,
     type PaginationState,
     type SortingState
   } from '@tanstack/table-core';
@@ -16,6 +16,7 @@
   import FlexRender from '$lib/components/table/FlexRender.svelte';
   import {columns} from '$lib/components/table/columns';
   import {invalidateAll} from '$app/navigation';
+  import {_} from '$lib/i18n';
 
   type DataTableProps<GameRow, TValue> = {
     data: GameRow[];
@@ -326,7 +327,7 @@
   }
 </script>
 
-<div class="table-container space-y-4">
+<div class="max-w-4/5 table-container space-y-4">
     <div class="overflow-x-auto pl-0">
         <table class="md:table table-hover md:table-compact text-xs">
             <thead>
@@ -349,7 +350,7 @@
                         <th>
                             {#if header.column.getCanFilter()}
                                 {#if header.column.id === 'whiteElo' || header.column.id === 'blackElo'}
-                                    <div class="flex gap-1">
+                                    <div class="flex flex-col gap-1">
                                         <input
                                                 type="number"
                                                 class="input input-sm w-full text-xs"
@@ -378,7 +379,7 @@
                                         />
                                     </div>
                                 {:else if header.column.id === 'date'}
-                                    <div class="flex gap-1">
+                                    <div class="flex flex-col gap-1">
                                         <input
                                                 type="date"
                                                 class="input input-sm w-full text-xs"
@@ -421,7 +422,7 @@
                                             class="input input-sm w-full text-xs"
                                             value={header.column.getFilterValue() ?? ''}
                                             oninput={(e) => header.column.setFilterValue(e.currentTarget.value)}
-                                            placeholder="Filtrer..."
+                                            placeholder={`${$_('common.actions.filter')}...`}
                                     />
                                 {/if}
                             {/if}
@@ -531,31 +532,7 @@
         </table>
         <footer class="flex justify-between">
             <div class="flex items-center justify-end space-x-2 py-4">
-
                 <PaginationOld tableModel={table}/>
-
-                <!--                <Pagination count={data.length} onPageChange={(event) => (page = event.page)} {page}-->
-                <!--                            pageSize={PAGE_SIZE}>-->
-                <!--                    <Pagination.PrevTrigger>-->
-                <!--                        <ArrowLeftIcon class="size-4"/>-->
-                <!--                    </Pagination.PrevTrigger>-->
-                <!--                    <Pagination.Context>-->
-                <!--                        {#snippet children(pagination)}-->
-                <!--                            {#each pagination().pages as page, index (page)}-->
-                <!--                                {#if page.type === 'page'}-->
-                <!--                                    <Pagination.Item {...page}>-->
-                <!--                                        {page.value}-->
-                <!--                                    </Pagination.Item>-->
-                <!--                                {:else}-->
-                <!--                                    <Pagination.Ellipsis {index}>&#8230;</Pagination.Ellipsis>-->
-                <!--                                {/if}-->
-                <!--                            {/each}-->
-                <!--                        {/snippet}-->
-                <!--                    </Pagination.Context>-->
-                <!--                    <Pagination.NextTrigger>-->
-                <!--                        <ArrowRightIcon class="size-4"/>-->
-                <!--                    </Pagination.NextTrigger>-->
-                <!--                </Pagination>-->
             </div>
         </footer>
     </div>

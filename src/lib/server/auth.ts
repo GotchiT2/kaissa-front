@@ -18,6 +18,7 @@ export const lucia = new Lucia(adapter, {
       firstName: attributes.firstName,
       lastName: attributes.lastName,
       nationality: attributes.nationality,
+      language: attributes.language,
     };
   },
 });
@@ -34,4 +35,5 @@ interface DatabaseUserAttributes {
   firstName: string;
   lastName: string;
   nationality: string;
+  language: string;
 }

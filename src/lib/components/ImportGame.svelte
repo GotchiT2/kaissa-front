@@ -3,6 +3,7 @@
   import {FileIcon, XIcon} from "@lucide/svelte";
   import {invalidateAll} from '$app/navigation';
   import ImportProgressLoader from './ImportProgressLoader.svelte';
+  import {_} from '$lib/i18n';
 
   interface Props {
     collectionId: string;
@@ -26,13 +27,13 @@
 
   async function handleUpload() {
     if (files.length === 0) {
-      onError?.('Veuillez sélectionner au moins un fichier');
+      onError?.($_('database.import.selectFile'));
       return;
     }
 
     for (const file of files) {
       if (!file.name.endsWith('.pgn')) {
-        onError?.(`Le fichier ${file.name} doit être au format PGN`);
+        onError?.($_('database.import.invalidFormat', { values: { fileName: file.name } }));
         return;
       }
     }
@@ -63,7 +64,7 @@
 
         if (!response.ok) {
           const error = await response.json();
-          onError?.(error.message || `Erreur lors de l'import du fichier ${file.name}`);
+          onError?.(error.message || $_('database.import.errorImporting', { values: { fileName: file.name } }));
           continue;
         }
 
@@ -71,7 +72,7 @@
         const decoder = new TextDecoder();
 
         if (!reader) {
-          onError?.(`Erreur lors de la lecture du fichier ${file.name}`);
+          onError?.($_('database.import.errorReading', { values: { fileName: file.name } }));
           continue;
         }
 
@@ -111,12 +112,12 @@
       }
 
       isImportComplete = true;
-      onSuccess?.(`${totalImported} partie(s) importée(s) depuis ${totalFiles} fichier(s)`);
+      onSuccess?.($_('database.import.success', { values: { imported: totalImported, files: totalFiles } }));
       await invalidateAll();
 
       files = [];
     } catch {
-      onError?.('Erreur lors de l\'import des parties');
+      onError?.($_('database.import.errorGeneral'));
       showProgressLoader = false;
     } finally {
       isUploading = false;
@@ -132,25 +133,25 @@
 </script>
 
 <Dialog onOpenChange={(details) => isModalOpen = details.open} open={isModalOpen}>
-    <Dialog.Trigger class="btn preset-filled">Importer des parties</Dialog.Trigger>
+    <Dialog.Trigger class="btn preset-filled">{$_('database.games.import')}</Dialog.Trigger>
     <Portal>
         <Dialog.Backdrop class="fixed inset-0 z-50 bg-surface-50-950/50"/>
         <Dialog.Positioner class="fixed inset-0 z-50 flex justify-center items-center p-4">
             <Dialog.Content
                     class="card bg-surface-100-900 w-full max-w-xl p-4 space-y-4 shadow-xl {animation}">
                 <header class="flex justify-between items-center">
-                    <Dialog.Title class="text-lg font-bold">Importez vos parties</Dialog.Title>
+                    <Dialog.Title class="text-lg font-bold">{$_('database.import.title')}</Dialog.Title>
                     <Dialog.CloseTrigger class="btn-icon hover:preset-tonal">
                         <XIcon class="size-4"/>
                     </Dialog.CloseTrigger>
                 </header>
 
                 <FileUpload accept=".pgn" maxFiles={10} onFileAccept={(f) => files.push(...f.files)}>
-                    <FileUpload.Label>Téléversez vos fichiers PGN</FileUpload.Label>
+                    <FileUpload.Label>{$_('database.import.uploadLabel')}</FileUpload.Label>
                     <FileUpload.Dropzone>
                         <FileIcon class="size-10"/>
-                        <span>Sélectionnez un ou plusieurs fichiers PGN ou glissez-les ici.</span>
-                        <FileUpload.Trigger>Rechercher des fichiers</FileUpload.Trigger>
+                        <span>{$_('database.import.dropzoneText')}</span>
+                        <FileUpload.Trigger>{$_('database.import.browseFiles')}</FileUpload.Trigger>
                         <FileUpload.HiddenInput/>
                     </FileUpload.Dropzone>
                     <FileUpload.ItemGroup>
@@ -168,18 +169,18 @@
                         </FileUpload.Context>
                     </FileUpload.ItemGroup>
                     {#if files.length > 0}
-                        <FileUpload.ClearTrigger class="btn preset-tonal">Effacer</FileUpload.ClearTrigger>
+                        <FileUpload.ClearTrigger class="btn preset-tonal">{$_('common.actions.clear')}</FileUpload.ClearTrigger>
                     {/if}
                 </FileUpload>
                 <footer class="flex justify-end gap-2">
-                    <Dialog.CloseTrigger class="btn preset-tonal" disabled={isUploading}>Annuler</Dialog.CloseTrigger>
+                    <Dialog.CloseTrigger class="btn preset-tonal" disabled={isUploading}>{$_('common.actions.cancel')}</Dialog.CloseTrigger>
                     <button
                             class="btn preset-filled-primary-500"
                             disabled={isUploading || files.length === 0}
                             onclick={handleUpload}
                             type="button"
                     >
-                        Importer
+                        {$_('database.import.importButton')}
                     </button>
                 </footer>
             </Dialog.Content>

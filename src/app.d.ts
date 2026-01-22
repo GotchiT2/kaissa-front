@@ -39,4 +39,19 @@ declare global {
   }
 }
 
+declare module "lucia" {
+  interface Register {
+    Lucia: import("$lib/server/auth").Auth;
+  }
+  
+  interface User {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    nationality: string;
+    language: string;
+  }
+}
+
 export {};
