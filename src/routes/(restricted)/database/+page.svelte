@@ -16,6 +16,7 @@
   import type {CollectionWithGames, GameRow} from '$lib/types/chess.types';
   import CreationCollection from "$lib/components/modales/CreationCollection.svelte";
   import CreationTag from "$lib/components/modales/CreationTag.svelte";
+  import EditCollection from "$lib/components/modales/EditCollection.svelte";
   import {
     buildCollectionTree,
     type CollectionNode,
@@ -355,7 +356,16 @@
 
     <div class="grow flex flex-col items-center bg-surface-900 overflow-auto">
         <div class="flex gap-4 items-center my-6">
-            <h1 class="h2 text-primary-500">{pageTitle}</h1>
+            <div class="flex items-center gap-2">
+                <h1 class="h2 text-primary-500">{pageTitle}</h1>
+                {#if viewMode === 'collection' && selectedCollection}
+                    <EditCollection
+                        collectionId={selectedCollection.id}
+                        currentName={selectedCollection.nom}
+                        {handleToastSuccess}
+                    />
+                {/if}
+            </div>
             <p>{$_('database.games.resultsPlural', {values: {count: gamesData.length}})}</p>
             {#if viewMode === 'collection'}
                 <ImportGame

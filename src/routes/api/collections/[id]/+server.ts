@@ -2,6 +2,58 @@ import { json, error } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { prisma } from "$lib/server/db";
 
+export const PATCH: RequestHandler = async ({ params, locals, request }) => {
+  const user = locals.user;
+
+  if (!user) {
+    throw error(401, "Vous devez être connecté pour modifier une collection");
+  }
+
+  const collectionId = params.id;
+
+  if (!collectionId) {
+    throw error(400, "L'ID de la collection est requis");
+  }
+
+  try {
+    const body = await request.json();
+    const { nom } = body;
+
+    if (!nom || nom.trim() === '') {
+      throw error(400, "Le nom de la collection est requis");
+    }
+
+    const collection = await prisma.collection.findUnique({
+      where: { id: collectionId },
+    });
+
+    if (!collection) {
+      throw error(404, "Collection introuvable");
+    }
+
+    if (collection.proprietaireId !== user.id) {
+      throw error(403, "Vous n'êtes pas autorisé à modifier cette collection");
+    }
+
+    const updatedCollection = await prisma.collection.update({
+      where: { id: collectionId },
+      data: { nom: nom.trim() },
+    });
+
+    return json({
+      success: true,
+      message: "Collection mise à jour avec succès",
+      collection: updatedCollection,
+    });
+  } catch (err: any) {
+    if (err.status) {
+      throw err;
+    }
+    console.error("Erreur lors de la mise à jour de la collection:", err);
+    throw error(500, "Erreur lors de la mise à jour de la collection");
+  }
+};
+
 export const DELETE: RequestHandler = async ({ params, locals }) => {
   const user = locals.user;
 
