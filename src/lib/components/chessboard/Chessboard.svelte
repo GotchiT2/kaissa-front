@@ -40,6 +40,9 @@
 
   let stockfishService: StockfishService;
   let prochainCoupDisplay: string = $state('');
+  let freePlayMode = $state(false);
+  let freePlayMoves = $state<string[]>([]);
+  let basePositionIndex = $state(0);
 
   const selectedPartie = $derived(parties.find((p: any) => p.id === selectedGameIndex));
 
@@ -108,7 +111,7 @@
   function handleTileClick(square: string) {
     const clickedPiece = game.get(square as any);
 
-    if (currentIndex !== moves().length) return;
+    if (!freePlayMode && currentIndex !== moves().length) return;
 
     if (!selectedSquare) {
       if (clickedPiece && clickedPiece.color === game.turn()) {
@@ -126,7 +129,11 @@
       const move = game.move({from: selectedSquare, to: square, promotion: "q"});
 
       if (move) {
-        currentIndex = moves().length;
+        if (freePlayMode) {
+          freePlayMoves = [...freePlayMoves, move.lan];
+        } else {
+          currentIndex = moves().length;
+        }
         board = buildBoard(game);
         clearSelection();
         statusMessage = updateStatus(game);
@@ -176,7 +183,18 @@
 
   function handleMoveClick(index: number) {
     currentIndex = index;
+    basePositionIndex = index;
+    freePlayMode = true;
+    freePlayMoves = [];
     rebuildPosition();
+  }
+
+  function exitFreePlayMode() {
+    freePlayMode = false;
+    freePlayMoves = [];
+    currentIndex = basePositionIndex;
+    rebuildPosition();
+    clearSelection();
   }
 </script>
 
@@ -210,6 +228,14 @@
             </div>
         </div>
         <h2 class="h4">{statusMessage}</h2>
+        {#if freePlayMode}
+            <div class="flex gap-2 items-center">
+                <span class="badge variant-filled-warning">Mode Jeu Libre</span>
+                <button class="btn variant-filled-surface" onclick={exitFreePlayMode}>
+                    Revenir à la partie
+                </button>
+            </div>
+        {/if}
         <NavigationControls
                 {currentIndex}
                 onFirst={firstMove}
