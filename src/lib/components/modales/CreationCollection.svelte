@@ -2,7 +2,7 @@
   import {Plus, XIcon} from "@lucide/svelte";
   import {Dialog, Portal} from "@skeletonlabs/skeleton-svelte";
   import {invalidateAll} from "$app/navigation";
-  import { _ } from '$lib/i18n';
+  import {_} from '$lib/i18n';
 
   const {label, handleToastSuccess, parentId}: {
     label: string,
@@ -62,8 +62,8 @@
 </script>
 
 <Dialog>
-    <Dialog.Trigger>
-        <Plus class="size-4 hover:preset-filled-primary-500"/>
+    <Dialog.Trigger class="btn-icon btn-icon-sm hover:preset-filled-primary-500">
+        <Plus class="size-4"/>
         <span class="sr-only">{label}</span></Dialog.Trigger>
     <Portal>
         <Dialog.Backdrop class="fixed inset-0 z-50 bg-surface-50-950/50"/>

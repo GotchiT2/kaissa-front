@@ -408,24 +408,12 @@
                             <button
                                     onclick={() => handleSelectCollection(node.id)}
                                     class="flex items-center gap-2 flex-1 text-left"
-                                    class:preset-filled-primary-500={selectedCollectionId === node.id}
                             >
                                 <Folder class="size-4"/>
                                 <span>{node.nom}</span>
                                 <span class="opacity-60 ml-2">({formatNumber(node.partiesCount)})</span>
                             </button>
-                            <button
-                                    class="btn-icon btn-icon-sm hover:preset-filled-error-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    onclick={(e) => {
-                                        e.stopPropagation();
-                                        openDeleteCollectionModal(node.id, node.nom);
-                                    }}
-                                    disabled={isDeleting}
-                                    title={`${$_('database.collections.delete')} ${node.nom}`}
-                                    aria-label={`${$_('database.collections.delete')} ${node.nom}`}
-                            >
-                                <Trash2 class="size-4"/>
-                            </button>
+
                         </div>
                     </TreeView.BranchText>
                     <CreationCollection
@@ -433,6 +421,18 @@
                             label={`${$_('database.collections.createSubCollection')} ${node.nom}`}
                             parentId={node.id}
                     />
+                    <button
+                            class="btn-icon btn-icon-sm hover:preset-filled-error-500"
+                            onclick={(e) => {
+                                        e.stopPropagation();
+                                        openDeleteCollectionModal(node.id, node.nom);
+                                    }}
+                            disabled={isDeleting}
+                            title={`${$_('database.collections.delete')} ${node.nom}`}
+                            aria-label={`${$_('database.collections.delete')} ${node.nom}`}
+                    >
+                        <Trash2 class="size-4"/>
+                    </button>
                 </TreeView.BranchControl>
                 <TreeView.BranchContent>
                     <TreeView.BranchIndentGuide/>
@@ -447,30 +447,30 @@
                     <button
                             onclick={() => handleSelectCollection(node.id)}
                             class="flex items-center gap-2 flex-1 text-left px-2 py-1 rounded hover:preset-tonal"
-                            class:preset-filled-primary-500={selectedCollectionId === node.id}
                     >
                         <Folder class="size-4"/>
                         <span>{node.nom}</span>
                         <span class="opacity-60 ml-2">({formatNumber(node.partiesCount)})</span>
                     </button>
-                    <button
-                            class="btn-icon btn-icon-sm hover:preset-filled-error-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onclick={(e) => {
-                                e.stopPropagation();
-                                openDeleteCollectionModal(node.id, node.nom);
-                            }}
-                            disabled={isDeleting}
-                            title={`${$_('database.collections.delete')} ${node.nom}`}
-                            aria-label={`${$_('database.collections.delete')} ${node.nom}`}
-                    >
-                        <Trash2 class="size-4"/>
-                    </button>
+
                 </div>
                 <CreationCollection
                         {handleToastSuccess}
                         label={`${$_('database.collections.createSubCollection')} ${node.nom}`}
                         parentId={node.id}
                 />
+                <button
+                        class="btn-icon btn-icon-sm hover:preset-filled-error-500"
+                        onclick={(e) => {
+                                e.stopPropagation();
+                                openDeleteCollectionModal(node.id, node.nom);
+                            }}
+                        disabled={isDeleting}
+                        title={`${$_('database.collections.delete')} ${node.nom}`}
+                        aria-label={`${$_('database.collections.delete')} ${node.nom}`}
+                >
+                    <Trash2 class="size-4"/>
+                </button>
             </TreeView.Item>
         {/if}
     </TreeView.NodeProvider>
