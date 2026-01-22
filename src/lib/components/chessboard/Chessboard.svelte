@@ -31,10 +31,15 @@
     lines: [],
     bestmove: "",
     isAnalyzing: false,
-    wdl: null
+    wdl: null,
+    depth: null,
+    version: "Stockfish 17.1",
+    evaluation: null,
+    principalVariation: null
   });
 
   let stockfishService: StockfishService;
+  let prochainCoupDisplay: string = $state('');
 
   const selectedPartie = $derived(parties.find((p: any) => p.id === selectedGameIndex));
 
@@ -81,6 +86,9 @@
       return;
     }
 
+    const prochainCoupId = game.moveNumber();
+    const prochainJoueur = game.turn() === 'w' ? '.' : '...';
+    prochainCoupDisplay = `${prochainCoupId}${prochainJoueur}`;
     game = rebuildGamePosition(moves(), currentIndex);
     const fen = game.fen();
     stockfishService.analyze(fen, 1000, 300);
@@ -222,7 +230,11 @@
                 {meilleursCoups}
         />
 
-        <AnalysisPanel analysis={stockfishAnalysis} bind:showAnalysis/>
+        <AnalysisPanel
+                analysis={stockfishAnalysis}
+                bind:showAnalysis
+                moveNumber={prochainCoupDisplay}
+        />
     </div>
 </div>
 
