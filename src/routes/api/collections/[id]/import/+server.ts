@@ -3,7 +3,10 @@ import type { RequestHandler } from "./$types";
 import { parsePGNFile } from "$lib/server/utils/pgnParser";
 import { prisma } from "$lib/server/db";
 import { hashFEN } from "$lib/server/utils/positionHash";
-import type { Camp, Resultat } from "@prisma/client";
+import type { Camp } from "@prisma/client";
+import { randomUUID } from "crypto";
+
+const BATCH_SIZE = 100;
 
 export const POST: RequestHandler = async ({ request, locals, params }) => {
   const user = locals.user;
@@ -64,13 +67,21 @@ export const POST: RequestHandler = async ({ request, locals, params }) => {
 
         let importedCount = 0;
 
-        for (let i = 0; i < games.length; i++) {
-          const game = games[i];
-          
+        for (let batchStart = 0; batchStart < games.length; batchStart += BATCH_SIZE) {
+          const batchEnd = Math.min(batchStart + BATCH_SIZE, games.length);
+          const batchGames = games.slice(batchStart, batchEnd);
+
           try {
             await prisma.$transaction(async (tx) => {
-              const partie = await tx.partieTravail.create({
-                data: {
+              const partiesData = [];
+              const allNoeudsData = [];
+              const allTransitionsData = [];
+
+              for (const game of batchGames) {
+                const partieId = randomUUID();
+
+                partiesData.push({
+                  id: partieId,
                   collectionId: collectionId,
                   titre: `${game.blancNom} vs ${game.noirNom}`,
                   resultat: game.resultat,
@@ -81,52 +92,79 @@ export const POST: RequestHandler = async ({ request, locals, params }) => {
                   datePartie: game.datePartie,
                   event: game.event,
                   site: game.site,
-                },
-              });
+                  createdAt: new Date(),
+                  updatedAt: new Date(),
+                });
 
-              let previousNodeId: string | null = null;
-              let previousHashPosition: bigint | null = null;
+                let previousNodeId: string | null = null;
+                let previousHashPosition: bigint | null = null;
 
-              for (const move of game.parsedMoves) {
-                const positionHash = hashFEN(move.fen);
+                for (const move of game.parsedMoves) {
+                  const positionHash = hashFEN(move.fen);
+                  const noeudId = randomUUID();
 
-                const noeud: { id: string } = await tx.coupNoeud.create({
-                  data: {
-                    partieId: partie.id,
+                  allNoeudsData.push({
+                    id: noeudId,
+                    partieId: partieId,
                     parentId: previousNodeId,
                     coupUci: move.uci,
                     ply: move.ply,
                     hashPosition: positionHash,
                     fen: move.fen,
                     estPrincipal: true,
-                  },
-                });
+                    nagCoup: null,
+                    nagPosition: null,
+                    createdAt: new Date(),
+                    updatedAt: new Date(),
+                  });
 
-                if (previousHashPosition !== null && move.uci) {
-                  const campAuTrait: Camp = move.ply % 2 === 1 ? "BLANCS" : "NOIRS";
-                  
-                  await tx.transitionPartie.create({
-                    data: {
-                      partieId: partie.id,
+                  if (previousHashPosition !== null && move.uci) {
+                    const campAuTrait: Camp = move.ply % 2 === 1 ? "BLANCS" : "NOIRS";
+
+                    allTransitionsData.push({
+                      id: randomUUID(),
+                      partieId: partieId,
                       hashPositionAvant: previousHashPosition,
                       coupUci: move.uci,
                       hashPositionApres: positionHash,
                       ply: move.ply,
                       estDansPrincipal: true,
                       campAuTrait,
-                    },
-                  });
-                }
+                    });
+                  }
 
-                previousHashPosition = positionHash;
-                previousNodeId = noeud.id;
+                  previousHashPosition = positionHash;
+                  previousNodeId = noeudId;
+                }
               }
+
+              if (partiesData.length > 0) {
+                await tx.partieTravail.createMany({
+                  data: partiesData,
+                  skipDuplicates: true,
+                });
+              }
+
+              if (allNoeudsData.length > 0) {
+                await tx.coupNoeud.createMany({
+                  data: allNoeudsData,
+                  skipDuplicates: true,
+                });
+              }
+
+              if (allTransitionsData.length > 0) {
+                await tx.transitionPartie.createMany({
+                  data: allTransitionsData,
+                  skipDuplicates: true,
+                });
+              }
+
+              importedCount += batchGames.length;
             });
 
-            importedCount++;
             sendEvent("progress", { current: importedCount, total: games.length });
           } catch (err) {
-            console.error("Erreur lors de l'import d'une partie:", err);
+            console.error("Erreur lors de l'import d'un batch:", err);
           }
         }
 
@@ -135,7 +173,7 @@ export const POST: RequestHandler = async ({ request, locals, params }) => {
           data: { updatedAt: new Date() },
         });
 
-        await updateAggregates(collectionId);
+        await updateAggregatesOptimized(collectionId);
 
         sendEvent("complete", { 
           imported: importedCount, 
@@ -165,11 +203,21 @@ export const POST: RequestHandler = async ({ request, locals, params }) => {
   try {
     let importedCount = 0;
 
-    for (const game of games) {
+    for (let batchStart = 0; batchStart < games.length; batchStart += BATCH_SIZE) {
+      const batchEnd = Math.min(batchStart + BATCH_SIZE, games.length);
+      const batchGames = games.slice(batchStart, batchEnd);
+
       try {
         await prisma.$transaction(async (tx) => {
-          const partie = await tx.partieTravail.create({
-            data: {
+          const partiesData = [];
+          const allNoeudsData = [];
+          const allTransitionsData = [];
+
+          for (const game of batchGames) {
+            const partieId = randomUUID();
+
+            partiesData.push({
+              id: partieId,
               collectionId: collectionId,
               titre: `${game.blancNom} vs ${game.noirNom}`,
               resultat: game.resultat,
@@ -180,52 +228,77 @@ export const POST: RequestHandler = async ({ request, locals, params }) => {
               datePartie: game.datePartie,
               event: game.event,
               site: game.site,
-            },
-          });
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            });
 
-          let previousNodeId: string | null = null;
+            let previousNodeId: string | null = null;
+            let previousHashPosition: bigint | null = null;
 
-          let previousHashPosition: bigint | null = null;
+            for (const move of game.parsedMoves) {
+              const positionHash = hashFEN(move.fen);
+              const noeudId = randomUUID();
 
-          for (const move of game.parsedMoves) {
-            const positionHash = hashFEN(move.fen);
-
-            const noeud: { id: string } = await tx.coupNoeud.create({
-              data: {
-                partieId: partie.id,
+              allNoeudsData.push({
+                id: noeudId,
+                partieId: partieId,
                 parentId: previousNodeId,
                 coupUci: move.uci,
                 ply: move.ply,
                 hashPosition: positionHash,
                 fen: move.fen,
                 estPrincipal: true,
-              },
-            });
+                nagCoup: null,
+                nagPosition: null,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+              });
 
-            if (previousHashPosition !== null && move.uci) {
-              const campAuTrait: Camp = move.ply % 2 === 1 ? "BLANCS" : "NOIRS";
-              
-              await tx.transitionPartie.create({
-                data: {
-                  partieId: partie.id,
+              if (previousHashPosition !== null && move.uci) {
+                const campAuTrait: Camp = move.ply % 2 === 1 ? "BLANCS" : "NOIRS";
+
+                allTransitionsData.push({
+                  id: randomUUID(),
+                  partieId: partieId,
                   hashPositionAvant: previousHashPosition,
                   coupUci: move.uci,
                   hashPositionApres: positionHash,
                   ply: move.ply,
                   estDansPrincipal: true,
                   campAuTrait,
-                },
-              });
+                });
+              }
+
+              previousHashPosition = positionHash;
+              previousNodeId = noeudId;
             }
-
-            previousHashPosition = positionHash;
-            previousNodeId = noeud.id;
           }
-        });
 
-        importedCount++;
+          if (partiesData.length > 0) {
+            await tx.partieTravail.createMany({
+              data: partiesData,
+              skipDuplicates: true,
+            });
+          }
+
+          if (allNoeudsData.length > 0) {
+            await tx.coupNoeud.createMany({
+              data: allNoeudsData,
+              skipDuplicates: true,
+            });
+          }
+
+          if (allTransitionsData.length > 0) {
+            await tx.transitionPartie.createMany({
+              data: allTransitionsData,
+              skipDuplicates: true,
+            });
+          }
+
+          importedCount += batchGames.length;
+        });
       } catch (err) {
-        console.error("Erreur lors de l'import d'une partie:", err);
+        console.error("Erreur lors de l'import d'un batch:", err);
       }
     }
 
@@ -234,7 +307,7 @@ export const POST: RequestHandler = async ({ request, locals, params }) => {
       data: { updatedAt: new Date() },
     });
 
-    await updateAggregates(collectionId);
+    await updateAggregatesOptimized(collectionId);
 
     return json({
       success: true,
@@ -251,87 +324,44 @@ export const POST: RequestHandler = async ({ request, locals, params }) => {
   }
 };
 
-async function updateAggregates(collectionId: string) {
+async function updateAggregatesOptimized(collectionId: string) {
   const filtreHash = "default";
 
-  const transitions = await prisma.transitionPartie.findMany({
-    where: {
-      partie: {
-        collectionId,
-      },
-      estDansPrincipal: true,
-    },
-    include: {
-      partie: {
-        select: {
-          id: true,
-          resultat: true,
-        },
-      },
-    },
-  });
-
-  const aggregatesMap = new Map<string, {
-    nbParties: Set<string>;
-    victoiresBlancs: number;
-    nulles: number;
-    victoiresNoirs: number;
-  }>();
-
-  for (const transition of transitions) {
-    const key = `${transition.hashPositionAvant}|${transition.coupUci}`;
-    
-    if (!aggregatesMap.has(key)) {
-      aggregatesMap.set(key, {
-        nbParties: new Set(),
-        victoiresBlancs: 0,
-        nulles: 0,
-        victoiresNoirs: 0,
-      });
-    }
-
-    const agg = aggregatesMap.get(key)!;
-    agg.nbParties.add(transition.partieId);
-
-    if (transition.partie.resultat === "BLANCS") {
-      agg.victoiresBlancs++;
-    } else if (transition.partie.resultat === "NOIRS") {
-      agg.victoiresNoirs++;
-    } else if (transition.partie.resultat === "NULLE") {
-      agg.nulles++;
-    }
-  }
-
-  for (const [key, agg] of aggregatesMap.entries()) {
-    const [hashPositionStr, coupUci] = key.split('|');
-    const hashPosition = BigInt(hashPositionStr);
-
-    await prisma.agregatCoupsCollection.upsert({
-      where: {
-        collectionId_hashPosition_filtreHash_coupUci: {
-          collectionId,
-          hashPosition,
-          filtreHash,
-          coupUci,
-        },
-      },
-      create: {
-        collectionId,
-        hashPosition,
-        filtreHash,
-        coupUci,
-        nbParties: BigInt(agg.nbParties.size),
-        victoiresBlancs: BigInt(agg.victoiresBlancs),
-        nulles: BigInt(agg.nulles),
-        victoiresNoirs: BigInt(agg.victoiresNoirs),
-      },
-      update: {
-        nbParties: BigInt(agg.nbParties.size),
-        victoiresBlancs: BigInt(agg.victoiresBlancs),
-        nulles: BigInt(agg.nulles),
-        victoiresNoirs: BigInt(agg.victoiresNoirs),
-        updatedAt: new Date(),
-      },
-    });
-  }
+  await prisma.$executeRaw`
+    INSERT INTO "AgregatCoupsCollection" (
+      "collectionId",
+      "hashPosition",
+      "filtreHash",
+      "coupUci",
+      "nbParties",
+      "victoiresBlancs",
+      "nulles",
+      "victoiresNoirs",
+      "createdAt",
+      "updatedAt"
+    )
+    SELECT
+      ${collectionId}::text as "collectionId",
+      t."hashPositionAvant" as "hashPosition",
+      ${filtreHash}::text as "filtreHash",
+      t."coupUci",
+      COUNT(DISTINCT t."partieId")::bigint as "nbParties",
+      COUNT(DISTINCT CASE WHEN p."resultat" = 'BLANCS' THEN t."partieId" END)::bigint as "victoiresBlancs",
+      COUNT(DISTINCT CASE WHEN p."resultat" = 'NULLE' THEN t."partieId" END)::bigint as "nulles",
+      COUNT(DISTINCT CASE WHEN p."resultat" = 'NOIRS' THEN t."partieId" END)::bigint as "victoiresNoirs",
+      NOW() as "createdAt",
+      NOW() as "updatedAt"
+    FROM "TransitionPartie" t
+    INNER JOIN "PartieTravail" p ON t."partieId" = p.id
+    WHERE p."collectionId" = ${collectionId}
+      AND t."estDansPrincipal" = true
+    GROUP BY t."hashPositionAvant", t."coupUci"
+    ON CONFLICT ("collectionId", "hashPosition", "filtreHash", "coupUci")
+    DO UPDATE SET
+      "nbParties" = EXCLUDED."nbParties",
+      "victoiresBlancs" = EXCLUDED."victoiresBlancs",
+      "nulles" = EXCLUDED."nulles",
+      "victoiresNoirs" = EXCLUDED."victoiresNoirs",
+      "updatedAt" = NOW()
+  `;
 }

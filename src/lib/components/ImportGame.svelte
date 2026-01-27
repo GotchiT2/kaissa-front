@@ -2,6 +2,7 @@
   import {Dialog, FileUpload, Portal} from "@skeletonlabs/skeleton-svelte";
   import {FileIcon, XIcon} from "@lucide/svelte";
   import {invalidateAll} from '$app/navigation';
+  import {onMount} from 'svelte';
   import ImportProgressLoader from './ImportProgressLoader.svelte';
   import {_} from '$lib/i18n';
 
@@ -9,6 +10,15 @@
     collectionId: string;
     onSuccess?: (message: string) => void;
     onError?: (message: string) => void;
+  }
+
+  interface ImportState {
+    collectionId: string;
+    progressCurrent: number;
+    progressTotal: number;
+    isImportComplete: boolean;
+    showProgressLoader: boolean;
+    startTime: number;
   }
 
   let {collectionId, onSuccess, onError}: Props = $props();
@@ -22,8 +32,54 @@
   let isImportComplete = $state(false);
   let showProgressLoader = $state(false);
 
+  const STORAGE_KEY = 'kaissa_import_state';
+
   const animation =
     'transition transition-discrete opacity-0 translate-y-[100px] starting:data-[state=open]:opacity-0 starting:data-[state=open]:translate-y-[100px] data-[state=open]:opacity-100 data-[state=open]:translate-y-0';
+
+  function saveImportState() {
+    if (!showProgressLoader) {
+      localStorage.removeItem(STORAGE_KEY);
+      return;
+    }
+
+    const state: ImportState = {
+      collectionId,
+      progressCurrent,
+      progressTotal,
+      isImportComplete,
+      showProgressLoader,
+      startTime: Date.now()
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+
+  function loadImportState() {
+    const savedState = localStorage.getItem(STORAGE_KEY);
+    if (!savedState) return;
+
+    try {
+      const state: ImportState = JSON.parse(savedState);
+      
+      if (state.collectionId === collectionId) {
+        progressCurrent = state.progressCurrent;
+        progressTotal = state.progressTotal;
+        isImportComplete = state.isImportComplete;
+        showProgressLoader = state.showProgressLoader;
+      }
+    } catch (error) {
+      console.error('Error loading import state:', error);
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  }
+
+  $effect(() => {
+    saveImportState();
+  });
+
+  onMount(() => {
+    loadImportState();
+  });
 
   async function handleUpload() {
     if (files.length === 0) {
@@ -116,7 +172,8 @@
       await invalidateAll();
 
       files = [];
-    } catch {
+    } catch (error) {
+      console.error('Import error:', error);
       onError?.($_('database.import.errorGeneral'));
       showProgressLoader = false;
     } finally {
@@ -129,6 +186,7 @@
     progressCurrent = 0;
     progressTotal = 0;
     isImportComplete = false;
+    localStorage.removeItem(STORAGE_KEY);
   }
 </script>
 
