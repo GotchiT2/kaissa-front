@@ -115,7 +115,11 @@
     "removedFromAnalysis": "Partie retirée de l'analyse",
     "tagsUpdateError": "Erreur lors de la mise à jour des tags",
     "tagsUpdateSuccess": "Tags mis à jour avec succès",
-    "metadataUpdateSuccess": "Métadonnées mises à jour avec succès"
+    "metadataUpdateSuccess": "Métadonnées mises à jour avec succès",
+    "resetFilters": "Réinitialiser les filtres",
+    "activeFilters": "filtres actifs",
+    "activeSorts": "tris actifs",
+    "loading": "Chargement..."
   },
   "columns": {
     "whitePlayer": "Blanc",

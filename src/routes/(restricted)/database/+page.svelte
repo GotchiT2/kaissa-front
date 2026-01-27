@@ -29,8 +29,7 @@
 
   interface Props {
     data: {
-      collections: CollectionWithGames[];
-      partiesInAnalysis: any[];
+      collections: any[];
       tags: any[];
     };
   }
@@ -65,70 +64,7 @@
   } | null>(null);
   let isDeleting = $state(false);
 
-  const gamesData = $derived.by((): GameRow[] => {
-    if (viewMode === 'analysis') {
-      return data.partiesInAnalysis.map((partie: any) => ({
-        id: partie.id,
-        whitePlayer: partie.blancNom || '?',
-        blackPlayer: partie.noirNom || '?',
-        tournament: partie.event || '?',
-        date: partie.datePartie ? new Date(partie.datePartie).toLocaleDateString() : '?',
-        whiteElo: partie.blancElo || 0,
-        blackElo: partie.noirElo || 0,
-        result: normalizeResult(partie.resultat),
-        notation: formatMoves(partie.coups || []),
-        isInAnalysis: partie.isInAnalysis || false,
-        tagIds: partie.tags?.map((t: any) => t.tagId) || [],
-      }));
-    }
-
-    if (viewMode === 'tag') {
-      if (!selectedTagId) return [];
-
-      const tag = data.tags.find((t) => t.id === selectedTagId);
-      if (!tag || !tag.parties) return [];
-
-      return tag.parties.map((partieTag: any) => {
-        const partie = partieTag.partie;
-        return {
-          id: partie.id,
-          whitePlayer: partie.blancNom || '?',
-          blackPlayer: partie.noirNom || '?',
-          tournament: partie.event || '?',
-          date: partie.datePartie ? new Date(partie.datePartie).toLocaleDateString() : '?',
-          whiteElo: partie.blancElo || 0,
-          blackElo: partie.noirElo || 0,
-          result: normalizeResult(partie.resultat),
-          notation: formatMoves(partie.coups || []),
-          isInAnalysis: partie.isInAnalysis || false,
-          tagIds: partie.tags?.map((t: any) => t.tagId) || [],
-        };
-      });
-    }
-
-    if (!selectedCollectionId) return [];
-
-    const collection = data.collections.find((c) => c.id === selectedCollectionId);
-    if (!collection || !collection.parties) return [];
-
-    return collection.parties.map((partie: any) => ({
-      id: partie.id,
-      whitePlayer: partie.blancNom || '?',
-      blackPlayer: partie.noirNom || '?',
-      tournament: partie.event || '?',
-      date: partie.datePartie ? new Date(partie.datePartie).toLocaleDateString() : '?',
-      whiteElo: partie.blancElo || 0,
-      blackElo: partie.noirElo || 0,
-      result: normalizeResult(partie.resultat),
-      notation: formatMoves(partie.coups || []),
-      isInAnalysis: partie.isInAnalysis || false,
-      tagIds: partie.tags?.map((t: any) => t.tagId) || [],
-    }));
-  });
-
-  const selectedCollection = $derived<CollectionWithGames | undefined>(
-    data.collections.find((c) => c.id === selectedCollectionId)
-  );
+  const selectedCollection = $derived(data.collections.find((c) => c.id === selectedCollectionId));
 
   const selectedTag = $derived(
     data.tags.find((t) => t.id === selectedTagId)
@@ -312,7 +248,6 @@
                 >
                     <FlaskConical class="size-4"/>
                     <span>{$_('database.analysis.inAnalysis')}</span>
-                    <span class="opacity-60 ml-auto">({data.partiesInAnalysis.length}/5)</span>
                 </button>
             </Navigation.Group>
 
@@ -366,7 +301,6 @@
                     />
                 {/if}
             </div>
-            <p>{$_('database.games.resultsPlural', {values: {count: gamesData.length}})}</p>
             {#if viewMode === 'collection'}
                 <ImportGame
                         collectionId={selectedCollectionId || ''}
@@ -376,33 +310,18 @@
             {/if}
         </div>
 
-        {#if gamesData.length > 0}
-            <GamesTable
-                    data={gamesData}
-                    availableTags={data.tags}
-                    onDeleteSuccess={(message) => toaster.success({ title: $_('common.messages.success'), description: message })}
-                    onDeleteError={(message) => toaster.error({ title: $_('common.messages.error'), description: message })}
-                    onAnalysisToggleSuccess={(message) => toaster.success({ title: $_('common.messages.success'), description: message })}
-                    onAnalysisToggleError={(message) => toaster.error({ title: $_('common.messages.error'), description: message })}
-                    onTagsUpdateSuccess={(message) => toaster.success({ title: $_('common.messages.success'), description: message })}
-                    onTagsUpdateError={(message) => toaster.error({ title: $_('common.messages.error'), description: message })}
-            />
-        {:else}
-            <div class="flex flex-col items-center justify-center h-64 gap-4">
-                {#if viewMode === 'analysis'}
-                    <FlaskConical class="size-12 opacity-60"/>
-                    <p class="text-lg opacity-60">{$_('database.analysis.noParties')}</p>
-                    <p class="text-sm opacity-40">{$_('database.games.noGames')}</p>
-                {:else}
-                    <p class="text-lg opacity-60">{$_('database.analysis.addInfo')}</p>
-                    <ImportGame
-                            collectionId={selectedCollectionId || ''}
-                            onSuccess={(message) => toaster.success({ title: $_('common.messages.success'), description: message })}
-                            onError={(message) => toaster.error({ title: $_('common.messages.error'), description: message })}
-                    />
-                {/if}
-            </div>
-        {/if}
+        <GamesTable
+                collectionId={viewMode === 'collection' ? selectedCollectionId : null}
+                tagId={viewMode === 'tag' ? selectedTagId : null}
+                isInAnalysis={viewMode === 'analysis'}
+                availableTags={data.tags}
+                onDeleteSuccess={(message) => toaster.success({ title: $_('common.messages.success'), description: message })}
+                onDeleteError={(message) => toaster.error({ title: $_('common.messages.error'), description: message })}
+                onAnalysisToggleSuccess={(message) => toaster.success({ title: $_('common.messages.success'), description: message })}
+                onAnalysisToggleError={(message) => toaster.error({ title: $_('common.messages.error'), description: message })}
+                onTagsUpdateSuccess={(message) => toaster.success({ title: $_('common.messages.success'), description: message })}
+                onTagsUpdateError={(message) => toaster.error({ title: $_('common.messages.error'), description: message })}
+        />
     </div>
 
 </div>

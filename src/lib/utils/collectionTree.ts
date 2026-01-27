@@ -16,7 +16,7 @@ export function buildCollectionTree(collections: CollectionWithGames[]): Collect
     collectionMap.set(collection.id, {
       id: collection.id,
       nom: collection.nom,
-      partiesCount: collection.parties.length || 0,
+      partiesCount: collection.partiesCount || collection.parties?.length || 0,
       collection,
       children: []
     });

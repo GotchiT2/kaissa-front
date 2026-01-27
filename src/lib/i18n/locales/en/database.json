@@ -115,7 +115,11 @@
     "removedFromAnalysis": "Game removed from analysis",
     "tagsUpdateError": "Error updating tags",
     "tagsUpdateSuccess": "Tags updated successfully",
-    "metadataUpdateSuccess": "Metadata updated successfully"
+    "metadataUpdateSuccess": "Metadata updated successfully",
+    "resetFilters": "Reset filters",
+    "activeFilters": "active filters",
+    "activeSorts": "active sorts",
+    "loading": "Loading..."
   },
   "columns": {
     "whitePlayer": "White",

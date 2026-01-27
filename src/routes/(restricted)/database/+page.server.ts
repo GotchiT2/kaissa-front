@@ -1,6 +1,5 @@
 import type { PageServerLoad } from "./$types";
-import { getUserCollections } from "$lib/server/services/collection.service";
-import { getPartiesInAnalysisWithTags } from "$lib/server/services/analysis.service";
+import { prisma } from "$lib/server/db";
 import { getUserTags } from "$lib/server/services/tag.service";
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -10,15 +9,34 @@ export const load: PageServerLoad = async ({ locals }) => {
     throw new Error("Utilisateur non authentifié");
   }
 
-  const [collections, partiesInAnalysis, tags] = await Promise.all([
-    getUserCollections(user.id),
-    getPartiesInAnalysisWithTags(user.id),
+  const [collections, tags] = await Promise.all([
+    prisma.collection.findMany({
+      where: {
+        proprietaireId: user.id,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        nom: true,
+        parentId: true,
+        _count: {
+          select: {
+            parties: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "asc",
+      },
+    }),
     getUserTags(user.id),
   ]);
 
   return {
-    collections,
-    partiesInAnalysis,
+    collections: collections.map(c => ({
+      ...c,
+      partiesCount: c._count.parties,
+    })),
     tags,
   };
 };

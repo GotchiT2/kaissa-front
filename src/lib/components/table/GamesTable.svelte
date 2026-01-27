@@ -2,9 +2,6 @@
   import {
     type ColumnFiltersState,
     getCoreRowModel,
-    getFilteredRowModel,
-    getPaginationRowModel,
-    getSortedRowModel,
     type PaginationState,
     type SortingState
   } from '@tanstack/table-core';
@@ -12,14 +9,25 @@
   import {createSvelteTable} from '$lib/components/table/data-table.svelte';
   import PaginationOld from '$lib/components/table/PaginationOld.svelte';
   import {Dialog, Menu, Portal} from '@skeletonlabs/skeleton-svelte';
-  import {EllipsisVertical, FlaskConicalIcon, PencilIcon, TagIcon, Trash2Icon, XIcon} from '@lucide/svelte';
+  import {
+    EllipsisVertical,
+    FlaskConicalIcon,
+    Loader2,
+    PencilIcon,
+    RotateCcw,
+    TagIcon,
+    Trash2Icon,
+    XIcon
+  } from '@lucide/svelte';
   import FlexRender from '$lib/components/table/FlexRender.svelte';
   import {columns} from '$lib/components/table/columns';
   import {invalidateAll} from '$app/navigation';
   import {_} from '$lib/i18n';
 
   type DataTableProps<GameRow, TValue> = {
-    data: GameRow[];
+    collectionId?: string | null;
+    tagId?: string | null;
+    isInAnalysis?: boolean;
     availableTags: any[];
     onDeleteSuccess?: (message: string) => void;
     onDeleteError?: (message: string) => void;
@@ -32,7 +40,9 @@
   const PAGE_SIZE = 20;
 
   let {
-    data,
+    collectionId = null,
+    tagId = null,
+    isInAnalysis = false,
     availableTags,
     onDeleteSuccess,
     onDeleteError,
@@ -41,6 +51,10 @@
     onTagsUpdateSuccess,
     onTagsUpdateError
   }: DataTableProps<GameRow, TValue> = $props();
+
+  let data = $state<any[]>([]);
+  let total = $state(0);
+  let isLoading = $state(false);
   let pagination = $state<PaginationState>({pageIndex: 0, pageSize: PAGE_SIZE});
   let sorting = $state<SortingState>([]);
   let columnFilters = $state<ColumnFiltersState>([]);
@@ -62,10 +76,6 @@
   } | null>(null);
   let isUpdatingMetadata = $state(false);
 
-  let page = $state(1);
-  const start = $derived((page - 1) * PAGE_SIZE);
-  const end = $derived(start + PAGE_SIZE);
-
   const table = createSvelteTable({
     get data() {
       return data;
@@ -84,9 +94,12 @@
         return columnFilters;
       }
     },
-
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
+    manualPagination: true,
+    manualSorting: true,
+    manualFiltering: true,
+    get pageCount() {
+      return Math.ceil(total / PAGE_SIZE);
+    },
     onSortingChange: (updater) => {
       if (typeof updater === 'function') {
         sorting = updater(sorting);
@@ -94,7 +107,6 @@
         sorting = updater;
       }
     },
-
     onColumnFiltersChange: (updater) => {
       if (typeof updater === 'function') {
         columnFilters = updater(columnFilters);
@@ -102,7 +114,6 @@
         columnFilters = updater;
       }
     },
-
     onPaginationChange: (updater) => {
       if (typeof updater === 'function') {
         pagination = updater(pagination);
@@ -110,8 +121,87 @@
         pagination = updater;
       }
     },
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel()
+    getCoreRowModel: getCoreRowModel()
+  });
+
+  function resetFiltersAndSorts() {
+    columnFilters = [];
+    sorting = [];
+    pagination = {pageIndex: 0, pageSize: PAGE_SIZE};
+  }
+
+  async function fetchData() {
+    isLoading = true;
+
+    try {
+      const params = new URLSearchParams();
+      params.set('page', (pagination.pageIndex + 1).toString());
+      params.set('pageSize', pagination.pageSize.toString());
+
+      if (collectionId) params.set('collectionId', collectionId);
+      if (tagId) params.set('tagId', tagId);
+      if (isInAnalysis) params.set('isInAnalysis', 'true');
+
+      if (sorting.length > 0) {
+        params.set('sortBy', sorting[0].id);
+        params.set('sortOrder', sorting[0].desc ? 'desc' : 'asc');
+      }
+
+      for (const filter of columnFilters) {
+        if (filter.id === 'whiteElo' && filter.value) {
+          if (filter.value.min) params.set('whiteEloMin', filter.value.min.toString());
+          if (filter.value.max) params.set('whiteEloMax', filter.value.max.toString());
+        } else if (filter.id === 'blackElo' && filter.value) {
+          if (filter.value.min) params.set('blackEloMin', filter.value.min.toString());
+          if (filter.value.max) params.set('blackEloMax', filter.value.max.toString());
+        } else if (filter.id === 'date' && filter.value) {
+          if (filter.value.min) params.set('dateMin', filter.value.min);
+          if (filter.value.max) params.set('dateMax', filter.value.max);
+        } else if (filter.id === 'whitePlayer' && filter.value) {
+          params.set('whitePlayer', filter.value.toString());
+        } else if (filter.id === 'blackPlayer' && filter.value) {
+          params.set('blackPlayer', filter.value.toString());
+        } else if (filter.id === 'tournament' && filter.value) {
+          params.set('tournament', filter.value.toString());
+        } else if (filter.id === 'result' && filter.value) {
+          let resultValue = filter.value.toString();
+          if (resultValue === '1-0') resultValue = 'BLANCS';
+          else if (resultValue === '0-1') resultValue = 'NOIRS';
+          else if (resultValue === '½-½') resultValue = 'NULLE';
+          params.set('result', resultValue);
+        }
+      }
+
+      const response = await fetch(`/api/parties?${params.toString()}`);
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch parties');
+      }
+
+      const result = await response.json();
+      data = result.data;
+      total = result.total;
+    } catch (error) {
+      console.error('Error fetching parties:', error);
+      data = [];
+      total = 0;
+    } finally {
+      isLoading = false;
+    }
+  }
+
+  $effect(() => {
+    fetchData();
+  });
+
+  $effect(() => {
+    pagination.pageIndex;
+    sorting;
+    columnFilters;
+    collectionId;
+    tagId;
+    isInAnalysis;
+    fetchData();
   });
 
   function openDeleteModal(id: string, whitePlayer: string, blackPlayer: string) {
@@ -142,6 +232,7 @@
         throw new Error(error.message || $_('database.games.deleteError'));
       }
 
+      await fetchData();
       await invalidateAll();
 
       if (onDeleteSuccess) {
@@ -176,6 +267,7 @@
         throw new Error(error.message || $_('database.table.updateError'));
       }
 
+      await fetchData();
       await invalidateAll();
 
       if (onAnalysisToggleSuccess) {
@@ -241,6 +333,7 @@
         throw new Error(error.message || $_('database.table.tagsUpdateError'));
       }
 
+      await fetchData();
       await invalidateAll();
 
       if (onTagsUpdateSuccess) {
@@ -312,6 +405,7 @@
         throw new Error(error.message || $_('database.table.updateError'));
       }
 
+      await fetchData();
       await invalidateAll();
 
       if (onDeleteSuccess) {
@@ -330,7 +424,31 @@
 </script>
 
 <div class="max-w-4/5 table-container space-y-4">
-    <div class="overflow-x-auto pl-0">
+    <div class="flex justify-between items-center mb-2">
+        <button
+                class="btn btn-sm preset-tonal flex items-center gap-2"
+                disabled={isLoading || (columnFilters.length === 0 && sorting.length === 0)}
+                onclick={resetFiltersAndSorts}
+                title={$_('database.table.resetFilters')}
+        >
+            <RotateCcw class="size-4"/>
+            {$_('database.table.resetFilters')}
+        </button>
+        {#if columnFilters.length > 0 || sorting.length > 0}
+            <span class="text-xs opacity-60">
+                {columnFilters.length} {$_('database.table.activeFilters')}
+                · {sorting.length} {$_('database.table.activeSorts')}
+            </span>
+        {/if}
+    </div>
+
+    {#if isLoading}
+        <div class="flex justify-center items-center py-8">
+            <Loader2 class="size-8 animate-spin text-primary-500"/>
+        </div>
+    {/if}
+
+    <div class="overflow-x-auto pl-0" class:opacity-50={isLoading}>
         <table class="md:table table-hover md:table-compact text-xs">
             <thead>
             {#each table.getHeaderGroups() as headerGroup (headerGroup.id)}
@@ -357,7 +475,7 @@
                                                 type="number"
                                                 class="input input-sm w-full text-xs"
                                                 value={header.column.getFilterValue()?.min ?? ''}
-                                                oninput={(e) => {
+                                                onchange={(e) => {
                                                     const currentValue = header.column.getFilterValue() || {};
                                                     header.column.setFilterValue({
                                                         ...currentValue,
@@ -365,12 +483,13 @@
                                                     });
                                                 }}
                                                 placeholder={$_('database.table.min')}
+                                                disabled={isLoading}
                                         />
                                         <input
                                                 type="number"
                                                 class="input input-sm w-full text-xs"
                                                 value={header.column.getFilterValue()?.max ?? ''}
-                                                oninput={(e) => {
+                                                onchange={(e) => {
                                                     const currentValue = header.column.getFilterValue() || {};
                                                     header.column.setFilterValue({
                                                         ...currentValue,
@@ -378,6 +497,7 @@
                                                     });
                                                 }}
                                                 placeholder={$_('database.table.max')}
+                                                disabled={isLoading}
                                         />
                                     </div>
                                 {:else if header.column.id === 'date'}
@@ -393,6 +513,7 @@
                                                         min: e.currentTarget.value || undefined
                                                     });
                                                 }}
+                                                disabled={isLoading}
                                         />
                                         <input
                                                 type="date"
@@ -405,6 +526,7 @@
                                                         max: e.currentTarget.value || undefined
                                                     });
                                                 }}
+                                                disabled={isLoading}
                                         />
                                     </div>
                                 {:else if header.column.id === 'result'}
@@ -412,6 +534,7 @@
                                             class="select select-sm w-full text-xs"
                                             value={header.column.getFilterValue() ?? ''}
                                             onchange={(e) => header.column.setFilterValue(e.currentTarget.value || undefined)}
+                                            disabled={isLoading}
                                     >
                                         <option value="">{$_('database.table.all')}</option>
                                         <option value="1-0">1-0</option>
@@ -425,6 +548,7 @@
                                             value={header.column.getFilterValue() ?? ''}
                                             oninput={(e) => header.column.setFilterValue(e.currentTarget.value)}
                                             placeholder={`${$_('common.actions.filter')}...`}
+                                            disabled={isLoading}
                                     />
                                 {/if}
                             {/if}
@@ -519,15 +643,17 @@
                                 </Menu.Positioner>
                             </Portal>
                         </Menu>
-                        <div class="flex gap-2">
-
-
-                        </div>
                     </td>
                 </tr>
             {:else}
                 <tr>
-                    <td colspan={$columns.length + 1} class="h-24 text-center">{$_('database.table.noResults')}</td>
+                    <td colspan={$columns.length + 1} class="h-24 text-center">
+                        {#if isLoading}
+                            {$_('database.table.loading')}
+                        {:else}
+                            {$_('database.table.noResults')}
+                        {/if}
+                    </td>
                 </tr>
             {/each}
             </tbody>
