@@ -59,3 +59,55 @@ export function rebuildGamePosition(moves: string[], targetIndex: number): Chess
   }
   return game;
 }
+
+export function convertUciMoveToSan(uciMove: string, fen: string = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'): string {
+  try {
+    const game = new Chess(fen);
+    const move = game.move({
+      from: uciMove.substring(0, 2),
+      to: uciMove.substring(2, 4),
+      promotion: uciMove.length > 4 ? uciMove[4] : undefined
+    });
+    return move ? move.san : uciMove;
+  } catch (e) {
+    console.error("Erreur lors de la conversion du coup UCI vers SAN:", uciMove, e);
+    return uciMove;
+  }
+}
+
+export function convertUciSequenceToSan(uciSequence: string, fen: string = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'): string {
+  try {
+    const game = new Chess(fen);
+    const uciMoves = uciSequence.trim().split(/\s+/);
+    const formattedMoves: string[] = [];
+    
+    for (let i = 0; i < uciMoves.length; i++) {
+      const uciMove = uciMoves[i];
+      const moveNumber = game.moveNumber();
+      const isWhiteTurn = game.turn() === 'w';
+      
+      const move = game.move({
+        from: uciMove.substring(0, 2),
+        to: uciMove.substring(2, 4),
+        promotion: uciMove.length > 4 ? uciMove[4] : undefined
+      });
+      
+      if (move) {
+        if (isWhiteTurn) {
+          formattedMoves.push(`${moveNumber}.${move.san}`);
+        } else {
+          if (i === 0) {
+            formattedMoves.push(`${moveNumber}...${move.san}`);
+          } else {
+            formattedMoves.push(move.san);
+          }
+        }
+      }
+    }
+    
+    return formattedMoves.join(' ');
+  } catch (e) {
+    console.error("Erreur lors de la conversion de la séquence UCI vers SAN:", uciSequence, e);
+    return uciSequence;
+  }
+}

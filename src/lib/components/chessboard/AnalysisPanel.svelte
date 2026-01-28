@@ -2,16 +2,19 @@
   import {Switch} from "@skeletonlabs/skeleton-svelte";
   import type {StockfishAnalysis} from "$lib/services/stockfishService";
   import {_} from '$lib/i18n';
+  import { convertUciMoveToSan, convertUciSequenceToSan } from '$lib/utils/chessNotation';
 
   let {
     analysis,
     showAnalysis = $bindable(),
-    moveNumber
+    currentFen
   }: {
     analysis: StockfishAnalysis;
     showAnalysis: boolean;
-    moveNumber: string;
+    currentFen: string;
   } = $props();
+
+  const bestmoveSan = $derived(analysis.bestmove ? convertUciMoveToSan(analysis.bestmove, currentFen) : '');
 
   const formattedLine = $derived(() => {
     if (!analysis.evaluation || !analysis.principalVariation) {
@@ -21,8 +24,9 @@
     const evalSign = analysis.evaluation >= 0 ? '+' : '';
     const evalStr = `(${evalSign}${analysis.evaluation.toFixed(2)})`;
 
+    const pvSan = convertUciSequenceToSan(analysis.principalVariation, currentFen);
 
-    return `${evalStr} ${moveNumber} ${analysis.principalVariation}`;
+    return `${evalStr} ${pvSan}`;
   });
 </script>
 
@@ -50,7 +54,7 @@
 
                 {#if analysis.bestmove}
                 <span class="badge preset-filled-primary-500">
-                  {$_('chessboard.analysis.bestMove')}: {analysis.bestmove}
+                  {$_('chessboard.analysis.bestMove')}: {bestmoveSan}
                 </span>
                 {/if}
             </div>

@@ -2,6 +2,7 @@
   import { Switch } from "@skeletonlabs/skeleton-svelte";
   import type { BestMove } from "$lib/services/bestMovesService";
   import { _ } from '$lib/i18n';
+  import { convertUciMoveToSan } from '$lib/utils/chessNotation';
 
   interface Collection {
     id: string;
@@ -12,13 +13,20 @@
     collections,
     selectedCollectionId = $bindable(),
     meilleursCoups,
-    showBestMoves = $bindable()
+    showBestMoves = $bindable(),
+    currentFen
   }: {
     collections: Collection[];
     selectedCollectionId: string | null;
     meilleursCoups: BestMove[];
     showBestMoves: boolean;
+    currentFen: string;
   } = $props();
+
+  const meilleursCoups$an = $derived(meilleursCoups.map(coup => ({
+    ...coup,
+    coup: convertUciMoveToSan(coup.coup, currentFen)
+  })));
 </script>
 
 <div class="flex flex-col gap-4 items-center mb-16">
@@ -55,7 +63,7 @@
           </tr>
         </thead>
         <tbody class="[&>tr]:hover:preset-tonal-primary">
-          {#each meilleursCoups as row}
+          {#each meilleursCoups$an as row}
             <tr>
               <td>{row.coup}</td>
               <td>{row.nbParties}</td>

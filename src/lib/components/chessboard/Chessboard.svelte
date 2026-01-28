@@ -39,7 +39,7 @@
   });
 
   let stockfishService: StockfishService;
-  let prochainCoupDisplay: string = $state('');
+  let currentFen = $state<string>('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
 
   const selectedPartie = $derived(parties.find((p: any) => p.id === selectedGameIndex));
 
@@ -54,6 +54,7 @@
 
   onMount(() => {
     board = buildBoard(game);
+    currentFen = game.fen();
     stockfishService = new StockfishService((analysis) => {
       stockfishAnalysis = analysis;
     });
@@ -86,12 +87,9 @@
       return;
     }
 
-    const prochainCoupId = game.moveNumber();
-    const prochainJoueur = game.turn() === 'w' ? '.' : '...';
-    prochainCoupDisplay = `${prochainCoupId}${prochainJoueur}`;
     game = rebuildGamePosition(moves(), currentIndex);
-    const fen = game.fen();
-    stockfishService.analyze(fen, 1000, 300);
+    currentFen = game.fen();
+    stockfishService.analyze(currentFen, 1000, 300);
   });
 
   function selectSquare(square: string) {
@@ -145,6 +143,7 @@
     game = rebuildGamePosition(moves(), currentIndex);
     board = buildBoard(game);
     statusMessage = updateStatus(game);
+    currentFen = game.fen();
   }
 
   function firstMove() {
@@ -228,12 +227,13 @@
                 bind:showBestMoves
                 {collections}
                 {meilleursCoups}
+                {currentFen}
         />
 
         <AnalysisPanel
                 analysis={stockfishAnalysis}
                 bind:showAnalysis
-                moveNumber={prochainCoupDisplay}
+                {currentFen}
         />
     </div>
 </div>
