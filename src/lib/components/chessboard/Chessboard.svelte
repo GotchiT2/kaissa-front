@@ -144,6 +144,41 @@
     possibleMoves = [];
   }
 
+  let draggedSquare = $state<string | null>(null);
+
+  function handleDragStart(square: string) {
+    const piece = game.get(square as any);
+    if (piece && piece.color === game.turn()) {
+      draggedSquare = square;
+      selectSquare(square);
+    }
+  }
+
+  function handleDragEnd() {
+    draggedSquare = null;
+  }
+
+  function handleDrop(targetSquare: string) {
+    if (!draggedSquare) return;
+
+    if (possibleMoves.includes(targetSquare)) {
+      const move = game.move({from: draggedSquare, to: targetSquare, promotion: "q"});
+
+      if (move) {
+        freePlayMode = true;
+        freePlayMoves = [...freePlayMoves, move.lan];
+        currentFen = game.fen();
+        updateAnalysis();
+        board = buildBoard(game);
+        clearSelection();
+        statusMessage = updateStatus(game);
+      }
+    }
+
+    draggedSquare = null;
+    clearSelection();
+  }
+
   function handleTileClick(square: string) {
     freePlayMode = true;
     const clickedPiece = game.get(square as any);
@@ -272,6 +307,9 @@
                                                 isSelected={selectedSquare === cell.square}
                                                 isPossibleMove={possibleMoves.includes(cell.square)}
                                                 {handleTileClick}
+                                                onDragStart={handleDragStart}
+                                                onDragEnd={handleDragEnd}
+                                                onDrop={handleDrop}
                                         />
                                     {/each}
                                 </div>

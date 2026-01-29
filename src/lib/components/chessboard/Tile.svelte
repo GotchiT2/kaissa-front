@@ -7,7 +7,10 @@
     c,
     isSelected,
     isPossibleMove,
-    handleTileClick
+    handleTileClick,
+    onDragStart,
+    onDragEnd,
+    onDrop
   }: {
     cell: Cell;
     r: number;
@@ -15,7 +18,19 @@
     isSelected: boolean;
     isPossibleMove: boolean;
     handleTileClick: (square: string) => void;
+    onDragStart: (square: string) => void;
+    onDragEnd: () => void;
+    onDrop: (square: string) => void;
   } = $props();
+
+  function handleDragOver(e: DragEvent) {
+    e.preventDefault();
+  }
+
+  function handleDropEvent(e: DragEvent) {
+    e.preventDefault();
+    onDrop(cell.square);
+  }
 </script>
 
 <button
@@ -23,9 +38,16 @@
                           {isSelected ? 'inset-ring-4 inset-ring-blue-500 ':''}
                           {isPossibleMove ? 'target':''}"
         onclick={() => handleTileClick(cell.square)}
+        ondragover={handleDragOver}
+        ondrop={handleDropEvent}
 >
     {#if cell.piece}
-      <span class="piece {cell.piece.color}">
+      <span 
+        class="piece {cell.piece.color}"
+        draggable="true"
+        ondragstart={() => onDragStart(cell.square)}
+        ondragend={onDragEnd}
+      >
         {pieceToUnicode(cell.piece)}
       </span>
     {/if}
