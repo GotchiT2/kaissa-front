@@ -83,31 +83,41 @@ export function convertUciSequenceToSan(uciSequence: string, fen: string = 'rnbq
     
     for (let i = 0; i < uciMoves.length; i++) {
       const uciMove = uciMoves[i];
+      
+      if (uciMove.length < 4) {
+        continue;
+      }
+      
       const moveNumber = game.moveNumber();
       const isWhiteTurn = game.turn() === 'w';
       
-      const move = game.move({
-        from: uciMove.substring(0, 2),
-        to: uciMove.substring(2, 4),
-        promotion: uciMove.length > 4 ? uciMove[4] : undefined
-      });
-      
-      if (move) {
-        if (isWhiteTurn) {
-          formattedMoves.push(`${moveNumber}.${move.san}`);
-        } else {
-          if (i === 0) {
-            formattedMoves.push(`${moveNumber}...${move.san}`);
+      try {
+        const move = game.move({
+          from: uciMove.substring(0, 2),
+          to: uciMove.substring(2, 4),
+          promotion: uciMove.length > 4 ? uciMove[4] : undefined
+        });
+        
+        if (move) {
+          if (isWhiteTurn) {
+            formattedMoves.push(`${moveNumber}.${move.san}`);
           } else {
-            formattedMoves.push(move.san);
+            if (i === 0) {
+              formattedMoves.push(`${moveNumber}...${move.san}`);
+            } else {
+              formattedMoves.push(move.san);
+            }
           }
         }
+      } catch (moveError) {
+        console.warn(`Coup UCI invalide ignoré: ${uciMove}`, moveError);
+        break;
       }
     }
     
-    return formattedMoves.join(' ');
+    return formattedMoves.length > 0 ? formattedMoves.join(' ') : '';
   } catch (e) {
     console.error("Erreur lors de la conversion de la séquence UCI vers SAN:", uciSequence, e);
-    return uciSequence;
+    return '';
   }
 }

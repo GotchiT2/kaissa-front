@@ -37,6 +37,10 @@ export class StockfishService {
 
     this.stockfishLines = [];
     this.bestmove = "";
+    this.wdl = null;
+    this.depth = null;
+    this.evaluation = null;
+    this.principalVariation = null;
     this.notifyUpdate(true);
 
     if (this.lastRequestedFen === fen) {
@@ -109,7 +113,17 @@ export class StockfishService {
 
     this.eventSource.addEventListener("bestmove", (e) => {
       const data = JSON.parse((e as MessageEvent).data);
-      this.bestmove = data.line;
+      const bestmoveLine = data.line;
+      const bestmoveMatch = bestmoveLine.match(/bestmove\s+(\S+)/);
+      this.bestmove = bestmoveMatch ? bestmoveMatch[1] : bestmoveLine;
+      
+      if (this.bestmove && this.principalVariation) {
+        const firstPvMove = this.principalVariation.trim().split(/\s+/)[0];
+        if (firstPvMove !== this.bestmove) {
+          this.principalVariation = this.bestmove + (this.principalVariation ? ' ' + this.principalVariation.split(/\s+/).slice(1).join(' ') : '');
+        }
+      }
+      
       this.notifyUpdate(false);
       this.close();
     });
