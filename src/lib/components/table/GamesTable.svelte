@@ -562,28 +562,59 @@
             {#each table.getRowModel().rows as row, index (row.id)}
                 <tr class={index % 2 === 0 ? 'bg-surface-500' : ''}>
                     <td class="table-cell-fit">
-                        {row.original.whitePlayer}
+                        {row.original.whitePlayer || '--'}
+                        {#if !row.original.whitePlayer}
+                            <span class="sr-only">Donnée non disponible</span>
+                        {/if}
                     </td>
                     <td class="table-cell-fit">
-                        {row.original.whiteElo}
+                        {#if row.original.whiteElo}
+                            {row.original.whiteElo}
+                        {:else}
+                            --
+                            <span class="sr-only">Donnée non disponible</span>
+                        {/if}
                     </td>
                     <td class="table-cell-fit">
-                        {row.original.blackPlayer}
+                        {row.original.blackPlayer || '--'}
+                        {#if !row.original.blackPlayer}
+                            <span class="sr-only">Donnée non disponible</span>
+                        {/if}
                     </td>
                     <td class="table-cell-fit">
-                        {row.original.blackElo}
+                        {#if row.original.blackElo}
+                            {row.original.blackElo}
+                        {:else}
+                            --
+                            <span class="sr-only">Donnée non disponible</span>
+                        {/if}
                     </td>
                     <td class="table-cell-fit">
                         {row.original.result}
                     </td>
                     <td class="table-cell-fit">
-                        {row.original.date}
+                        {#if row.original.date}
+                            {row.original.date}
+                        {:else}
+                            --
+                            <span class="sr-only">Donnée non disponible</span>
+                        {/if}
                     </td>
                     <td class="table-cell-fit">
-                        {row.original.tournament}
+                        {#if row.original.tournament}
+                            {row.original.tournament}
+                        {:else}
+                            --
+                            <span class="sr-only">Donnée non disponible</span>
+                        {/if}
                     </td>
                     <td class="table-cell-fit">
-                        {row.original.notation}
+                        {#if row.original.notation}
+                            {row.original.notation}
+                        {:else}
+                            --
+                            <span class="sr-only">Donnée non disponible</span>
+                        {/if}
                     </td>
                     <td class="table-cell-fit">
                         <Menu>

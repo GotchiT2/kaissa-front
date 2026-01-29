@@ -116,14 +116,18 @@ export class StockfishService {
       const bestmoveLine = data.line;
       const bestmoveMatch = bestmoveLine.match(/bestmove\s+(\S+)/);
       this.bestmove = bestmoveMatch ? bestmoveMatch[1] : bestmoveLine;
-      
+
       if (this.bestmove && this.principalVariation) {
         const firstPvMove = this.principalVariation.trim().split(/\s+/)[0];
         if (firstPvMove !== this.bestmove) {
-          this.principalVariation = this.bestmove + (this.principalVariation ? ' ' + this.principalVariation.split(/\s+/).slice(1).join(' ') : '');
+          this.principalVariation =
+            this.bestmove +
+            (this.principalVariation
+              ? " " + this.principalVariation.split(/\s+/).slice(1).join(" ")
+              : "");
         }
       }
-      
+
       this.notifyUpdate(false);
       this.close();
     });

@@ -10,11 +10,17 @@ export interface GroupedMove {
   blackNodeId?: string;
 }
 
-export function convertUciToSan(coups: Array<{ coupUci: string | null }>): string[] {
-  const tempGame = new Chess();
+export function convertUciToSan(coups: Array<{ coupUci: string | null; fen?: string | null }>): string[] {
+  if (coups.length === 0) {
+    return [];
+  }
+
+  const startingFen = coups[0]?.fen || 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+  const tempGame = new Chess(startingFen);
   const movesInSan: string[] = [];
 
-  for (const coup of coups) {
+  for (let i = 0; i < coups.length; i++) {
+    const coup = coups[i];
     if (coup.coupUci) {
       try {
         const move = tempGame.move({
@@ -28,32 +34,97 @@ export function convertUciToSan(coups: Array<{ coupUci: string | null }>): strin
       } catch (e) {
         console.error("Erreur lors de la conversion du coup:", coup.coupUci, e);
       }
+    } else if (i === 0) {
+      movesInSan.push("");
     }
   }
 
   return movesInSan;
 }
 
-export function groupMovesByPair(moves: string[], coups?: Array<{ id: string }>): GroupedMove[] {
+export function groupMovesByPair(
+  moves: string[], 
+  coups?: Array<{ id: string; ply: number; coupUci?: string | null }>
+): GroupedMove[] {
   const result: GroupedMove[] = [];
-  for (let i = 0; i < moves.length; i += 2) {
+  
+  if (!coups || coups.length === 0) {
+    for (let i = 0; i < moves.length; i += 2) {
+      result.push({
+        moveNumber: i / 2 + 1,
+        white: moves[i] ?? "",
+        black: moves[i + 1] ?? "",
+        whiteIndex: i + 1,
+        blackIndex: i + 2,
+        whiteNodeId: undefined,
+        blackNodeId: undefined
+      });
+    }
+    return result;
+  }
+
+  if (coups.length === 1 && !coups[0].coupUci && moves.length === 1 && moves[0] === "") {
+    const firstPly = coups[0].ply;
+    const moveNumber = Math.ceil(firstPly / 2);
+    const startsWithBlack = firstPly % 2 === 0;
+    
     result.push({
-      moveNumber: i / 2 + 1,
+      moveNumber,
+      white: startsWithBlack ? "..." : "Position de départ",
+      black: startsWithBlack ? "Position de départ" : "",
+      whiteIndex: 0,
+      blackIndex: 0,
+      whiteNodeId: coups[0].id,
+      blackNodeId: startsWithBlack ? coups[0].id : undefined
+    });
+    return result;
+  }
+
+  const firstPly = coups[0]?.ply || 1;
+  const startingMoveNumber = Math.ceil(firstPly / 2);
+  const startsWithBlack = firstPly % 2 === 0;
+
+  let moveIndex = 0;
+  
+  if (startsWithBlack && moves.length > 0) {
+    result.push({
+      moveNumber: startingMoveNumber,
+      white: "...",
+      black: moves[0] ?? "",
+      whiteIndex: 0,
+      blackIndex: 1,
+      whiteNodeId: undefined,
+      blackNodeId: coups[0]?.id
+    });
+    moveIndex = 1;
+  }
+
+  for (let i = moveIndex; i < moves.length; i += 2) {
+    const currentPly = coups[i]?.ply || (firstPly + i);
+    const moveNumber = Math.ceil(currentPly / 2);
+    
+    result.push({
+      moveNumber,
       white: moves[i] ?? "",
       black: moves[i + 1] ?? "",
       whiteIndex: i + 1,
       blackIndex: i + 2,
-      whiteNodeId: coups?.[i]?.id,
-      blackNodeId: coups?.[i + 1]?.id
+      whiteNodeId: coups[i]?.id,
+      blackNodeId: coups[i + 1]?.id
     });
   }
+  
   return result;
 }
 
-export function rebuildGamePosition(moves: string[], targetIndex: number): Chess {
-  const game = new Chess();
+export function rebuildGamePosition(
+  moves: string[], 
+  targetIndex: number, 
+  startingFen?: string
+): Chess {
+  const game = new Chess(startingFen || 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
   for (let i = 0; i < targetIndex; i++) {
-    if (moves[i]) {
+    if (moves[i] && moves[i] !== "") {
       game.move(moves[i]);
     }
   }

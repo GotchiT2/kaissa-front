@@ -13,7 +13,7 @@
   import {_} from '$lib/i18n';
   import GamesTable from '$lib/components/table/GamesTable.svelte';
   import ImportGame from "$lib/components/ImportGame.svelte";
-  import type {CollectionWithGames, GameRow} from '$lib/types/chess.types';
+  import type {CollectionWithGames} from '$lib/types/chess.types';
   import CreationCollection from "$lib/components/modales/CreationCollection.svelte";
   import CreationTag from "$lib/components/modales/CreationTag.svelte";
   import EditCollection from "$lib/components/modales/EditCollection.svelte";
@@ -24,7 +24,6 @@
     countTotalPartiesInCollection,
     findCollectionNode
   } from "$lib/utils/collectionTree";
-  import {formatMoves, normalizeResult} from "$lib/utils/gameData";
 
 
   interface Props {
@@ -205,7 +204,7 @@
 
 <div class="flex h-[90vh] w-full">
     <Navigation
-            class="w-auto px-4 h-full bg-[#121212] flex flex-col items-center gap-4"
+            class="min-w-[100px] w-auto px-4 h-full bg-[#121212] flex flex-col items-center gap-4"
             layout="sidebar"
     >
         <Navigation.Header class="flex flex-col gap-2 py-4">
@@ -295,9 +294,9 @@
                 <h1 class="h2 text-primary-500">{pageTitle}</h1>
                 {#if viewMode === 'collection' && selectedCollection}
                     <EditCollection
-                        collectionId={selectedCollection.id}
-                        currentName={selectedCollection.nom}
-                        {handleToastSuccess}
+                            collectionId={selectedCollection.id}
+                            currentName={selectedCollection.nom}
+                            {handleToastSuccess}
                     />
                 {/if}
             </div>
@@ -311,16 +310,16 @@
         </div>
 
         <GamesTable
-                collectionId={viewMode === 'collection' ? selectedCollectionId : null}
-                tagId={viewMode === 'tag' ? selectedTagId : null}
-                isInAnalysis={viewMode === 'analysis'}
                 availableTags={data.tags}
-                onDeleteSuccess={(message) => toaster.success({ title: $_('common.messages.success'), description: message })}
-                onDeleteError={(message) => toaster.error({ title: $_('common.messages.error'), description: message })}
-                onAnalysisToggleSuccess={(message) => toaster.success({ title: $_('common.messages.success'), description: message })}
+                collectionId={viewMode === 'collection' ? selectedCollectionId : null}
+                isInAnalysis={viewMode === 'analysis'}
                 onAnalysisToggleError={(message) => toaster.error({ title: $_('common.messages.error'), description: message })}
-                onTagsUpdateSuccess={(message) => toaster.success({ title: $_('common.messages.success'), description: message })}
+                onAnalysisToggleSuccess={(message) => toaster.success({ title: $_('common.messages.success'), description: message })}
+                onDeleteError={(message) => toaster.error({ title: $_('common.messages.error'), description: message })}
+                onDeleteSuccess={(message) => toaster.success({ title: $_('common.messages.success'), description: message })}
                 onTagsUpdateError={(message) => toaster.error({ title: $_('common.messages.error'), description: message })}
+                onTagsUpdateSuccess={(message) => toaster.success({ title: $_('common.messages.success'), description: message })}
+                tagId={viewMode === 'tag' ? selectedTagId : null}
         />
     </div>
 

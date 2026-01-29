@@ -46,6 +46,13 @@
 
   const selectedPartie = $derived(parties.find((p: any) => p.id === selectedGameIndex));
 
+  const startingFen = $derived(() => {
+    if (!selectedPartie?.coups || selectedPartie.coups.length === 0) {
+      return 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+    }
+    return selectedPartie.coups[0]?.fen || 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+  });
+
   const moves = $derived(() => {
     if (!selectedPartie?.coups || selectedPartie.coups.length === 0) {
       return [];
@@ -54,6 +61,17 @@
   });
 
   const groupedMoves = $derived(groupMovesByPair(moves(), selectedPartie?.coups));
+
+  $effect(() => {
+    if (selectedGameIndex) {
+      game = new Chess(startingFen());
+      board = buildBoard(game);
+      currentFen = game.fen();
+      currentIndex = 0;
+      freePlayMode = false;
+      freePlayMoves = [];
+    }
+  });
 
   onMount(() => {
     board = buildBoard(game);
@@ -108,7 +126,7 @@
     }
 
     if (!freePlayMode) {
-      game = rebuildGamePosition(moves(), currentIndex);
+      game = rebuildGamePosition(moves(), currentIndex, startingFen());
     }
 
     currentFen = game.fen();
@@ -168,7 +186,7 @@
   }
 
   function rebuildPosition() {
-    game = rebuildGamePosition(moves(), currentIndex);
+    game = rebuildGamePosition(moves(), currentIndex, startingFen());
     board = buildBoard(game);
     statusMessage = updateStatus(game);
     currentFen = game.fen();
@@ -222,7 +240,7 @@
   }
 </script>
 
-<div class="flex gap-8 items-start p-8 bg-surface-900 overflow-auto">
+<div class="flex grow gap-8 items-start p-8 bg-surface-900 overflow-auto">
     <div class="flex flex-col items-center gap-4 max-w-[50%]">
         <div class="w-full mb-4 overflow-auto">
 

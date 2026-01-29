@@ -26,11 +26,22 @@
   let files = $state<File[]>([]);
   let isUploading = $state(false);
   let isModalOpen = $state(false);
+  let importMode = $state<'pgn' | 'fen'>('pgn');
 
   let progressCurrent = $state(0);
   let progressTotal = $state(0);
   let isImportComplete = $state(false);
   let showProgressLoader = $state(false);
+
+  let fen = $state('');
+  let blancNom = $state('');
+  let noirNom = $state('');
+  let blancElo = $state<number | undefined>(undefined);
+  let noirElo = $state<number | undefined>(undefined);
+  let event = $state('');
+  let site = $state('');
+  let datePartie = $state('');
+  let isSubmittingFen = $state(false);
 
   const STORAGE_KEY = 'kaissa_import_state';
 
@@ -188,6 +199,73 @@
     isImportComplete = false;
     localStorage.removeItem(STORAGE_KEY);
   }
+
+  function resetFenForm() {
+    fen = '';
+    blancNom = '';
+    noirNom = '';
+    blancElo = undefined;
+    noirElo = undefined;
+    event = '';
+    site = '';
+    datePartie = '';
+  }
+
+  async function handleFenSubmit() {
+    if (!fen.trim()) {
+      onError?.('Veuillez entrer un FEN');
+      return;
+    }
+
+    if (!blancNom.trim() || !noirNom.trim()) {
+      onError?.('Veuillez renseigner les noms des joueurs');
+      return;
+    }
+
+    isSubmittingFen = true;
+
+    try {
+      const metadata = {
+        blancNom: blancNom.trim(),
+        noirNom: noirNom.trim(),
+        blancElo: blancElo && blancElo > 0 ? blancElo : undefined,
+        noirElo: noirElo && noirElo > 0 ? noirElo : undefined,
+        event: event.trim() || undefined,
+        site: site.trim() || undefined,
+        datePartie: datePartie ? new Date(datePartie).toISOString() : undefined,
+        resultat: 'INCONNU',
+      };
+
+      const response = await fetch(`/api/collections/${collectionId}/import-fen`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fen: fen.trim(),
+          metadata,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        onError?.(error.message || 'Erreur lors de l\'import du FEN');
+        return;
+      }
+
+      const result = await response.json();
+      onSuccess?.(result.message || 'Partie importée avec succès');
+      await invalidateAll();
+      
+      resetFenForm();
+      isModalOpen = false;
+    } catch (error) {
+      console.error('Import error:', error);
+      onError?.('Erreur lors de l\'import de la partie');
+    } finally {
+      isSubmittingFen = false;
+    }
+  }
 </script>
 
 <Dialog onOpenChange={(details) => isModalOpen = details.open} open={isModalOpen}>
@@ -204,6 +282,24 @@
                     </Dialog.CloseTrigger>
                 </header>
 
+                <div class="flex gap-2 border-b border-surface-400-600">
+                    <button
+                            class="px-4 py-2 font-medium transition-colors {importMode === 'pgn' ? 'border-b-2 border-primary-500 text-primary-500' : 'text-surface-600-400 hover:text-surface-900-100'}"
+                            onclick={() => importMode = 'pgn'}
+                            type="button"
+                    >
+                        Fichier PGN
+                    </button>
+                    <button
+                            class="px-4 py-2 font-medium transition-colors {importMode === 'fen' ? 'border-b-2 border-primary-500 text-primary-500' : 'text-surface-600-400 hover:text-surface-900-100'}"
+                            onclick={() => importMode = 'fen'}
+                            type="button"
+                    >
+                        Position FEN
+                    </button>
+                </div>
+
+                {#if importMode === 'pgn'}
                 <FileUpload accept=".pgn" maxFiles={10} onFileAccept={(f) => files.push(...f.files)}>
                     <FileUpload.Label>{$_('database.import.uploadLabel')}</FileUpload.Label>
                     <FileUpload.Dropzone>
@@ -241,6 +337,137 @@
                         {$_('database.import.importButton')}
                     </button>
                 </footer>
+                {:else}
+                <form onsubmit={(e) => { e.preventDefault(); handleFenSubmit(); }} class="space-y-4">
+                    <div class="space-y-2">
+                        <label for="fen" class="label">
+                            <span class="text-sm font-medium">FEN <span class="text-error-500">*</span></span>
+                        </label>
+                        <textarea
+                                id="fen"
+                                bind:value={fen}
+                                class="textarea"
+                                rows="3"
+                                placeholder="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+                                required
+                        ></textarea>
+                        <p class="text-xs text-surface-600-400">
+                            Copiez-collez le FEN de la position de départ
+                        </p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="space-y-2">
+                            <label for="blancNom" class="label">
+                                <span class="text-sm font-medium">Joueur Blanc <span class="text-error-500">*</span></span>
+                            </label>
+                            <input
+                                    id="blancNom"
+                                    type="text"
+                                    bind:value={blancNom}
+                                    class="input"
+                                    placeholder="Nom du joueur blanc"
+                                    required
+                            />
+                        </div>
+
+                        <div class="space-y-2">
+                            <label for="noirNom" class="label">
+                                <span class="text-sm font-medium">Joueur Noir <span class="text-error-500">*</span></span>
+                            </label>
+                            <input
+                                    id="noirNom"
+                                    type="text"
+                                    bind:value={noirNom}
+                                    class="input"
+                                    placeholder="Nom du joueur noir"
+                                    required
+                            />
+                        </div>
+
+                        <div class="space-y-2">
+                            <label for="blancElo" class="label">
+                                <span class="text-sm font-medium">Elo Blanc</span>
+                            </label>
+                            <input
+                                    id="blancElo"
+                                    type="number"
+                                    bind:value={blancElo}
+                                    class="input"
+                                    placeholder="2500"
+                                    min="0"
+                                    max="3500"
+                            />
+                        </div>
+
+                        <div class="space-y-2">
+                            <label for="noirElo" class="label">
+                                <span class="text-sm font-medium">Elo Noir</span>
+                            </label>
+                            <input
+                                    id="noirElo"
+                                    type="number"
+                                    bind:value={noirElo}
+                                    class="input"
+                                    placeholder="2500"
+                                    min="0"
+                                    max="3500"
+                            />
+                        </div>
+
+                        <div class="space-y-2">
+                            <label for="event" class="label">
+                                <span class="text-sm font-medium">Événement</span>
+                            </label>
+                            <input
+                                    id="event"
+                                    type="text"
+                                    bind:value={event}
+                                    class="input"
+                                    placeholder="Tournoi de Paris 2025"
+                            />
+                        </div>
+
+                        <div class="space-y-2">
+                            <label for="site" class="label">
+                                <span class="text-sm font-medium">Lieu</span>
+                            </label>
+                            <input
+                                    id="site"
+                                    type="text"
+                                    bind:value={site}
+                                    class="input"
+                                    placeholder="Paris, FRA"
+                            />
+                        </div>
+
+                        <div class="space-y-2">
+                            <label for="datePartie" class="label">
+                                <span class="text-sm font-medium">Date</span>
+                            </label>
+                            <input
+                                    id="datePartie"
+                                    type="date"
+                                    bind:value={datePartie}
+                                    class="input"
+                            />
+                        </div>
+                    </div>
+
+                    <footer class="flex justify-end gap-2 pt-4">
+                        <Dialog.CloseTrigger class="btn preset-tonal" disabled={isSubmittingFen}>
+                            Annuler
+                        </Dialog.CloseTrigger>
+                        <button
+                                class="btn preset-filled-primary-500"
+                                disabled={isSubmittingFen}
+                                type="submit"
+                        >
+                            {isSubmittingFen ? 'Import en cours...' : 'Importer la partie'}
+                        </button>
+                    </footer>
+                </form>
+                {/if}
             </Dialog.Content>
         </Dialog.Positioner>
     </Portal>

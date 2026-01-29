@@ -8,7 +8,7 @@
 
 <div class="flex h-[90vh] w-full">
     <Navigation
-            class="min-w-[100px] px-4 h-full bg-[#121212] flex flex-col items-center gap-4"
+            class="w-[100px] px-4 h-full bg-[#121212] flex flex-col items-center gap-4"
             layout="sidebar"
     >
         <Navigation.Header class="flex flex-col gap-2 py-4">
