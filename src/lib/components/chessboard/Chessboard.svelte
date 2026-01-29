@@ -40,6 +40,9 @@
 
   let stockfishService: StockfishService;
   let currentFen = $state<string>('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+  let freePlayMode = $state(false);
+  let freePlayMoves = $state<string[]>([]);
+  let basePositionIndex = $state(0);
 
   const selectedPartie = $derived(parties.find((p: any) => p.id === selectedGameIndex));
 
@@ -64,6 +67,21 @@
     stockfishService?.destroy();
   });
 
+  function updateAnalysis() {
+    const fen = game.fen();
+
+    if (selectedCollectionId && showBestMoves) {
+      const hashPosition = hashFEN(fen);
+      fetchBestMoves(selectedCollectionId, hashPosition.toString()).then((fetchedMoves) => {
+        meilleursCoups = fetchedMoves;
+      });
+    }
+
+    if (showAnalysis) {
+      stockfishService.analyze(fen, 1000, 300);
+    }
+  }
+
   $effect(() => {
     if (!selectedCollectionId || !showBestMoves) {
       meilleursCoups = [];
@@ -71,6 +89,7 @@
     }
 
     currentIndex;
+    freePlayMoves;
 
     const fen = game.fen();
     const hashPosition = hashFEN(fen);
@@ -82,12 +101,16 @@
 
   $effect(() => {
     currentIndex;
+    freePlayMoves;
 
     if (!showAnalysis) {
       return;
     }
 
-    game = rebuildGamePosition(moves(), currentIndex);
+    if (!freePlayMode) {
+      game = rebuildGamePosition(moves(), currentIndex);
+    }
+
     currentFen = game.fen();
     stockfishService.analyze(currentFen, 1000, 300);
   });
@@ -95,6 +118,7 @@
   function selectSquare(square: string) {
     selectedSquare = square;
     const moves = game.moves({square: square as any, verbose: true}) as any[];
+    console.log('>>>>', moves)
     possibleMoves = moves.map((m) => m.to);
   }
 
@@ -104,9 +128,11 @@
   }
 
   function handleTileClick(square: string) {
+    freePlayMode = true;
     const clickedPiece = game.get(square as any);
+    console.log('>>>> Clicked square:', square);
 
-    if (currentIndex !== moves().length) return;
+    // if (!freePlayMode && currentIndex !== moves().length) return;
 
     if (!selectedSquare) {
       if (clickedPiece && clickedPiece.color === game.turn()) {
@@ -124,7 +150,13 @@
       const move = game.move({from: selectedSquare, to: square, promotion: "q"});
 
       if (move) {
-        currentIndex = moves().length;
+        if (freePlayMode) {
+          freePlayMoves = [...freePlayMoves, move.lan];
+          currentFen = game.fen();
+          updateAnalysis();
+        } else {
+          currentIndex = moves().length;
+        }
         board = buildBoard(game);
         clearSelection();
         statusMessage = updateStatus(game);
@@ -147,12 +179,14 @@
   }
 
   function firstMove() {
+    freePlayMode = false;
     currentIndex = 0;
     rebuildPosition();
     clearSelection();
   }
 
   function prevMove() {
+    freePlayMode = false;
     if (currentIndex > 0) {
       currentIndex--;
       rebuildPosition();
@@ -161,6 +195,7 @@
   }
 
   function nextMove() {
+    freePlayMode = false;
     if (currentIndex < moves().length) {
       currentIndex++;
       rebuildPosition();
@@ -169,13 +204,25 @@
   }
 
   function lastMove() {
+    freePlayMode = false;
     currentIndex = moves().length;
     rebuildPosition();
   }
 
   function handleMoveClick(index: number) {
     currentIndex = index;
+    basePositionIndex = index;
+    freePlayMode = false;
+    freePlayMoves = [];
     rebuildPosition();
+  }
+
+  function exitFreePlayMode() {
+    freePlayMode = false;
+    freePlayMoves = [];
+    currentIndex = basePositionIndex;
+    rebuildPosition();
+    clearSelection();
   }
 </script>
 
@@ -191,24 +238,50 @@
                 <EvaluationBar wdl={stockfishAnalysis.wdl}/>
             {/if}
 
-            <div class="board">
-                {#each board as row, r (r)}
-                    <div class="rank">
-                        {#each row as cell, c (cell.square)}
-                            <Tile
-                                    {cell}
-                                    {r}
-                                    {c}
-                                    isSelected={selectedSquare === cell.square}
-                                    isPossibleMove={possibleMoves.includes(cell.square)}
-                                    {handleTileClick}
-                            />
+            <div class="board-wrapper">
+                <div class="board-with-coordinates">
+                    <div class="row-numbers">
+                        {#each [8, 7, 6, 5, 4, 3, 2, 1] as num}
+                            <div class="row-number">{num}</div>
                         {/each}
                     </div>
-                {/each}
+
+                    <div class="board-and-columns">
+                        <div class="board">
+                            {#each board as row, r (r)}
+                                <div class="rank">
+                                    {#each row as cell, c (cell.square)}
+                                        <Tile
+                                                {cell}
+                                                {r}
+                                                {c}
+                                                isSelected={selectedSquare === cell.square}
+                                                isPossibleMove={possibleMoves.includes(cell.square)}
+                                                {handleTileClick}
+                                        />
+                                    {/each}
+                                </div>
+                            {/each}
+                        </div>
+
+                        <div class="column-letters">
+                            {#each ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] as letter}
+                                <div class="column-letter">{letter}</div>
+                            {/each}
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
         <h2 class="h4">{statusMessage}</h2>
+        {#if freePlayMode}
+            <div class="flex gap-2 items-center">
+                <span class="badge variant-filled-warning">Mode Jeu Libre</span>
+                <button class="btn variant-filled-surface" onclick={exitFreePlayMode}>
+                    Revenir à la partie
+                </button>
+            </div>
+        {/if}
         <NavigationControls
                 {currentIndex}
                 onFirst={firstMove}
@@ -226,8 +299,8 @@
                 bind:selectedCollectionId
                 bind:showBestMoves
                 {collections}
-                {meilleursCoups}
                 {currentFen}
+                {meilleursCoups}
         />
 
         <AnalysisPanel
@@ -246,6 +319,38 @@
         height: fit-content;
     }
 
+    .board-wrapper {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .board-with-coordinates {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .row-numbers {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-around;
+        padding-right: 0.5rem;
+    }
+
+    .row-number {
+        height: 100px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #aaa;
+        font-weight: 600;
+        font-size: .8rem;
+    }
+
+    .board-and-columns {
+        display: flex;
+        flex-direction: column;
+    }
+
     .board {
         display: flex;
         width: fit-content;
@@ -255,5 +360,21 @@
 
     .rank {
         display: flex;
+    }
+
+    .column-letters {
+        display: flex;
+        justify-content: space-around;
+        padding-top: 0.5rem;
+    }
+
+    .column-letter {
+        width: 100px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #aaa;
+        font-weight: 600;
+        font-size: .8rem;
     }
 </style>
