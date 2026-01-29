@@ -118,7 +118,6 @@
   function selectSquare(square: string) {
     selectedSquare = square;
     const moves = game.moves({square: square as any, verbose: true}) as any[];
-    console.log('>>>>', moves)
     possibleMoves = moves.map((m) => m.to);
   }
 
@@ -130,9 +129,6 @@
   function handleTileClick(square: string) {
     freePlayMode = true;
     const clickedPiece = game.get(square as any);
-    console.log('>>>> Clicked square:', square);
-
-    // if (!freePlayMode && currentIndex !== moves().length) return;
 
     if (!selectedSquare) {
       if (clickedPiece && clickedPiece.color === game.turn()) {
