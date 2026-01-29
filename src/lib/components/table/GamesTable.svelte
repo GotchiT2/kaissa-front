@@ -23,6 +23,7 @@
   import {columns} from '$lib/components/table/columns';
   import {invalidateAll} from '$app/navigation';
   import {_} from '$lib/i18n';
+  import EditPartieMetadata from '$lib/components/modales/EditPartieMetadata.svelte';
 
   type DataTableProps<GameRow, TValue> = {
     collectionId?: string | null;
@@ -69,12 +70,11 @@
     id: string;
     whitePlayer: string;
     blackPlayer: string;
-    whiteElo: string;
-    blackElo: string;
+    whiteElo: number | null;
+    blackElo: number | null;
     tournament: string;
     date: string;
   } | null>(null);
-  let isUpdatingMetadata = $state(false);
 
   const table = createSvelteTable({
     get data() {
@@ -352,73 +352,25 @@
   }
 
   function openEditModal(row: any) {
-    let dateValue = '';
-    if (row.date) {
-      const parts = row.date.split('/');
-      if (parts.length === 3) {
-        dateValue = `${parts[2]}-${parts[1]}-${parts[0]}`;
-      }
-    }
-
     partieToEdit = {
       id: row.id,
       whitePlayer: row.whitePlayer || '',
       blackPlayer: row.blackPlayer || '',
-      whiteElo: row.whiteElo?.toString() || '',
-      blackElo: row.blackElo?.toString() || '',
+      whiteElo: row.whiteElo || null,
+      blackElo: row.blackElo || null,
       tournament: row.tournament || '',
-      date: dateValue,
+      date: row.date || '',
     };
   }
 
   function closeEditModal() {
-    if (!isUpdatingMetadata) {
-      partieToEdit = null;
-    }
+    partieToEdit = null;
   }
 
-  async function saveMetadata() {
-    if (!partieToEdit) return;
-
-    isUpdatingMetadata = true;
-
-    try {
-      const dateValue = partieToEdit.date ? new Date(partieToEdit.date).toISOString() : null;
-
-      const response = await fetch(`/api/parties/${partieToEdit.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          blancNom: partieToEdit.whitePlayer || null,
-          noirNom: partieToEdit.blackPlayer || null,
-          blancElo: partieToEdit.whiteElo ? parseInt(partieToEdit.whiteElo) : null,
-          noirElo: partieToEdit.blackElo ? parseInt(partieToEdit.blackElo) : null,
-          event: partieToEdit.tournament || null,
-          datePartie: dateValue,
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || $_('database.table.updateError'));
-      }
-
-      await fetchData();
-      await invalidateAll();
-
-      if (onDeleteSuccess) {
-        onDeleteSuccess($_('database.table.metadataUpdateSuccess'));
-      }
-
-      partieToEdit = null;
-    } catch (error: any) {
-      if (onDeleteError) {
-        onDeleteError(error.message || $_('database.table.updateError'));
-      }
-    } finally {
-      isUpdatingMetadata = false;
+  async function handleEditSuccess(message: string) {
+    await fetchData();
+    if (onDeleteSuccess) {
+      onDeleteSuccess(message);
     }
   }
 </script>
@@ -757,116 +709,12 @@
     </Dialog>
 {/if}
 
-{#if partieToEdit}
-    <Dialog open={partieToEdit !== null}>
-        <Portal>
-            <Dialog.Backdrop class="fixed inset-0 z-50 bg-surface-50-950/50" onclick={closeEditModal}/>
-            <Dialog.Positioner class="fixed inset-0 z-50 flex justify-center items-center p-4">
-                <Dialog.Content class="card bg-surface-100-900 w-full max-w-md p-4 space-y-4 shadow-xl">
-                    <header class="flex justify-between items-center">
-                        <Dialog.Title class="text-lg font-bold">{$_('database.table.editMetadata')}</Dialog.Title>
-                        <Dialog.CloseTrigger class="btn-icon hover:preset-tonal" onclick={closeEditModal}
-                                             disabled={isUpdatingMetadata}>
-                            <XIcon class="size-4"/>
-                        </Dialog.CloseTrigger>
-                    </header>
-
-                    <Dialog.Description class="space-y-4">
-                        <div class="space-y-2">
-                            <label class="label" for="whitePlayer">
-                                <span>{$_('database.table.whitePlayer')}</span>
-                                <input
-                                        id="whitePlayer"
-                                        type="text"
-                                        class="input"
-                                        bind:value={partieToEdit.whitePlayer}
-                                        disabled={isUpdatingMetadata}
-                                        placeholder={$_('database.table.whitePlayerName')}
-                                />
-                            </label>
-
-                            <label class="label" for="whiteElo">
-                                <span>{$_('database.table.whiteElo')}</span>
-                                <input
-                                        id="whiteElo"
-                                        type="number"
-                                        class="input"
-                                        bind:value={partieToEdit.whiteElo}
-                                        disabled={isUpdatingMetadata}
-                                        placeholder={$_('database.table.whitePlayerElo')}
-                                />
-                            </label>
-
-                            <label class="label" for="blackPlayer">
-                                <span>{$_('database.table.blackPlayer')}</span>
-                                <input
-                                        id="blackPlayer"
-                                        type="text"
-                                        class="input"
-                                        bind:value={partieToEdit.blackPlayer}
-                                        disabled={isUpdatingMetadata}
-                                        placeholder={$_('database.table.blackPlayerName')}
-                                />
-                            </label>
-
-                            <label class="label" for="blackElo">
-                                <span>{$_('database.table.blackElo')}</span>
-                                <input
-                                        id="blackElo"
-                                        type="number"
-                                        class="input"
-                                        bind:value={partieToEdit.blackElo}
-                                        disabled={isUpdatingMetadata}
-                                        placeholder={$_('database.table.blackPlayerElo')}
-                                />
-                            </label>
-
-                            <label class="label" for="tournament">
-                                <span>{$_('database.table.tournament')}</span>
-                                <input
-                                        id="tournament"
-                                        type="text"
-                                        class="input"
-                                        bind:value={partieToEdit.tournament}
-                                        disabled={isUpdatingMetadata}
-                                        placeholder={$_('database.table.tournamentName')}
-                                />
-                            </label>
-
-                            <label class="label" for="date">
-                                <span>{$_('database.table.date')}</span>
-                                <input
-                                        id="date"
-                                        type="date"
-                                        class="input"
-                                        bind:value={partieToEdit.date}
-                                        disabled={isUpdatingMetadata}
-                                />
-                            </label>
-                        </div>
-                    </Dialog.Description>
-
-                    <footer class="flex justify-end gap-2">
-                        <button
-                                class="btn preset-tonal"
-                                onclick={closeEditModal}
-                                disabled={isUpdatingMetadata}
-                        >
-                            {$_('common.actions.cancel')}
-                        </button>
-                        <button
-                                class="btn preset-filled-primary-500"
-                                onclick={saveMetadata}
-                                disabled={isUpdatingMetadata}
-                        >
-                            {isUpdatingMetadata ? $_('common.messages.saving') : $_('common.actions.save')}
-                        </button>
-                    </footer>
-                </Dialog.Content>
-            </Dialog.Positioner>
-        </Portal>
-    </Dialog>
-{/if}
+<EditPartieMetadata 
+  partieData={partieToEdit} 
+  onClose={closeEditModal}
+  onSuccess={handleEditSuccess}
+  onError={onDeleteError}
+/>
 
 {#if partieToDelete}
     <Dialog open={partieToDelete !== null}>

@@ -51,6 +51,13 @@ export const PATCH: RequestHandler = async ({ params, locals, request }) => {
 
   const body = await request.json();
 
+  // Si les noms des joueurs sont modifiés, mettre à jour le titre
+  if (body.blancNom !== undefined || body.noirNom !== undefined) {
+    const blancNom = body.blancNom ?? partie.blancNom ?? "?";
+    const noirNom = body.noirNom ?? partie.noirNom ?? "?";
+    body.titre = `${blancNom} vs ${noirNom}`;
+  }
+
   await prisma.partieTravail.update({
     where: { id: params.id },
     data: body,

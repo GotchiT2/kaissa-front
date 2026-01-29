@@ -13,8 +13,14 @@
   import {convertUciToSan, groupMovesByPair, rebuildGamePosition} from "$lib/utils/chessNotation";
   import {type BestMove, fetchBestMoves} from "$lib/services/bestMovesService";
   import {type StockfishAnalysis, StockfishService} from "$lib/services/stockfishService";
+  import EditPartieMetadata from "$lib/components/modales/EditPartieMetadata.svelte";
+  import {PencilIcon} from "@lucide/svelte";
+  import {createToaster, Toast} from "@skeletonlabs/skeleton-svelte";
+  import {goto, invalidateAll} from "$app/navigation";
 
   const {parties, collections} = $props();
+
+  const toaster = createToaster();
 
   let game = new Chess();
   let selectedGameIndex = $state(parties[0]?.id || null);
@@ -43,6 +49,15 @@
   let freePlayMode = $state(false);
   let freePlayMoves = $state<string[]>([]);
   let basePositionIndex = $state(0);
+  let partieToEdit = $state<{
+    id: string;
+    whitePlayer: string;
+    blackPlayer: string;
+    whiteElo: number | null;
+    blackElo: number | null;
+    tournament: string;
+    date: string;
+  } | null>(null);
 
   const selectedPartie = $derived(parties.find((p: any) => p.id === selectedGameIndex));
 
@@ -273,13 +288,49 @@
     rebuildPosition();
     clearSelection();
   }
+
+  function openEditModal() {
+    if (!selectedPartie) return;
+
+    partieToEdit = {
+      id: selectedPartie.id,
+      whitePlayer: selectedPartie.blancNom || '',
+      blackPlayer: selectedPartie.noirNom || '',
+      whiteElo: selectedPartie.blancElo || null,
+      blackElo: selectedPartie.noirElo || null,
+      tournament: selectedPartie.event || '',
+      date: selectedPartie.datePartie ? new Date(selectedPartie.datePartie).toLocaleDateString('fr-FR') : '',
+    };
+  }
+
+  function closeEditModal() {
+    partieToEdit = null;
+  }
+
+  async function handleEditSuccess(message: string) {
+    toaster.success({ title: 'Succès', description: message });
+    await invalidateAll();
+  }
+
+  function handleEditError(message: string) {
+    toaster.error({ title: 'Erreur', description: message });
+  }
 </script>
 
 <div class="flex grow gap-8 items-start p-8 bg-surface-900 overflow-auto">
     <div class="flex flex-col items-center gap-4 max-w-[50%]">
-        <div class="w-full mb-4 overflow-auto">
-
+        <div class="w-full mb-4 overflow-auto flex items-center gap-2">
             <GameSelector bind:selectedGameIndex {parties}/>
+            {#if selectedPartie}
+                <button
+                    class="btn-icon btn-icon-sm hover:preset-tonal"
+                    onclick={openEditModal}
+                    title="Éditer les métadonnées de la partie"
+                    aria-label="Éditer les métadonnées de la partie"
+                >
+                    <PencilIcon class="size-4"/>
+                </button>
+            {/if}
         </div>
 
         <div class="board-container">
@@ -362,6 +413,25 @@
         />
     </div>
 </div>
+
+<EditPartieMetadata 
+    partieData={partieToEdit} 
+    onClose={closeEditModal}
+    onSuccess={handleEditSuccess}
+    onError={handleEditError}
+/>
+
+<Toast.Group {toaster}>
+    {#snippet children(toast)}
+        <Toast {toast}>
+            <Toast.Message>
+                <Toast.Title>{toast.title}</Toast.Title>
+                <Toast.Description>{toast.description}</Toast.Description>
+            </Toast.Message>
+            <Toast.CloseTrigger/>
+        </Toast>
+    {/snippet}
+</Toast.Group>
 
 <style>
     .board-container {
