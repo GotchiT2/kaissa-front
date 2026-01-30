@@ -32,17 +32,10 @@
   },
   "unique": {
     "title": "Ce qui rend Kaissa unique ?",
-    "point1": "Une interface pensée avec et pour les joueurs : {modern}, fluide et {pleasant} à utiliser.",
-    "point2": "{approach} : Classez, filtrez et retrouvez vos parties facilement.",
-    "point3": "Des outils puissants et simples à prendre en main : {simplified}, {rethought} et intégration de {stockfish}.",
-    "point4": "Un backlog riche et vivant : {evolving} grâce à notre communauté de joueurs passionnés.",
-    "modern": "Moderne",
-    "pleasant": "agréable",
-    "approach": "Une approche intelligente des bases de parties",
-    "simplified": "Annotation simplifiée",
-    "rethought": "analyse repensée",
-    "stockfish": "Stockfish",
-    "evolving": "Kaissa évolue chaque jour"
+    "point1": "Une interface pensée avec et pour les joueurs : <span class=\"text-[#D6A645]\">Moderne</span>, fluide et <span class=\"text-[#D6A645]\">agréable</span> à utiliser.",
+    "point2": "<span class=\"text-[#D6A645]\">Une approche intelligente des bases de parties :</span> Classez, filtrez et retrouvez vos parties facilement.",
+    "point3": "Des outils puissants et simples à prendre en main : <span class=\"text-[#D6A645]\">Annotation simplifiée</span>, <span class=\"text-[#D6A645]\">analyse repensée</span> et intégration de <span class=\"text-[#D6A645]\">Stockfish</span>.",
+    "point4": "Un backlog riche et vivant : <span class=\"text-[#D6A645]\">Kaissa évolue chaque jour</span> grâce à notre communauté de joueurs passionnés."
   },
   "team": {
     "erwan": {

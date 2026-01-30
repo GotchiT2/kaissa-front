@@ -1,6 +1,6 @@
 <script lang="ts">
   import {ChartPie, ChessQueen, Cloud, Database} from '@lucide/svelte';
-  import { _ } from '$lib/i18n';
+  import {_} from '$lib/i18n';
 </script>
 
 <section class="flex flex-col gap-8 p-8 lg:p-16 items-center w-full">
@@ -14,11 +14,15 @@
     <div class="grid w-2/3 grid-flow-col grid-cols-3 gap-y-8 mt-16">
         <div class="flex flex-col items-center justify-center text-center gap-4">
             <Database/>
-            <p class="w-1/3"><span class="text-primary-500 font-bold">{$_('home.features.intuitive.title')}</span><br/>{$_('home.features.intuitive.description')}</p>
+            <p class="w-1/3"><span
+                    class="text-primary-500 font-bold">{$_('home.features.intuitive.title')}</span><br/>{$_('home.features.intuitive.description')}
+            </p>
         </div>
         <div class="flex flex-col items-center justify-center text-center gap-4">
             <ChartPie/>
-            <p class="w-1/3"><span class="text-primary-500 font-bold">{$_('home.features.statistics.title')}</span><br/>{$_('home.features.statistics.description')}</p>
+            <p class="w-1/3"><span
+                    class="text-primary-500 font-bold">{$_('home.features.statistics.title')}</span><br/>{$_('home.features.statistics.description')}
+            </p>
         </div>
 
         <div class="row-span-2 flex justify-center items-center">
@@ -26,18 +30,23 @@
         </div>
         <div class="flex flex-col items-center justify-center text-center gap-4">
             <ChessQueen/>
-            <p class="w-1/3"><span class="text-primary-500 font-bold">{$_('home.features.stockfish.title')}</span><br/>{$_('home.features.stockfish.description')}</p>
+            <p class="w-1/3"><span
+                    class="text-primary-500 font-bold">{$_('home.features.stockfish.title')}</span><br/>{$_('home.features.stockfish.description')}
+            </p>
         </div>
 
         <div class="flex flex-col items-center justify-center text-center gap-4">
             <Cloud/>
-            <p class="w-1/3"><span class="text-primary-500 font-bold">{$_('home.features.cloud.title')}</span><br/>{$_('home.features.cloud.description')}</p>
+            <p class="w-1/3"><span
+                    class="text-primary-500 font-bold">{$_('home.features.cloud.title')}</span><br/>{$_('home.features.cloud.description')}
+            </p>
         </div>
     </div>
 
 
     <p class="text-center mt-16"><span
-            class="text-primary-500 font-bold">{$_('home.features.scan.title')}</span><br/>{$_('home.features.scan.description')}</p>
+            class="text-primary-500 font-bold">{$_('home.features.scan.title')}</span><br/>{$_('home.features.scan.description')}
+    </p>
 
     <button class="btn btn-lg preset-filled-primary-500 font-bold" type="button">{$_('home.cta')}</button>
 
@@ -61,40 +70,26 @@
         <li class="flex gap-12 items-center">
             <div class="text-[#D6A645] text-7xl md:text-8xl leading-none font-light select-none">1.</div>
             <p class="text-2xl md:text-3xl leading-snug font-light">
-                Une interface pensée avec et pour les joueurs :
-                <span class="text-[#D6A645]">{$_('home.unique.modern')}</span>, fluide et
-                <span class="text-[#D6A645]">{$_('home.unique.pleasant')}</span> à utiliser.
+                {@html ($_('home.unique.point1'))} :
             </p>
         </li>
 
         <!-- Item 2 -->
         <li class="flex gap-12 items-center">
             <div class="text-[#D6A645] text-7xl md:text-8xl leading-none font-light select-none">2.</div>
-            <p class="text-2xl md:text-3xl leading-snug font-light">
-                <span class="text-[#D6A645]">{$_('home.unique.approach')}</span> :
-                Classez, filtrez et retrouvez vos parties facilement.
-            </p>
+            <p class="text-2xl md:text-3xl leading-snug font-light">{@html ($_('home.unique.point2'))}</p>
         </li>
 
         <!-- Item 3 -->
         <li class="flex gap-12 items-center">
             <div class="text-[#D6A645] text-7xl md:text-8xl leading-none font-light select-none">3.</div>
-            <p class="text-2xl md:text-3xl leading-snug font-light">
-                Des outils puissants et simples à prendre en main :
-                <span class="text-[#D6A645]">{$_('home.unique.simplified')}</span>,
-                <span class="text-[#D6A645]">{$_('home.unique.rethought')}</span> et intégration de
-                <span class="text-[#D6A645]">{$_('home.unique.stockfish')}</span>.
-            </p>
+            <p class="text-2xl md:text-3xl leading-snug font-light">{@html ($_('home.unique.point3'))}</p>
         </li>
 
         <!-- Item 4 -->
         <li class="flex gap-12 items-center">
             <div class="text-[#D6A645] text-7xl md:text-8xl leading-none font-light select-none">4.</div>
-            <p class="text-2xl md:text-3xl leading-snug font-light">
-                Un backlog riche et vivant :
-                <span class="text-[#D6A645]">{$_('home.unique.evolving')}</span> grâce à notre
-                communauté de joueurs passionnés.
-            </p>
+            <p class="text-2xl md:text-3xl leading-snug font-light">{@html ($_('home.unique.point4'))}</p>
         </li>
     </ul>
 </section>
@@ -193,7 +188,7 @@
         </div>
     </div>
 
-    <p class="h2 text-surface-900 italic text-center">{$_('home.quote', { values: { analysis: $_('home.analysis') } })}<br/>
+    <p class="h2 text-surface-900 italic text-center">{$_('home.quote', {values: {analysis: $_('home.analysis')}})}<br/>
         -
         {$_('home.quoteAuthor')}</p>
 

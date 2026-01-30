@@ -1,0 +1,54 @@
+{
+  "app": {
+    "name": "Kaissa",
+    "tagline": "Ваш помощник по анализу шахмат"
+  },
+  "nav": {
+    "chessboard": "Шахматная доска",
+    "database": "База данных",
+    "profile": "Профиль",
+    "logout": "Выход"
+  },
+  "actions": {
+    "save": "Сохранить",
+    "cancel": "Отменить",
+    "delete": "Удалить",
+    "edit": "Редактировать",
+    "create": "Создать",
+    "import": "Импортировать",
+    "export": "Экспортировать",
+    "search": "Поиск",
+    "filter": "Фильтр",
+    "close": "Закрыть",
+    "confirm": "Подтвердить",
+    "back": "Назад",
+    "next": "Далее",
+    "previous": "Предыдущий",
+    "first": "Первый",
+    "last": "Последний",
+    "clear": "Очистить"
+  },
+  "messages": {
+    "success": "Успешно",
+    "error": "Ошибка",
+    "warning": "Внимание",
+    "info": "Информация",
+    "loading": "Загрузка...",
+    "deleting": "Удаление...",
+    "saving": "Сохранение...",
+    "creating": "Создание..."
+  },
+  "footer": {
+    "links": {
+      "legal": "Юридическая информация",
+      "privacy": "Политика конфиденциальности",
+      "terms": "Общие условия продажи"
+    },
+    "social": {
+      "facebookLabel": "Страница Kaissa в Facebook (внешняя ссылка)",
+      "instagramLabel": "Страница Kaissa в Instagram (внешняя ссылка)",
+      "tiktokLabel": "Аккаунт Kaissa в Tiktok (внешняя ссылка)"
+    },
+    "copyright": "©Kaissa 2025 - Все права защищены"
+  }
+}

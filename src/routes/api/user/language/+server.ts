@@ -12,8 +12,8 @@ export const PATCH: RequestHandler = async ({ request, locals }) => {
   try {
     const { language } = await request.json();
 
-    if (!language || (language !== 'fr' && language !== 'en')) {
-      return json({ message: 'Invalid language. Must be "fr" or "en"' }, { status: 400 });
+    if (!language || (language !== 'fr' && language !== 'en' && language !== 'ru')) {
+      return json({ message: 'Invalid language. Must be "fr", "en" or "ru"' }, { status: 400 });
     }
 
     await prisma.user.update({

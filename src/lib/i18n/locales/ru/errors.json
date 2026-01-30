@@ -1,0 +1,36 @@
+{
+  "generic": {
+    "unknown": "Произошла неизвестная ошибка",
+    "networkError": "Ошибка сетевого подключения",
+    "serverError": "Ошибка сервера",
+    "unauthorized": "Не авторизован",
+    "forbidden": "Доступ запрещен",
+    "notFound": "Ресурс не найден",
+    "validationError": "Ошибка валидации"
+  },
+  "auth": {
+    "invalidCredentials": "Неверный email или пароль",
+    "sessionExpired": "Ваша сессия истекла",
+    "emailAlreadyExists": "Этот email уже используется",
+    "passwordTooShort": "Пароль должен содержать не менее 8 символов",
+    "passwordTooWeak": "Пароль слишком слабый"
+  },
+  "collection": {
+    "notFound": "Коллекция не найдена",
+    "deleteFailed": "Ошибка при удалении коллекции",
+    "createFailed": "Ошибка при создании коллекции",
+    "accessDenied": "Доступ к этой коллекции запрещен"
+  },
+  "tag": {
+    "notFound": "Тег не найден",
+    "deleteFailed": "Ошибка при удалении тега",
+    "createFailed": "Ошибка при создании тега",
+    "nameRequired": "Название тега обязательно"
+  },
+  "game": {
+    "notFound": "Партия не найдена",
+    "deleteFailed": "Ошибка при удалении партии",
+    "importFailed": "Ошибка при импорте партий",
+    "invalidPgn": "Неверный формат PGN"
+  }
+}

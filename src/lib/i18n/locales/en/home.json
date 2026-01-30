@@ -32,17 +32,10 @@
   },
   "unique": {
     "title": "What makes Kaissa unique?",
-    "point1": "An interface designed with and for players: {modern}, fluid and {pleasant} to use.",
-    "point2": "{approach}: Classify, filter and find your games easily.",
-    "point3": "Powerful and easy-to-use tools: {simplified}, {rethought} and {stockfish} integration.",
-    "point4": "A rich and living backlog: {evolving} thanks to our community of passionate players.",
-    "modern": "Modern",
-    "pleasant": "enjoyable",
-    "approach": "A smart approach to game databases",
-    "simplified": "Simplified annotation",
-    "rethought": "rethought analysis",
-    "stockfish": "Stockfish",
-    "evolving": "Kaissa evolves every day"
+    "point1": "An interface designed with and for players: <span class=\"text-[#D6A645]\">Modern</span>, fluid and <span class=\"text-[#D6A645]\">enjoyable</span> to use.",
+    "point2": "<span class=\"text-[#D6A645]\">A smart approach to game databases:</span> Classify, filter and find your games easily.",
+    "point3": "Powerful and easy-to-use tools: <span class=\"text-[#D6A645]\">Simplified annotation</span>, <span class=\"text-[#D6A645]\">rethought analysis</span> and <span class=\"text-[#D6A645]\">Stockfish</span> integration.",
+    "point4": "A rich and living backlog: <span class=\"text-[#D6A645]\">Kaissa evolves every day</span> thanks to our community of passionate players."
   },
   "team": {
     "erwan": {

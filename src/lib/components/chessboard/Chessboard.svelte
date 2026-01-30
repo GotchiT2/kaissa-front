@@ -16,7 +16,7 @@
   import EditPartieMetadata from "$lib/components/modales/EditPartieMetadata.svelte";
   import {PencilIcon} from "@lucide/svelte";
   import {createToaster, Toast} from "@skeletonlabs/skeleton-svelte";
-  import {goto, invalidateAll} from "$app/navigation";
+  import {invalidateAll} from "$app/navigation";
 
   const {parties, collections} = $props();
 
@@ -308,12 +308,12 @@
   }
 
   async function handleEditSuccess(message: string) {
-    toaster.success({ title: 'Succès', description: message });
+    toaster.success({title: 'Succès', description: message});
     await invalidateAll();
   }
 
   function handleEditError(message: string) {
-    toaster.error({ title: 'Erreur', description: message });
+    toaster.error({title: 'Erreur', description: message});
   }
 </script>
 
@@ -323,10 +323,10 @@
             <GameSelector bind:selectedGameIndex {parties}/>
             {#if selectedPartie}
                 <button
-                    class="btn-icon btn-icon-sm hover:preset-tonal"
-                    onclick={openEditModal}
-                    title="Éditer les métadonnées de la partie"
-                    aria-label="Éditer les métadonnées de la partie"
+                        class="btn-icon btn-icon-sm hover:preset-tonal"
+                        onclick={openEditModal}
+                        title="Éditer les métadonnées de la partie"
+                        aria-label="Éditer les métadonnées de la partie"
                 >
                     <PencilIcon class="size-4"/>
                 </button>
@@ -414,11 +414,11 @@
     </div>
 </div>
 
-<EditPartieMetadata 
-    partieData={partieToEdit} 
-    onClose={closeEditModal}
-    onSuccess={handleEditSuccess}
-    onError={handleEditError}
+<EditPartieMetadata
+        onClose={closeEditModal}
+        onError={handleEditError}
+        onSuccess={handleEditSuccess}
+        partieData={partieToEdit}
 />
 
 <Toast.Group {toaster}>

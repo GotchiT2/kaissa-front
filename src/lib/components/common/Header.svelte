@@ -88,6 +88,9 @@
                     <ToggleGroup.Item value="EN">
                         EN
                     </ToggleGroup.Item>
+                    <ToggleGroup.Item value="RU">
+                        RU
+                    </ToggleGroup.Item>
                 </ToggleGroup>
                 {#if isChangingLanguage}
                     <Loader2 class="size-5 animate-spin text-primary-500"/>
