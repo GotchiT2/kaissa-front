@@ -70,6 +70,8 @@ export class StockfishService {
     const id = crypto.randomUUID();
     const url = `/api/proxy/stream?fen=${encodeURIComponent(fen)}&movetime=${movetime}&id=${id}`;
 
+    const isBlackToMove = fen.split(' ')[1] === 'b';
+
     this.eventSource = new EventSource(url);
 
     this.eventSource.addEventListener("queued", () => {
@@ -90,11 +92,23 @@ export class StockfishService {
 
         const wdlMatch = line.match(/wdl\s+(\d+)\s+(\d+)\s+(\d+)/);
         if (wdlMatch) {
-          this.wdl = {
-            whiteWin: parseInt(wdlMatch[1]),
-            draw: parseInt(wdlMatch[2]),
-            blackWin: parseInt(wdlMatch[3]),
-          };
+          const win = parseInt(wdlMatch[1]);
+          const draw = parseInt(wdlMatch[2]);
+          const loss = parseInt(wdlMatch[3]);
+          
+          if (isBlackToMove) {
+            this.wdl = {
+              whiteWin: loss,
+              draw: draw,
+              blackWin: win,
+            };
+          } else {
+            this.wdl = {
+              whiteWin: win,
+              draw: draw,
+              blackWin: loss,
+            };
+          }
         }
 
         const cpMatch = line.match(/cp\s+(-?\d+)/);
