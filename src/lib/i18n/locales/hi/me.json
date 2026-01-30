@@ -1,0 +1,21 @@
+{
+  "title": "मेरा खाता",
+  "profile": {
+    "title": "व्यक्तिगत जानकारी",
+    "editButton": "संपादित करें",
+    "editTitle": "मेरी जानकारी संपादित करें",
+    "firstName": "पहला नाम",
+    "lastName": "अंतिम नाम",
+    "email": "ईमेल पता",
+    "nationality": "राष्ट्रीयता",
+    "requiredFields": "सभी फ़ील्ड आवश्यक हैं",
+    "updateError": "प्रोफ़ाइल अपडेट करने में त्रुटि",
+    "updateSuccess": "प्रोफ़ाइल सफलतापूर्वक अपडेट की गई"
+  },
+  "statistics": {
+    "title": "मेरे आंकड़े",
+    "collections": "संग्रह",
+    "games": "खेल",
+    "tags": "टैग"
+  }
+}

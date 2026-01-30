@@ -1,0 +1,54 @@
+{
+  "app": {
+    "name": "Kaissa",
+    "tagline": "El vostre assistent d'anàlisi d'escacs"
+  },
+  "nav": {
+    "chessboard": "Tauler d'escacs",
+    "database": "Base de dades",
+    "profile": "Perfil",
+    "logout": "Tancar sessió"
+  },
+  "actions": {
+    "save": "Desar",
+    "cancel": "Cancel·lar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "create": "Crear",
+    "import": "Importar",
+    "export": "Exportar",
+    "search": "Cercar",
+    "filter": "Filtrar",
+    "close": "Tancar",
+    "confirm": "Confirmar",
+    "back": "Enrere",
+    "next": "Següent",
+    "previous": "Anterior",
+    "first": "Primer",
+    "last": "Últim",
+    "clear": "Esborrar"
+  },
+  "messages": {
+    "success": "Èxit",
+    "error": "Error",
+    "warning": "Avís",
+    "info": "Informació",
+    "loading": "Carregant...",
+    "deleting": "Eliminant...",
+    "saving": "Desant...",
+    "creating": "Creant..."
+  },
+  "footer": {
+    "links": {
+      "legal": "Avís legal",
+      "privacy": "Política de privadesa",
+      "terms": "Condicions generals de venda"
+    },
+    "social": {
+      "facebookLabel": "Pàgina de Facebook de Kaissa (enllaç extern)",
+      "instagramLabel": "Pàgina d'Instagram de Kaissa (enllaç extern)",
+      "tiktokLabel": "Compte de Tiktok de Kaissa (enllaç extern)"
+    },
+    "copyright": "©Kaissa 2025 - Tots els drets reservats"
+  }
+}

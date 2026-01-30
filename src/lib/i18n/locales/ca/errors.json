@@ -1,0 +1,36 @@
+{
+  "generic": {
+    "unknown": "S'ha produït un error desconegut",
+    "networkError": "Error de connexió de xarxa",
+    "serverError": "Error del servidor",
+    "unauthorized": "No autoritzat",
+    "forbidden": "Accés prohibit",
+    "notFound": "Recurs no trobat",
+    "validationError": "Error de validació"
+  },
+  "auth": {
+    "invalidCredentials": "Correu electrònic o contrasenya incorrectes",
+    "sessionExpired": "La vostra sessió ha caducat",
+    "emailAlreadyExists": "Aquest correu electrònic ja està en ús",
+    "passwordTooShort": "La contrasenya ha de tenir almenys 8 caràcters",
+    "passwordTooWeak": "La contrasenya és massa feble"
+  },
+  "collection": {
+    "notFound": "Col·lecció no trobada",
+    "deleteFailed": "Error en eliminar la col·lecció",
+    "createFailed": "Error en crear la col·lecció",
+    "accessDenied": "Accés denegat a aquesta col·lecció"
+  },
+  "tag": {
+    "notFound": "Etiqueta no trobada",
+    "deleteFailed": "Error en eliminar l'etiqueta",
+    "createFailed": "Error en crear l'etiqueta",
+    "nameRequired": "El nom de l'etiqueta és obligatori"
+  },
+  "game": {
+    "notFound": "Partida no trobada",
+    "deleteFailed": "Error en eliminar la partida",
+    "importFailed": "Error en importar les partides",
+    "invalidPgn": "Format PGN no vàlid"
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "title": "Avís legal.",
+  "tagline": "Think deeper, play smarter.",
+  "sections": {
+    "editor": {
+      "title": "Editor del lloc",
+      "companyName": "Nom de l'empresa:",
+      "companyNameValue": "Pionics",
+      "legalForm": "Forma jurídica:",
+      "legalFormValue": "Societat per accions simplificada (SAS)",
+      "capital": "Capital social:",
+      "capitalValue": "5 000,00 euros",
+      "headquarters": "Seu social:",
+      "headquartersValue": "31 rue de Cugnaux, Bâtiment B, Appartement 66, 31300 Toulouse",
+      "registrationNumber": "Número d'immatriculació al RCS:",
+      "registrationNumberValue": "938 387 768 R.C.S. Toulouse",
+      "vat": "Número de IVA intracomunitari:",
+      "vatValue": "Exempció d'IVA",
+      "email": "Correu electrònic:",
+      "director": "Director de la publicació:",
+      "directorValue": "Thibault Souloumiac"
+    },
+    "hosting": {
+      "title": "Allotjament",
+      "name": "Nom de l'allotjador:",
+      "nameValue": "ReadyMag"
+    },
+    "intellectualProperty": {
+      "title": "Propietat intel·lectual:",
+      "content": "El contingut del lloc (textos, imatges, gràfics, logotip, bases de dades, etc.) és propietat exclusiva de Pionics, llevat que s'indiqui el contrari. Qualsevol reproducció, modificació o ús sense autorització prèvia per escrit està estrictament prohibit i pot constituir una falsificació sancionada pels articles L.335-2 i següents del Codi de la Propietat Intel·lectual."
+    },
+    "gdpr": {
+      "title": "Tractament de dades personals (RGPD):",
+      "content": "Les dades personals recollides es tracten de conformitat amb la normativa RGPD. Teniu dret d'accés, rectificació, oposició, limitació del tractament, supressió i portabilitat de les dades que us concerneixen. Per exercir aquests drets, poseu-vos en contacte amb: "
+    },
+    "cookies": {
+      "title": "Galetes:",
+      "content": "Aquest lloc no utilitza galetes de seguiment, ni eines de mesura d'audiència, ni rastrejadors de tercers (publicitaris o de xarxes socials). Només es poden utilitzar galetes estrictament necessàries per al funcionament del lloc, de conformitat amb l'article 82 de la llei d'Informàtica i Llibertats."
+    },
+    "liability": {
+      "title": "Responsabilitat:",
+      "content": "Pionics declina tota responsabilitat per eventuals interrupcions o disfuncions del lloc. Pionics no es fa responsable dels eventuals danys directes o indirectes relacionats amb l'ús del lloc."
+    },
+    "law": {
+      "title": "Dret aplicable i jurisdicció competent:",
+      "content": "Aquest avís legal es regeix pel dret francès. En cas de litigi, les parts es comprometen a buscar una solució amistosa abans de qualsevol acció judicial. En absència d'acord amistós, els tribunals competents seran els de la jurisdicció de la seu social de Pionics. Data d'actualització: 01/07/2025"
+    }
+  }
+}

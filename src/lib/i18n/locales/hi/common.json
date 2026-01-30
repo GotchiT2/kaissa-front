@@ -1,0 +1,54 @@
+{
+  "app": {
+    "name": "Kaissa",
+    "tagline": "आपका शतरंज विश्लेषण सहायक"
+  },
+  "nav": {
+    "chessboard": "शतरंज बोर्ड",
+    "database": "डेटाबेस",
+    "profile": "प्रोफ़ाइल",
+    "logout": "लॉग आउट"
+  },
+  "actions": {
+    "save": "सहेजें",
+    "cancel": "रद्द करें",
+    "delete": "हटाएं",
+    "edit": "संपादित करें",
+    "create": "बनाएं",
+    "import": "आयात करें",
+    "export": "निर्यात करें",
+    "search": "खोजें",
+    "filter": "फ़िल्टर करें",
+    "close": "बंद करें",
+    "confirm": "पुष्टि करें",
+    "back": "वापस",
+    "next": "अगला",
+    "previous": "पिछला",
+    "first": "पहला",
+    "last": "आखिरी",
+    "clear": "साफ़ करें"
+  },
+  "messages": {
+    "success": "सफलता",
+    "error": "त्रुटि",
+    "warning": "चेतावनी",
+    "info": "जानकारी",
+    "loading": "लोड हो रहा है...",
+    "deleting": "हटाया जा रहा है...",
+    "saving": "सहेजा जा रहा है...",
+    "creating": "बनाया जा रहा है..."
+  },
+  "footer": {
+    "links": {
+      "legal": "कानूनी सूचना",
+      "privacy": "गोपनीयता नीति",
+      "terms": "सामान्य बिक्री शर्तें"
+    },
+    "social": {
+      "facebookLabel": "Kaissa का Facebook पेज (बाहरी लिंक)",
+      "instagramLabel": "Kaissa का Instagram पेज (बाहरी लिंक)",
+      "tiktokLabel": "Kaissa का Tiktok खाता (बाहरी लिंक)"
+    },
+    "copyright": "©Kaissa 2025 - सर्वाधिकार सुरक्षित"
+  }
+}

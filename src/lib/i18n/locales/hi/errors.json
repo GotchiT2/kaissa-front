@@ -1,0 +1,36 @@
+{
+  "generic": {
+    "unknown": "एक अज्ञात त्रुटि हुई",
+    "networkError": "नेटवर्क कनेक्शन त्रुटि",
+    "serverError": "सर्वर त्रुटि",
+    "unauthorized": "अनधिकृत",
+    "forbidden": "पहुंच निषिद्ध",
+    "notFound": "संसाधन नहीं मिला",
+    "validationError": "सत्यापन त्रुटि"
+  },
+  "auth": {
+    "invalidCredentials": "गलत ईमेल या पासवर्ड",
+    "sessionExpired": "आपका सत्र समाप्त हो गया है",
+    "emailAlreadyExists": "यह ईमेल पहले से उपयोग में है",
+    "passwordTooShort": "पासवर्ड में कम से कम 8 अक्षर होने चाहिए",
+    "passwordTooWeak": "पासवर्ड बहुत कमजोर है"
+  },
+  "collection": {
+    "notFound": "संग्रह नहीं मिला",
+    "deleteFailed": "संग्रह हटाने में त्रुटि",
+    "createFailed": "संग्रह बनाने में त्रुटि",
+    "accessDenied": "इस संग्रह तक पहुंच निषिद्ध"
+  },
+  "tag": {
+    "notFound": "टैग नहीं मिला",
+    "deleteFailed": "टैग हटाने में त्रुटि",
+    "createFailed": "टैग बनाने में त्रुटि",
+    "nameRequired": "टैग का नाम आवश्यक है"
+  },
+  "game": {
+    "notFound": "खेल नहीं मिला",
+    "deleteFailed": "खेल हटाने में त्रुटि",
+    "importFailed": "खेल आयात करने में त्रुटि",
+    "invalidPgn": "अमान्य PGN प्रारूप"
+  }
+}

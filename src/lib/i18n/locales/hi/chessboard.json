@@ -1,0 +1,65 @@
+{
+  "analysis": {
+    "title": "विश्लेषण",
+    "bestMove": "सर्वश्रेष्ठ चाल",
+    "analyzing": "विश्लेषण चल रहा है...",
+    "disabled": "Stockfish विश्लेषण अक्षम है।"
+  },
+  "bestMoves": {
+    "title": "सर्वश्रेष्ठ खेली गई चालें",
+    "database": "डेटाबेस",
+    "noCollection": "कोई संग्रह उपलब्ध नहीं",
+    "move": "चाल",
+    "gamesCount": "खेलों की संख्या",
+    "winStats": "सफेद / ड्रॉ / काला",
+    "avgElo": "औसत ELO",
+    "disabled": "डेटाबेस में सर्वश्रेष्ठ चालें प्रदर्शित नहीं हैं।"
+  },
+  "game": {
+    "untitled": "बिना शीर्षक का खेल",
+    "close": "खेल बंद करें"
+  },
+  "navigation": {
+    "first": "पहली चाल पर जाएं",
+    "previous": "पिछला",
+    "next": "अगला",
+    "last": "आखिरी चाल पर जाएं"
+  },
+  "notation": {
+    "title": "संकेतन"
+  },
+  "comments": {
+    "title": "टिप्पणियाँ",
+    "editButton": "चाल संपादित करें",
+    "editTitle": "चाल संपादित करें",
+    "beforeMove": "चाल से पहले टिप्पणी",
+    "afterMove": "चाल के बाद टिप्पणी",
+    "beforeMovePlaceholder": "चाल से पहले टिप्पणी जोड़ें...",
+    "afterMovePlaceholder": "चाल के बाद टिप्पणी जोड़ें...",
+    "characters": "अक्षर",
+    "saveSuccess": "टिप्पणियाँ सफलतापूर्वक सहेजी गईं",
+    "saveError": "टिप्पणियाँ सहेजने में त्रुटि"
+  },
+  "nag": {
+    "none": "कोई नहीं",
+    "moveAnnotation": "चाल एनोटेशन",
+    "positionAnnotation": "स्थिति एनोटेशन",
+    "move": {
+      "good": "अच्छी चाल",
+      "mistake": "गलती",
+      "brilliant": "शानदार चाल",
+      "blunder": "बड़ी गलती",
+      "interesting": "दिलचस्प चाल",
+      "dubious": "संदिग्ध चाल"
+    },
+    "position": {
+      "unclear": "अस्पष्ट स्थिति",
+      "slightWhite": "सफेद की थोड़ी बढ़त",
+      "slightBlack": "काले की थोड़ी बढ़त",
+      "moderateWhite": "सफेद की बढ़त",
+      "moderateBlack": "काले की बढ़त",
+      "decisiveWhite": "सफेद की निर्णायक बढ़त",
+      "decisiveBlack": "काले की निर्णायक बढ़त"
+    }
+  }
+}

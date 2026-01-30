@@ -1,0 +1,21 @@
+{
+  "title": "El meu compte",
+  "profile": {
+    "title": "Informació personal",
+    "editButton": "Editar",
+    "editTitle": "Editar la meva informació",
+    "firstName": "Nom",
+    "lastName": "Cognoms",
+    "email": "Adreça de correu electrònic",
+    "nationality": "Nacionalitat",
+    "requiredFields": "Tots els camps són obligatoris",
+    "updateError": "Error en actualitzar el perfil",
+    "updateSuccess": "Perfil actualitzat correctament"
+  },
+  "statistics": {
+    "title": "Les meves estadístiques",
+    "collections": "Col·leccions",
+    "games": "Partides",
+    "tags": "Etiquetes"
+  }
+}

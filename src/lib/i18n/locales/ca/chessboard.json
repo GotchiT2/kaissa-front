@@ -1,0 +1,65 @@
+{
+  "analysis": {
+    "title": "Anàlisi",
+    "bestMove": "Millor jugada",
+    "analyzing": "Analitzant...",
+    "disabled": "L'anàlisi de Stockfish està desactivada."
+  },
+  "bestMoves": {
+    "title": "Millors jugades fetes",
+    "database": "Base de dades",
+    "noCollection": "No hi ha col·leccions disponibles",
+    "move": "Jugada",
+    "gamesCount": "Nombre de partides",
+    "winStats": "Blanques / Taules / Negres",
+    "avgElo": "ELO mitjà",
+    "disabled": "Les millors jugades de la base de dades no es mostren."
+  },
+  "game": {
+    "untitled": "Partida sense títol",
+    "close": "Tancar la partida"
+  },
+  "navigation": {
+    "first": "Anar a la primera jugada",
+    "previous": "Anterior",
+    "next": "Següent",
+    "last": "Anar a l'última jugada"
+  },
+  "notation": {
+    "title": "Notació"
+  },
+  "comments": {
+    "title": "Comentaris",
+    "editButton": "Editar la jugada",
+    "editTitle": "Editar la jugada",
+    "beforeMove": "Comentari abans de la jugada",
+    "afterMove": "Comentari després de la jugada",
+    "beforeMovePlaceholder": "Afegiu un comentari abans de la jugada...",
+    "afterMovePlaceholder": "Afegiu un comentari després de la jugada...",
+    "characters": "caràcters",
+    "saveSuccess": "Comentaris desats correctament",
+    "saveError": "Error en desar els comentaris"
+  },
+  "nag": {
+    "none": "Cap",
+    "moveAnnotation": "Anotació de jugada",
+    "positionAnnotation": "Anotació de posició",
+    "move": {
+      "good": "Bona jugada",
+      "mistake": "Error",
+      "brilliant": "Jugada brillant",
+      "blunder": "Greu error",
+      "interesting": "Jugada interessant",
+      "dubious": "Jugada dubtosa"
+    },
+    "position": {
+      "unclear": "Posició poc clara",
+      "slightWhite": "Lleuger avantatge blanc",
+      "slightBlack": "Lleuger avantatge negre",
+      "moderateWhite": "Avantatge blanc",
+      "moderateBlack": "Avantatge negre",
+      "decisiveWhite": "Avantatge decisiu blanc",
+      "decisiveBlack": "Avantatge decisiu negre"
+    }
+  }
+}

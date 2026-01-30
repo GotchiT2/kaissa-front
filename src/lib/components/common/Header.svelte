@@ -1,19 +1,19 @@
 <script lang="ts">
   import {ChessQueen, CircleUserIcon, Database, Loader2, LogOutIcon, MenuIcon} from '@lucide/svelte';
-  import {AppBar, Menu, Portal, ToggleGroup} from '@skeletonlabs/skeleton-svelte';
+  import {AppBar, Menu, Portal} from '@skeletonlabs/skeleton-svelte';
   import type {User} from 'lucia';
   import {_, locale} from '$lib/i18n';
   import {updateUserLanguage} from '$lib/services/languageService';
 
   let {user}: { user: User | null } = $props();
 
-  let currentLocale = $derived([$locale ? $locale.toUpperCase() : 'FR']);
+  let currentLocale = $derived($locale ? $locale : 'fr');
   let isChangingLanguage = $state(false);
 
-  async function handleLanguageChange(details: { value: string[] }) {
+  async function handleLanguageChange(event: Event) {
     isChangingLanguage = true;
     try {
-      const newLocale = details.value[0].toLowerCase();
+      const newLocale = (event.target as HTMLSelectElement).value;
       if (user) {
         await updateUserLanguage(newLocale);
       } else {
@@ -81,17 +81,18 @@
         </AppBar.Headline>
         <AppBar.Trail>
             <div class="flex items-center gap-2">
-                <ToggleGroup disabled={isChangingLanguage} onValueChange={handleLanguageChange} value={currentLocale}>
-                    <ToggleGroup.Item value="FR">
-                        FR
-                    </ToggleGroup.Item>
-                    <ToggleGroup.Item value="EN">
-                        EN
-                    </ToggleGroup.Item>
-                    <ToggleGroup.Item value="RU">
-                        RU
-                    </ToggleGroup.Item>
-                </ToggleGroup>
+                <select
+                        bind:value={currentLocale}
+                        class="select variant-filled-surface rounded-lg px-3 py-2 text-sm cursor-pointer"
+                        disabled={isChangingLanguage}
+                        onchange={handleLanguageChange}
+                >
+                    <option value="fr">🇫🇷 Français</option>
+                    <option value="en">🇬🇧 English</option>
+                    <option value="ru">🇷🇺 Русский</option>
+                    <option value="hi">🇮🇳 हिंदी</option>
+                    <option value="ca">🇮🇳 Català</option>
+                </select>
                 {#if isChangingLanguage}
                     <Loader2 class="size-5 animate-spin text-primary-500"/>
                 {/if}

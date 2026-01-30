@@ -1,0 +1,81 @@
+{"tagline": "Think deeper, play smarter.",
+  "hero": {
+    "title": "La nova generació de programari d'anàlisi d'escacs.",
+    "subtitle": "Més ràpid, més fluid, més modern. Accessible a tot arreu, per a tots els nivells"
+  },
+  "features": {
+    "intuitive": {
+      "title": "Gestió intuïtiva de les partides",
+      "description": "Col·leccions, filtres, etiquetes, tot és senzill i ràpid."
+    },
+    "statistics": {
+      "title": "Estadístiques intel·ligents",
+      "description": "Jugades més jugades amb percentatges de victòria."
+    },
+    "stockfish": {
+      "title": "Anàlisi amb Stockfish",
+      "description": "Millor jugada i variants accessibles a l'instant."
+    },
+    "cloud": {
+      "title": "Còpia de seguretat en línia",
+      "description": "Accediu a les vostres partides on sigueu."
+    },
+    "scan": {
+      "title": "Escaneig intel·ligent (en desenvolupament)",
+      "description": "Feu una foto, la vostra partida s'afegeix automàticament."
+    }
+  },
+  "vision": {
+    "text": "Kaissa no és una simple alternativa, ",
+    "emphasis": "és una nova manera de pensar l'anàlisi d'escacs."
+  },
+  "unique": {
+    "title": "Què fa que Kaissa sigui únic?",
+    "point1": "Una interfície pensada amb i per als jugadors: <span class=\"text-[#D6A645]\">Modern</span>, fluid i <span class=\"text-[#D6A645]\">agradable</span> d'utilitzar.",
+    "point2": "<span class=\"text-[#D6A645]\">Un enfocament intel·ligent de les bases de partides:</span> Classifiqueu, filtreu i trobeu les vostres partides fàcilment.",
+    "point3": "Eines potents i fàcils d'utilitzar: <span class=\"text-[#D6A645]\">Anotació simplificada</span>, <span class=\"text-[#D6A645]\">anàlisi repensat</span> i integració de <span class=\"text-[#D6A645]\">Stockfish</span>.",
+    "point4": "Un backlog ric i vivent: <span class=\"text-[#D6A645]\">Kaissa evoluciona cada dia</span> gràcies a la nostra comunitat de jugadors apassionats."
+  },
+  "team": {
+    "erwan": {
+      "role": "Cofundador de Kaissa",
+      "bio1": "Sempre en torneig i de viatge, necessitava una eina senzilla, ràpida i accessible a tot arreu, des de qualsevol dispositiu.",
+      "bio2": "No una fàbrica de gas, sinó un espai clar per analitzar, revisar i progressar, directament en línia.",
+      "bio3": "Aquesta aplicació va néixer d'aquesta necessitat i de la de molts altres jugadors."
+    },
+    "thibault": {
+      "role": "Cofundador de Kaissa",
+      "bio1": "Quan vaig descobrir els escacs fa uns anys, volia progressar seriosament, però em vaig adonar que les eines disponibles no estaven fetes per a això: massa complicades, massa antigues, o simplement no adaptades als principiants.",
+      "bio2": "Amb l'Erwan, vam decidir crear Kaissa: una aplicació fàcil d'utilitzar i prou potent per ajudar els jugadors més experimentats.",
+      "bio3": "El meu paper és pilotar el disseny del producte perquè Kaissa alliberi tot el seu potencial, per a vosaltres."
+    },
+    "anthony": {
+      "role": "Dissenyador UX",
+      "bio1": "El Thibault em va contactar per aportar la meva experiència en l'àmbit de l'experiència d'usuari.",
+      "bio2": "El repte de Kaissa és important: resoldre els problemes d'ergonomia de les aplicacions d'anàlisi de partides i proposar una solució moderna, fluida i ultra potent.",
+      "bio3": "Avui, estic molt orgullós del que Pionics ha desenvolupat!"
+    },
+    "theo": {
+      "role": "CTO de Kaissa",
+      "bio1": "--",
+      "bio2": "--",
+      "bio3": "--"
+    }
+  },
+  "quote": "Els escacs són l'art de l'anàlisi",
+  "quoteAuthor": "Mikhaïl Botvinnik",
+  "analysis": "anàlisi",
+  "beta": {
+    "title": "Accés a la Beta privada",
+    "subtitle": "Participeu en el llançament de Kaissa i proveu l'aplicació en primícia!",
+    "benefit1": "Accés GRATUÏT a la Beta",
+    "benefit2": "Una notificació tan bon punt s'obri el servei",
+    "benefit3": "Doneu la vostra opinió i influïu en les properes evolucions.",
+    "cta": "PROVA KAISSA",
+    "limited": "(places limitades)"
+  },
+  "partners": {
+    "title": "Els nostres socis"
+  },
+  "cta": "PROVA KAISSA"
+}
