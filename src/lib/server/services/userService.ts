@@ -61,3 +61,73 @@ export async function createUser(data: CreateUserData): Promise<User> {
 		},
 	});
 }
+
+/**
+ * Définit le code de vérification pour un utilisateur
+ * 
+ * @param userId - L'identifiant de l'utilisateur
+ * @param code - Le code de vérification
+ * @param expiresAt - La date d'expiration du code
+ * @returns L'utilisateur mis à jour
+ */
+export async function setVerificationCode(
+	userId: string,
+	code: string,
+	expiresAt: Date
+): Promise<User> {
+	return prisma.user.update({
+		where: { id: userId },
+		data: {
+			verificationCode: code,
+			verificationCodeExpiresAt: expiresAt,
+		},
+	});
+}
+
+/**
+ * Vérifie le code de vérification d'un utilisateur
+ * 
+ * @param userId - L'identifiant de l'utilisateur
+ * @param code - Le code à vérifier
+ * @returns true si le code est valide, false sinon
+ */
+export async function verifyUserCode(userId: string, code: string): Promise<boolean> {
+	const user = await prisma.user.findUnique({
+		where: { id: userId },
+	});
+
+	if (!user) {
+		return false;
+	}
+
+	if (!user.verificationCode || !user.verificationCodeExpiresAt) {
+		return false;
+	}
+
+	if (user.verificationCode !== code) {
+		return false;
+	}
+
+	if (new Date() > user.verificationCodeExpiresAt) {
+		return false;
+	}
+
+	return true;
+}
+
+/**
+ * Marque l'email d'un utilisateur comme vérifié et nettoie le code de vérification
+ * 
+ * @param userId - L'identifiant de l'utilisateur
+ * @returns L'utilisateur mis à jour
+ */
+export async function markEmailAsVerified(userId: string): Promise<User> {
+	return prisma.user.update({
+		where: { id: userId },
+		data: {
+			emailVerified: true,
+			verificationCode: null,
+			verificationCodeExpiresAt: null,
+		},
+	});
+}

@@ -2,15 +2,25 @@ import { fail, redirect } from "@sveltejs/kit";
 import { isNotEmpty, validateEmailField } from "$lib/utils/validation";
 import { validatePassword } from "$lib/utils/passwordValidation";
 import { COUNTRIES } from "$lib/utils/countries";
+import { hashPassword } from "$lib/server/services/authService";
 import {
-  createUserSession,
-  hashPassword,
-} from "$lib/server/services/authService";
-import { createUser, userExists } from "$lib/server/services/userService";
+  createUser,
+  setVerificationCode,
+  userExists,
+} from "$lib/server/services/userService";
+import {
+  generateVerificationCode,
+  getVerificationCodeExpiration,
+} from "$lib/server/services/emailService";
 import type { Actions } from "./$types";
+import {
+  sendActivationEmail,
+  upsertContactToList,
+} from "$lib/server/services/brevo";
+import { BREVO_LIST_ID, BREVO_TEMPLATE_ID } from "$env/static/private";
 
 export const actions: Actions = {
-  default: async ({ request, cookies }) => {
+  default: async ({ request }) => {
     const formData = await request.formData();
     const email = formData.get("email");
     const password = formData.get("password");
@@ -108,8 +118,28 @@ export const actions: Actions = {
         nationality: nationality as string,
       });
 
-      // Créer une session pour l'utilisateur
-      await createUserSession(user.id, cookies);
+      // Générer le code de vérification
+      const verificationCode = generateVerificationCode();
+      const expiresAt = getVerificationCodeExpiration();
+
+      // Enregistrer le code de vérification
+      await setVerificationCode(user.id, verificationCode, expiresAt);
+
+      await upsertContactToList({
+        email: email as string,
+        firstname: firstName as string,
+        listId: Number(BREVO_LIST_ID),
+      });
+
+      await sendActivationEmail({
+        toEmail: email as string,
+        toName: firstName as string,
+        templateId: Number(BREVO_TEMPLATE_ID),
+        params: {
+          firstName,
+          verificationCode,
+        },
+      });
     } catch (error) {
       console.error("Erreur lors de la création du compte:", error);
       return fail(500, {
@@ -118,7 +148,10 @@ export const actions: Actions = {
       });
     }
 
-    // Rediriger vers la page d'accueil après inscription réussie
-    throw redirect(302, "/");
+    // Rediriger vers la page de vérification
+    throw redirect(
+      302,
+      `/verify-email?email=${encodeURIComponent(email as string)}`,
+    );
   },
 };

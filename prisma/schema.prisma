@@ -47,19 +47,22 @@ enum TypeCommentaire {
 // ============================================================================
 
 model User {
-  id          String       @id
-  email       String       @unique
-  password    String
-  firstName   String
-  lastName    String
-  nationality String
-  language    String       @default("fr")
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  lastLoginAt DateTime?
-  sessions    Session[]
-  collections Collection[]
-  tags        Tag[]
+  id                        String       @id
+  email                     String       @unique
+  password                  String
+  firstName                 String
+  lastName                  String
+  nationality               String
+  language                  String       @default("fr")
+  emailVerified             Boolean      @default(false)
+  verificationCode          String?
+  verificationCodeExpiresAt DateTime?
+  createdAt                 DateTime     @default(now())
+  updatedAt                 DateTime     @updatedAt
+  lastLoginAt               DateTime?
+  sessions                  Session[]
+  collections               Collection[]
+  tags                      Tag[]
 
   @@index([email])
 }
