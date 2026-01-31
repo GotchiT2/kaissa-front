@@ -48,18 +48,12 @@
             class="text-primary-500 font-bold">{$_('home.features.scan.title')}</span><br/>{$_('home.features.scan.description')}
     </p>
 
-    <button class="btn btn-lg preset-filled-primary-500 font-bold" type="button">{$_('home.cta')}</button>
-
 </section>
 
 <section class="w-full bg-surface-100 py-16 min-h-[100vh] flex items-center justify-center gap-16">
     <p class="text-8xl max-w-[50%] text-end font-normal text-surface-700">{$_('home.vision.text')}<span
             class="font-black">{$_('home.vision.emphasis')}</span></p>
     <img alt="" src="/analyse1.jpg"/>
-
-    <!--    <div class="aspect-video w-1/2 h-full mx-auto bg-primary-500">-->
-    <!--        &lt;!&ndash;        <video src=""></video>&ndash;&gt;-->
-    <!--    </div>-->
 </section>
 
 <section class="w-full py-16 flex flex-col gap-8 items-center bg-surface-700">
@@ -192,42 +186,4 @@
         -
         {$_('home.quoteAuthor')}</p>
 
-</section>
-
-<section class="w-full bg-primary-500 py-16 flex flex-col gap-8 items-center text-surface-900">
-    <h2 class="h2">{$_('home.beta.title')}</h2>
-    <p class="h5">{$_('home.beta.subtitle')}</p>
-    <div class="flex gap-16">
-        <ul class="list-disc flex flex-col gap-4 font-bold">
-            <li>{$_('home.beta.benefit1')}</li>
-            <li>{$_('home.beta.benefit2')}
-            </li>
-            <li>{$_('home.beta.benefit3')}
-            </li>
-        </ul>
-        <button class="btn btn-lg bg-surface-900 text-primary-500" type="button"><span
-                class="font-bold">{$_('home.beta.cta')}</span><br/>{$_('home.beta.limited')}
-        </button>
-    </div>
-</section>
-
-<section class="w-full py-16 flex flex-col gap-8 items-center">
-    <h2 class="h2">{$_('home.partners.title')}</h2>
-    <ul class="w-2/3 mt-8 flex justify-around">
-        <li class="opacity-60 hover:opacity-100 cursor-pointer transition-all"><img alt=""
-                                                                                    src="/partenaires/chess-club.png">
-        </li>
-        <li class="opacity-60 hover:opacity-100 cursor-pointer transition-all"><img alt=""
-                                                                                    src="/partenaires/chess-club-premium.png">
-        </li>
-        <li class="opacity-60 hover:opacity-100 cursor-pointer transition-all"><img alt=""
-                                                                                    src="/partenaires/chess-club-since-1990.png">
-        </li>
-        <li class="opacity-60 hover:opacity-100 cursor-pointer transition-all"><img alt=""
-                                                                                    src="/partenaires/chess-club-nogent.png">
-        </li>
-        <li class="opacity-60 hover:opacity-100 cursor-pointer transition-all"><img alt=""
-                                                                                    src="/partenaires/chess-club-sautron.png">
-        </li>
-    </ul>
 </section>
