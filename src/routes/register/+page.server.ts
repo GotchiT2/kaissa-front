@@ -17,7 +17,7 @@ import {
   sendActivationEmail,
   upsertContactToList,
 } from "$lib/server/services/brevo";
-import { BREVO_LIST_ID, BREVO_TEMPLATE_ID } from "$env/static/private";
+import { env } from "$env/dynamic/private";
 
 export const actions: Actions = {
   default: async ({ request }) => {
@@ -128,13 +128,13 @@ export const actions: Actions = {
       await upsertContactToList({
         email: email as string,
         firstname: firstName as string,
-        listId: Number(BREVO_LIST_ID),
+        listId: Number(env.BREVO_LIST_ID),
       });
 
       await sendActivationEmail({
         toEmail: email as string,
         toName: firstName as string,
-        templateId: Number(BREVO_TEMPLATE_ID),
+        templateId: Number(env.BREVO_TEMPLATE_ID),
         params: {
           firstName,
           verificationCode,

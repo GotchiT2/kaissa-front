@@ -1,8 +1,4 @@
-import {
-  BREVO_API_KEY,
-  BREVO_SENDER_EMAIL,
-  BREVO_SENDER_NAME,
-} from "$env/static/private";
+import { env } from "$env/dynamic/private";
 
 const BREVO_BASE = "https://api.brevo.com/v3";
 
@@ -12,7 +8,7 @@ async function brevoFetch(path: string, init: RequestInit) {
     headers: {
       accept: "application/json",
       "content-type": "application/json",
-      "api-key": BREVO_API_KEY,
+      "api-key": env.BREVO_API_KEY,
       ...(init.headers ?? {}),
     },
   });
@@ -65,7 +61,7 @@ export async function sendActivationEmail(opts: {
   return brevoFetch("/smtp/email", {
     method: "POST",
     body: JSON.stringify({
-      sender: { email: BREVO_SENDER_EMAIL, name: BREVO_SENDER_NAME },
+      sender: { email: env.BREVO_SENDER_EMAIL, name: env.BREVO_SENDER_NAME },
       to: [{ email: toEmail, name: toName ?? "" }],
       templateId,
       params,
