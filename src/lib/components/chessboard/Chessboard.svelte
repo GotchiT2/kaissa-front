@@ -92,6 +92,7 @@
     board = buildBoard(game);
     currentFen = game.fen();
     stockfishService = new StockfishService((analysis) => {
+      console.log("Received Stockfish analysis:", analysis);
       stockfishAnalysis = analysis;
     });
   });

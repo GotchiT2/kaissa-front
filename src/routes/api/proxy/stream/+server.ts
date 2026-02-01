@@ -5,6 +5,7 @@ export const GET = async ({ url }) => {
   const fen = url.searchParams.get("fen");
   const movetime = Number(url.searchParams.get("movetime") ?? "800");
   const id = url.searchParams.get("id") ?? crypto.randomUUID();
+  const multipv = Number(url.searchParams.get("multipv") ?? "1");
 
   if (!fen) {
     return new Response(JSON.stringify({ error: "fen is required" }), {
@@ -25,7 +26,7 @@ export const GET = async ({ url }) => {
 
   const stream = new ReadableStream({
     start(controller) {
-      console.log("SSE stream open", { id, movetime });
+      console.log("SSE stream open", { id, movetime, multipv });
 
       const encoder = new TextEncoder();
       let closed = false;
@@ -62,44 +63,48 @@ export const GET = async ({ url }) => {
         ws = null;
       };
 
-      const stopJob = () => {
-        // stop uniquement si ws est OPEN
-        if (ws && ws.readyState === ws.OPEN) {
-          try {
-            ws.send(JSON.stringify({ op: "stop", id }));
-          } catch {}
-        }
-      };
-
       ws = new WebSocket(wsUrl);
 
       ws.on("open", () => {
         // On lance l'analyse via le proxy
-        ws?.send(JSON.stringify({ op: "analyze", id, fen, movetime }));
+        ws?.send(JSON.stringify({ op: "analyze", id, fen, movetime, multipv }));
       });
 
       ws.on("message", (data: WebSocket.Data) => {
-        let msg: { id?: string; op?: string; line?: string; error?: string };
+        let msg: any;
         try {
           msg = JSON.parse(data.toString());
         } catch {
           return;
         }
 
-        // certains messages peuvent ne pas avoir d'id (ex: err générique)
+        // filtre par id si présent
         if (msg.id && msg.id !== id) return;
 
-        if (msg.op === "queued") sendEvent("queued", { id });
-        if (msg.op === "info") sendEvent("info", { id, line: msg.line });
+        if (msg.op === "queued") {
+          sendEvent("queued", msg);
+          return;
+        }
+
+        if (msg.op === "info") {
+          // payload complet: depth/score/pv/wdl etc.
+          sendEvent("info", msg);
+          return;
+        }
+
+        if (msg.op === "status") {
+          sendEvent("status", msg);
+          return;
+        }
 
         if (msg.op === "bestmove") {
-          sendEvent("bestmove", { id, line: msg.line });
+          sendEvent("bestmove", msg);
           closeOnce();
           return;
         }
 
         if (msg.op === "err") {
-          sendEvent("error", { id, error: msg.error ?? "engine_error" });
+          sendEvent("error", msg);
           closeOnce();
           return;
         }
@@ -111,8 +116,6 @@ export const GET = async ({ url }) => {
       });
 
       ws.on("close", () => {
-        // IMPORTANT: ne pas appeler stopJob ici (c'est déjà fermé)
-        // juste signaler si pas déjà closed
         if (!closed) {
           sendEvent("error", { id, error: "proxy_ws_closed" });
           closeOnce();
@@ -123,16 +126,11 @@ export const GET = async ({ url }) => {
       pingTimer = setInterval(() => {
         sendRaw(`: ping\n\n`);
       }, 15000);
-
-      // on stocke des callbacks sur l'instance stream via closure
-      (globalThis as any).__sseCloseOnce = closeOnce;
-      (globalThis as any).__sseStopJob = stopJob;
     },
 
     cancel() {
       console.log("SSE stream cancel", { id });
 
-      // la fermeture côté client doit stopper le job et fermer sans crash
       try {
         pingTimer && clearInterval(pingTimer);
       } catch {}

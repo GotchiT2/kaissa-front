@@ -15,11 +15,62 @@ export interface StockfishAnalysis {
   principalVariation: string | null;
 }
 
+type Score =
+  | { type: "cp"; value: number; bound?: "lowerbound" | "upperbound" }
+  | { type: "mate"; value: number; bound?: "lowerbound" | "upperbound" };
+
+type InfoEventPayload = {
+  op?: "info";
+  id?: string;
+
+  depth?: number;
+  seldepth?: number;
+  multipv?: number;
+
+  score?: Score;
+  wdl?: { win: number; draw: number; loss: number };
+
+  nodes?: number;
+  nps?: number;
+  time?: number;
+
+  pv?: string[];
+
+  // fields from engine may still include:
+  type?: string; // analysis:info forwarded through proxy/api
+};
+
+type BestmovePayload = {
+  op?: "bestmove";
+  id?: string;
+  bestmove?: string;
+  ponder?: string;
+  type?: string; // analysis:bestmove forwarded through proxy/api
+};
+
+function formatInfoLine(d: InfoEventPayload) {
+  const parts: string[] = [];
+  if (typeof d.depth === "number") parts.push(`depth ${d.depth}`);
+  if (typeof d.multipv === "number" && d.multipv !== 1)
+    parts.push(`multipv ${d.multipv}`);
+
+  if (d.score?.type === "cp")
+    parts.push(`cp ${(d.score.value / 100).toFixed(2)}`);
+  if (d.score?.type === "mate") parts.push(`mate ${d.score.value}`);
+
+  if (d.wdl) parts.push(`wdl ${d.wdl.win} ${d.wdl.draw} ${d.wdl.loss}`);
+  if (Array.isArray(d.pv) && d.pv.length) parts.push(`pv ${d.pv.join(" ")}`);
+
+  return parts.length ? `info ${parts.join(" ")}` : "info";
+}
+
 export class StockfishService {
   private eventSource: EventSource | null = null;
   private analyzeTimer: number | null = null;
   private lastRequestedFen: string | null = null;
+
   private onUpdate: (analysis: StockfishAnalysis) => void;
+
   private stockfishLines: string[] = [];
   private bestmove: string = "";
   private wdl: WDLData | null = null;
@@ -43,9 +94,8 @@ export class StockfishService {
     this.principalVariation = null;
     this.notifyUpdate(true);
 
-    if (this.lastRequestedFen === fen) {
-      return;
-    }
+    // (optionnel) si tu veux vraiment éviter une relance sur même FEN
+    if (this.lastRequestedFen === fen) return;
 
     this.analyzeTimer = window.setTimeout(() => {
       this.startAnalysis(fen, movetime);
@@ -68,9 +118,17 @@ export class StockfishService {
     this.lastRequestedFen = fen;
 
     const id = crypto.randomUUID();
-    const url = `/api/proxy/stream?fen=${encodeURIComponent(fen)}&movetime=${movetime}&id=${id}`;
 
-    const isBlackToMove = fen.split(' ')[1] === 'b';
+    // (optionnel) multipv si tu veux l'exposer
+    const multipv = 1;
+
+    const url =
+      `/api/proxy/stream?fen=${encodeURIComponent(fen)}` +
+      `&movetime=${movetime}` +
+      `&id=${id}` +
+      `&multipv=${multipv}`;
+
+    const isBlackToMove = fen.split(" ")[1] === "b";
 
     this.eventSource = new EventSource(url);
 
@@ -79,66 +137,95 @@ export class StockfishService {
       this.notifyUpdate(true);
     });
 
+    this.eventSource.addEventListener("status", (e) => {
+      // Optionnel: tu peux afficher le status RUNNING/STOPPING/IDLE
+      try {
+        const data = JSON.parse((e as MessageEvent).data);
+      } catch {}
+    });
+
     this.eventSource.addEventListener("info", (e) => {
-      const data = JSON.parse((e as MessageEvent).data);
-      const line = data.line;
-      this.stockfishLines = [...this.stockfishLines, line];
+      let data: InfoEventPayload;
+      try {
+        data = JSON.parse((e as MessageEvent).data);
+      } catch {
+        return;
+      }
 
-      if (line.includes("info depth")) {
-        const depthMatch = line.match(/depth\s+(\d+)/);
-        if (depthMatch) {
-          this.depth = parseInt(depthMatch[1]);
-        }
+      // Si multipv > 1, on ne garde que la ligne principale (multipv 1)
+      if (typeof data.multipv === "number" && data.multipv !== 1) {
+        return;
+      }
 
-        const wdlMatch = line.match(/wdl\s+(\d+)\s+(\d+)\s+(\d+)/);
-        if (wdlMatch) {
-          const win = parseInt(wdlMatch[1]);
-          const draw = parseInt(wdlMatch[2]);
-          const loss = parseInt(wdlMatch[3]);
-          
-          if (isBlackToMove) {
-            this.wdl = {
-              whiteWin: loss,
-              draw: draw,
-              blackWin: win,
-            };
-          } else {
-            this.wdl = {
-              whiteWin: win,
-              draw: draw,
-              blackWin: loss,
-            };
-          }
-        }
+      // Construit une ligne "lisible" pour ton tableau lines
+      const prettyLine = formatInfoLine(data);
+      this.stockfishLines = [...this.stockfishLines, prettyLine];
 
-        const cpMatch = line.match(/cp\s+(-?\d+)/);
-        if (cpMatch) {
-          this.evaluation = parseInt(cpMatch[1]) / 100;
-        }
+      // Depth
+      if (typeof data.depth === "number") {
+        this.depth = data.depth;
+      }
 
-        const pvMatch = line.match(/ pv\s+(.+)$/);
-        if (pvMatch) {
-          this.principalVariation = pvMatch[1].trim();
+      // WDL (win/draw/loss) : côté engine c'est généralement du point de vue du camp au trait.
+      // Dans ton ancienne logique, tu swap selon black-to-move pour exposer whiteWin/blackWin.
+      if (
+        data.wdl &&
+        Number.isFinite(data.wdl.win) &&
+        Number.isFinite(data.wdl.draw) &&
+        Number.isFinite(data.wdl.loss)
+      ) {
+        const win = data.wdl.win;
+        const draw = data.wdl.draw;
+        const loss = data.wdl.loss;
+
+        if (isBlackToMove) {
+          // "win" = black win, "loss" = white win
+          this.wdl = { whiteWin: loss, draw, blackWin: win };
+        } else {
+          // "win" = white win, "loss" = black win
+          this.wdl = { whiteWin: win, draw, blackWin: loss };
         }
+      }
+
+      // Evaluation: score cp en pawns
+      if (data.score?.type === "cp" && Number.isFinite(data.score.value)) {
+        // Stockfish cp est généralement du point de vue du camp au trait.
+        // Si tu veux une éval "positive = avantage blanc", tu peux inverser quand c'est noir au trait :
+        const cp = data.score.value;
+        const pawns = cp / 100;
+
+        // Choix: conserver "du point de vue du camp au trait" (ancien comportement implicite),
+        // ou convertir en "blanc positif":
+        const normalized = isBlackToMove ? -pawns : pawns;
+
+        this.evaluation = normalized;
+      }
+
+      // PV
+      if (Array.isArray(data.pv) && data.pv.length > 0) {
+        this.principalVariation = data.pv.join(" ");
       }
 
       this.notifyUpdate(true);
     });
 
     this.eventSource.addEventListener("bestmove", (e) => {
-      const data = JSON.parse((e as MessageEvent).data);
-      const bestmoveLine = data.line;
-      const bestmoveMatch = bestmoveLine.match(/bestmove\s+(\S+)/);
-      this.bestmove = bestmoveMatch ? bestmoveMatch[1] : bestmoveLine;
+      let data: BestmovePayload;
+      try {
+        data = JSON.parse((e as MessageEvent).data);
+      } catch {
+        this.close();
+        return;
+      }
 
+      this.bestmove = data.bestmove ?? "";
+
+      // Sécurité: si PV existe mais ne commence pas par bestmove, on recolle
       if (this.bestmove && this.principalVariation) {
-        const firstPvMove = this.principalVariation.trim().split(/\s+/)[0];
-        if (firstPvMove !== this.bestmove) {
-          this.principalVariation =
-            this.bestmove +
-            (this.principalVariation
-              ? " " + this.principalVariation.split(/\s+/).slice(1).join(" ")
-              : "");
+        const pvMoves = this.principalVariation.trim().split(/\s+/);
+        if (pvMoves.length > 0 && pvMoves[0] !== this.bestmove) {
+          pvMoves[0] = this.bestmove;
+          this.principalVariation = pvMoves.join(" ");
         }
       }
 
@@ -147,6 +234,9 @@ export class StockfishService {
     });
 
     this.eventSource.addEventListener("error", (e) => {
+      // Si le serveur SSE envoie event:error, ce handler se déclenche aussi.
+      // Tu peux parser e.data si c'est un MessageEvent, mais EventSource native
+      // déclenche souvent error sans payload exploitable.
       console.error("Erreur EventSource:", e);
       this.close();
     });
