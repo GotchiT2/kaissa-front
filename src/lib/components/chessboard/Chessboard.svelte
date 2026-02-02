@@ -112,7 +112,7 @@
     }
 
     if (showAnalysis) {
-      stockfishService.analyze(fen, 1000, 300);
+      stockfishService.analyze(fen, 24, 300);
     }
   }
 
@@ -146,7 +146,7 @@
     }
 
     currentFen = game.fen();
-    stockfishService.analyze(currentFen, 1000, 300);
+    stockfishService.analyze(currentFen, 24, 300);
   });
 
   function selectSquare(square: string) {
@@ -316,6 +316,10 @@
   function handleEditError(message: string) {
     toaster.error({title: 'Erreur', description: message});
   }
+
+  function handleExtendAnalysis() {
+    stockfishService.extendAnalysis();
+  }
 </script>
 
 <div class="flex grow gap-8 items-start p-8 bg-surface-900 overflow-auto">
@@ -411,6 +415,7 @@
                 analysis={stockfishAnalysis}
                 bind:showAnalysis
                 {currentFen}
+                onExtendAnalysis={handleExtendAnalysis}
         />
     </div>
 </div>

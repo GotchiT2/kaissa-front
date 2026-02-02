@@ -2,13 +2,11 @@ import { env } from "$env/dynamic/private";
 import WebSocket from "ws";
 
 export const GET = async ({ url }) => {
-  const fen = url.searchParams.get("fen");
-  const movetime = Number(url.searchParams.get("movetime") ?? "800");
   const id = url.searchParams.get("id") ?? crypto.randomUUID();
-  const multipv = Number(url.searchParams.get("multipv") ?? "1");
+  const mode = url.searchParams.get("mode") ?? "start"; // start or subscribe
 
-  if (!fen) {
-    return new Response(JSON.stringify({ error: "fen is required" }), {
+  if (!id) {
+    return new Response(JSON.stringify({ error: "id is required" }), {
       status: 400,
     });
   }
@@ -26,7 +24,7 @@ export const GET = async ({ url }) => {
 
   const stream = new ReadableStream({
     start(controller) {
-      console.log("SSE stream open", { id, movetime, multipv });
+      console.log("SSE stream open", { id, mode });
 
       const encoder = new TextEncoder();
       let closed = false;
@@ -50,28 +48,37 @@ export const GET = async ({ url }) => {
         closed = true;
 
         try {
-          pingTimer && clearInterval(pingTimer);
-        } catch {}
+          if (pingTimer) clearInterval(pingTimer);
+        } catch {
+          // Ignore cleanup errors
+        }
         pingTimer = null;
 
         try {
           controller.close();
-        } catch {}
+        } catch {
+          // Ignore close errors
+        }
         try {
           ws?.close();
-        } catch {}
+        } catch {
+          // Ignore close errors
+        }
         ws = null;
       };
 
       ws = new WebSocket(wsUrl);
 
       ws.on("open", () => {
-        // On lance l'analyse via le proxy
-        ws?.send(JSON.stringify({ op: "analyze", id, fen, movetime, multipv }));
+        // Mode subscribe: on se branche juste sur une session existante
+        if (mode === "subscribe") {
+          ws?.send(JSON.stringify({ op: "subscribe", id }));
+        }
+        // Mode start: l'analyse sera démarrée par le control WS côté client
       });
 
       ws.on("message", (data: WebSocket.Data) => {
-        let msg: any;
+        let msg;
         try {
           msg = JSON.parse(data.toString());
         } catch {
@@ -99,7 +106,11 @@ export const GET = async ({ url }) => {
 
         if (msg.op === "bestmove") {
           sendEvent("bestmove", msg);
-          closeOnce();
+          // Ne pas fermer le stream automatiquement en mode subscribe
+          // pour permettre extend sans ré-ouvrir
+          if (mode !== "subscribe") {
+            closeOnce();
+          }
           return;
         }
 
@@ -132,20 +143,26 @@ export const GET = async ({ url }) => {
       console.log("SSE stream cancel", { id });
 
       try {
-        pingTimer && clearInterval(pingTimer);
-      } catch {}
+        if (pingTimer) clearInterval(pingTimer);
+      } catch {
+        // Ignore cleanup errors
+      }
       pingTimer = null;
 
       // stop si possible
       if (ws && ws.readyState === ws.OPEN) {
         try {
           ws.send(JSON.stringify({ op: "stop", id }));
-        } catch {}
+        } catch {
+          // Ignore send errors
+        }
       }
 
       try {
         ws?.close();
-      } catch {}
+      } catch {
+        // Ignore close errors
+      }
       ws = null;
     },
   });

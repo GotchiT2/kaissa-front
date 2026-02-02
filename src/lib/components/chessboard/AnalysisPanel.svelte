@@ -7,11 +7,13 @@
   let {
     analysis,
     showAnalysis = $bindable(),
-    currentFen
+    currentFen,
+    onExtendAnalysis
   }: {
     analysis: StockfishAnalysis;
     showAnalysis: boolean;
     currentFen: string;
+    onExtendAnalysis?: () => void;
   } = $props();
 
   const bestmoveSan = $derived(analysis.bestmove ? convertUciMoveToSan(analysis.bestmove, currentFen) : '');
@@ -66,6 +68,16 @@
                     <pre class="text-sm font-mono whitespace-pre-wrap">{formattedLine()}</pre>
                 {/if}
             </div>
+
+            {#if !analysis.isAnalyzing && analysis.depth !== null && analysis.depth < 40 && onExtendAnalysis}
+                <button
+                    class="btn preset-filled-primary-500 w-full"
+                    onclick={onExtendAnalysis}
+                    type="button"
+                >
+                    Approfondir l'analyse (profondeur 40)
+                </button>
+            {/if}
         </div>
     {:else}
         <p class="text-surface-400">{$_('chessboard.analysis.disabled')}</p>
