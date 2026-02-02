@@ -8,7 +8,7 @@
   import BestMovesPanel from "$lib/components/chessboard/BestMovesPanel.svelte";
   import AnalysisPanel from "$lib/components/chessboard/AnalysisPanel.svelte";
   import EvaluationBar from "$lib/components/chessboard/EvaluationBar.svelte";
-  import {buildBoard, updateStatus} from "$lib/utils/chessboard";
+  import {buildBoard, updateStatus, calculateCapturedPieces, type CapturedPieces} from "$lib/utils/chessboard";
   import {hashFEN} from "$lib/utils/positionHash";
   import {convertUciToSan, groupMovesByPair, rebuildGamePosition} from "$lib/utils/chessNotation";
   import {type BestMove, fetchBestMoves} from "$lib/services/bestMovesService";
@@ -29,6 +29,13 @@
   let selectedSquare = $state<string | null>(null);
   let possibleMoves = $state<string[]>([]);
   let statusMessage = $state<string>("Trait aux Blancs");
+  let capturedPieces = $state<CapturedPieces>({
+    white: [],
+    black: [],
+    whiteScore: 0,
+    blackScore: 0,
+    scoreDifference: 0
+  });
   let selectedCollectionId = $state<string | null>(collections[0]?.id || null);
   let meilleursCoups: BestMove[] = $state([]);
   let showBestMoves = $state(true);
@@ -86,12 +93,14 @@
       currentIndex = 0;
       freePlayMode = false;
       freePlayMoves = [];
+      capturedPieces = calculateCapturedPieces(game);
     }
   });
 
   onMount(() => {
     board = buildBoard(game);
     currentFen = game.fen();
+    capturedPieces = calculateCapturedPieces(game);
     stockfishService = new StockfishService((analysis) => {
       console.log("Received Stockfish analysis:", analysis);
       stockfishAnalysis = analysis;
@@ -187,6 +196,7 @@
         currentFen = game.fen();
         updateAnalysis();
         board = buildBoard(game);
+        capturedPieces = calculateCapturedPieces(game);
         clearSelection();
         statusMessage = updateStatus(game);
       }
@@ -224,6 +234,7 @@
           currentIndex = moves().length;
         }
         board = buildBoard(game);
+        capturedPieces = calculateCapturedPieces(game);
         clearSelection();
         statusMessage = updateStatus(game);
         return;
@@ -242,6 +253,7 @@
     board = buildBoard(game);
     statusMessage = updateStatus(game);
     currentFen = game.fen();
+    capturedPieces = calculateCapturedPieces(game);
   }
 
   function firstMove() {
@@ -382,7 +394,31 @@
                 </div>
             </div>
         </div>
-        <h2 class="h4">{statusMessage}</h2>
+        
+        <div class="flex items-center gap-4 w-full justify-center">
+          <!-- Pièces capturées par les Blancs (pièces noires perdues) -->
+          <div class="flex items-center gap-1">
+            {#each capturedPieces.white as piece}
+              <span class="text-2xl">{piece.unicode}</span>
+            {/each}
+            {#if capturedPieces.scoreDifference > 0}
+              <span class="text-sm text-green-400 ml-2">+{capturedPieces.scoreDifference}</span>
+            {/if}
+          </div>
+
+          <h2 class="h4">{statusMessage}</h2>
+
+          <!-- Pièces capturées par les Noirs (pièces blanches perdues) -->
+          <div class="flex items-center gap-1">
+            {#if capturedPieces.scoreDifference < 0}
+              <span class="text-sm text-green-400 mr-2">+{Math.abs(capturedPieces.scoreDifference)}</span>
+            {/if}
+            {#each capturedPieces.black as piece}
+              <span class="text-2xl">{piece.unicode}</span>
+            {/each}
+          </div>
+        </div>
+        
         {#if freePlayMode}
             <div class="flex gap-2 items-center">
                 <span class="badge variant-filled-warning">Mode Jeu Libre</span>
