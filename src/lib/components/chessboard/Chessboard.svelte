@@ -41,7 +41,8 @@
     depth: null,
     version: "Stockfish 17.1",
     evaluation: null,
-    principalVariation: null
+    principalVariation: null,
+    variants: []
   });
 
   let stockfishService: StockfishService;

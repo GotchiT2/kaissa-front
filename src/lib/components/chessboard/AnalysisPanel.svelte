@@ -18,17 +18,23 @@
 
   const bestmoveSan = $derived(analysis.bestmove ? convertUciMoveToSan(analysis.bestmove, currentFen) : '');
 
-  const formattedLine = $derived(() => {
-    if (!analysis.evaluation || !analysis.principalVariation) {
+  const formattedVariants = $derived(() => {
+    if (!analysis.variants || analysis.variants.length === 0) {
       return null;
     }
 
-    const evalSign = analysis.evaluation >= 0 ? '+' : '';
-    const evalStr = `(${evalSign}${analysis.evaluation.toFixed(2)})`;
+    return analysis.variants.map(variant => {
+      if (variant.evaluation === null || variant.pv.length === 0) {
+        return null;
+      }
 
-    const pvSan = convertUciSequenceToSan(analysis.principalVariation, currentFen);
+      const evalSign = variant.evaluation >= 0 ? '+' : '';
+      const evalStr = `(${evalSign}${variant.evaluation.toFixed(2)})`;
 
-    return `${evalStr} ${pvSan}`;
+      const pvSan = convertUciSequenceToSan(variant.pv.join(' '), currentFen);
+
+      return `${evalStr} ${pvSan}`;
+    }).filter(line => line !== null);
   });
 </script>
 
@@ -61,11 +67,16 @@
                 {/if}
             </div>
 
-            <div class="bg-surface-900 p-3 rounded">
-                {#if !formattedLine()}
+            <div class="bg-surface-900 p-3 rounded flex flex-col gap-2">
+                {#if !formattedVariants() || formattedVariants().length === 0}
                     <p class="text-surface-400">{$_('chessboard.analysis.analyzing')}</p>
                 {:else}
-                    <pre class="text-sm font-mono whitespace-pre-wrap">{formattedLine()}</pre>
+                    {#each formattedVariants() as variant, i}
+                        <div class="flex flex-col gap-1">
+                            <span class="text-xs text-surface-500">Variante {i + 1}</span>
+                            <pre class="text-sm font-mono whitespace-pre-wrap">{variant}</pre>
+                        </div>
+                    {/each}
                 {/if}
             </div>
 

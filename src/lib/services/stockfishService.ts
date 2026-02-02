@@ -4,6 +4,14 @@ export interface WDLData {
   blackWin: number;
 }
 
+export interface VariantData {
+  multipv: number;
+  evaluation: number | null;
+  wdl: WDLData | null;
+  pv: string[];
+  line: string;
+}
+
 export interface StockfishAnalysis {
   lines: string[];
   bestmove: string;
@@ -13,6 +21,7 @@ export interface StockfishAnalysis {
   version: string;
   evaluation: number | null;
   principalVariation: string | null;
+  variants: VariantData[];
 }
 
 type Score =
@@ -76,6 +85,11 @@ export class StockfishService {
   private version: string = "Stockfish 17.1";
   private evaluation: number | null = null;
   private principalVariation: string | null = null;
+  private variants: VariantData[] = [];
+  
+  // Stocker les variantes par profondeur et multipv
+  private variantsByDepth: Map<number, Map<number, { line: string; data: InfoEventPayload }>> = new Map();
+  private maxDepth: number = 0;
 
   constructor(onUpdate: (analysis: StockfishAnalysis) => void) {
     this.onUpdate = onUpdate;
@@ -93,6 +107,9 @@ export class StockfishService {
     this.depth = null;
     this.evaluation = null;
     this.principalVariation = null;
+    this.variants = [];
+    this.variantsByDepth.clear();
+    this.maxDepth = 0;
     this.notifyUpdate(true);
 
     if (this.lastRequestedFen === fen) return;
@@ -122,7 +139,7 @@ export class StockfishService {
     }
   }
 
-  async extendAnalysis(depth: number = 40): Promise<void> {
+  async extendAnalysis(depth: number = 40, multipv: number = 2): Promise<void> {
     if (!this.currentSessionId) {
       console.error("No active session to extend");
       return;
@@ -133,6 +150,7 @@ export class StockfishService {
       op: "extend",
       id: this.currentSessionId,
       depth,
+      multipv,
     });
 
     // Ré-ouvrir SSE en mode subscribe si fermé
@@ -235,9 +253,6 @@ export class StockfishService {
     }
 
     try {
-      // Construire l'URL du proxy WebSocket
-      // Par défaut, le proxy tourne sur le port 8080
-      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
       const wsUrl = `wss://engineproxyez4zwitd-engine-proxy.functions.fnc.fr-par.scw.cloud`;
 
       console.log(`Connecting to control WebSocket: ${wsUrl}`);
@@ -286,7 +301,7 @@ export class StockfishService {
     const id = crypto.randomUUID();
     this.currentSessionId = id;
 
-    const multipv = 1;
+    const multipv = 2;
 
     // Ouvrir SSE en mode start
     this.openSSE(fen, depth, multipv, id, "start");
@@ -437,43 +452,83 @@ export class StockfishService {
     }
 
     if (msg.op === "info") {
-      if (typeof msg.multipv === "number" && msg.multipv !== 1) {
+      const depth = msg.depth;
+      const multipv = msg.multipv || 1;
+
+      if (!Number.isFinite(depth)) {
         return;
       }
 
+      // Stocker la variante
+      if (!this.variantsByDepth.has(depth)) {
+        this.variantsByDepth.set(depth, new Map());
+      }
+      
       const prettyLine = formatInfoLine(msg);
-      this.stockfishLines = [...this.stockfishLines, prettyLine];
+      this.variantsByDepth.get(depth)!.set(multipv, { line: prettyLine, data: msg });
 
-      if (typeof msg.depth === "number") {
-        this.depth = msg.depth;
+      // Mettre à jour la profondeur maximale
+      if (depth > this.maxDepth) {
+        this.maxDepth = depth;
       }
 
-      if (
-        msg.wdl &&
-        Number.isFinite(msg.wdl.win) &&
-        Number.isFinite(msg.wdl.draw) &&
-        Number.isFinite(msg.wdl.loss)
-      ) {
-        const win = msg.wdl.win;
-        const draw = msg.wdl.draw;
-        const loss = msg.wdl.loss;
+      // Reconstruire stockfishLines et variants avec uniquement les variantes de la profondeur maximale
+      const maxDepthVariants = this.variantsByDepth.get(this.maxDepth);
+      if (maxDepthVariants) {
+        const sortedVariants = Array.from(maxDepthVariants.entries())
+          .sort((a, b) => a[0] - b[0]); // Trier par multipv (1, 2, ...)
+        
+        this.stockfishLines = sortedVariants.map(([mpv, variant]) => `[${mpv}] ${variant.line}`);
 
-        if (isBlackToMove) {
-          this.wdl = { whiteWin: loss, draw, blackWin: win };
-        } else {
-          this.wdl = { whiteWin: win, draw, blackWin: loss };
+        // Créer les variants avec les évaluations
+        const variants: VariantData[] = sortedVariants.map(([mpv, variant]) => {
+          const data = variant.data;
+          let evaluation: number | null = null;
+          let wdl: WDLData | null = null;
+
+          if (data.score?.type === "cp" && Number.isFinite(data.score.value)) {
+            const cp = data.score.value;
+            const pawns = cp / 100;
+            evaluation = isBlackToMove ? -pawns : pawns;
+          }
+
+          if (
+            data.wdl &&
+            Number.isFinite(data.wdl.win) &&
+            Number.isFinite(data.wdl.draw) &&
+            Number.isFinite(data.wdl.loss)
+          ) {
+            const win = data.wdl.win;
+            const draw = data.wdl.draw;
+            const loss = data.wdl.loss;
+
+            if (isBlackToMove) {
+              wdl = { whiteWin: loss, draw, blackWin: win };
+            } else {
+              wdl = { whiteWin: win, draw, blackWin: loss };
+            }
+          }
+
+          return {
+            multipv: mpv,
+            evaluation,
+            wdl,
+            pv: data.pv || [],
+            line: variant.line,
+          };
+        });
+
+        // Stocker les variants
+        this.variants = variants;
+
+        // Utiliser les données de la première variante (multipv=1) pour les stats globales
+        const firstVariant = variants[0];
+        if (firstVariant) {
+          this.depth = this.maxDepth;
+          this.wdl = firstVariant.wdl;
+          this.evaluation = firstVariant.evaluation;
+          this.principalVariation = firstVariant.pv.join(" ");
         }
-      }
-
-      if (msg.score?.type === "cp" && Number.isFinite(msg.score.value)) {
-        const cp = msg.score.value;
-        const pawns = cp / 100;
-        const normalized = isBlackToMove ? -pawns : pawns;
-        this.evaluation = normalized;
-      }
-
-      if (Array.isArray(msg.pv) && msg.pv.length > 0) {
-        this.principalVariation = msg.pv.join(" ");
       }
 
       this.notifyUpdate(true);
@@ -517,6 +572,7 @@ export class StockfishService {
       version: this.version,
       evaluation: this.evaluation,
       principalVariation: this.principalVariation,
+      variants: this.variants,
     });
   }
 
