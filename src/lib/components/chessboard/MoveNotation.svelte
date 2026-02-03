@@ -4,7 +4,7 @@
   import {createToaster, Menu, Portal, Toast} from '@skeletonlabs/skeleton-svelte';
   import EditMove from '$lib/components/modales/EditMove.svelte';
   import {invalidateAll} from '$app/navigation';
-  import {TrashIcon} from '@lucide/svelte';
+  import {TrashIcon, ArrowUpIcon, ArrowUpFromLineIcon, ArrowDownIcon} from '@lucide/svelte';
 
   let {
     flattenedMoves,
@@ -25,6 +25,78 @@
 
   function handleToastError(message: string) {
     toaster.error({title: $_('common.messages.error'), description: message});
+  }
+
+  async function promoteVariantToMain(nodeId: string) {
+    if (isDeleting) return;
+    isDeleting = true;
+
+    try {
+      const response = await fetch(`/api/parties/${nodeId.split('-')[0]}/moves/${nodeId}/promote`, {
+        method: 'POST',
+      });
+
+      if (response.ok) {
+        handleToastSuccess('Variante promue en principale');
+        await invalidateAll();
+      } else {
+        const error = await response.json();
+        handleToastError(error.error || 'Erreur lors de la promotion de la variante');
+      }
+    } catch (error) {
+      console.error('Error promoting variant to main:', error);
+      handleToastError('Erreur lors de la promotion de la variante');
+    } finally {
+      isDeleting = false;
+    }
+  }
+
+  async function promoteVariantOneLevel(nodeId: string) {
+    if (isDeleting) return;
+    isDeleting = true;
+
+    try {
+      const response = await fetch(`/api/nodes/${nodeId}/promote-one-level`, {
+        method: 'POST',
+      });
+
+      if (response.ok) {
+        handleToastSuccess('Variante promue d\'un niveau');
+        await invalidateAll();
+      } else {
+        const error = await response.json();
+        handleToastError(error.error || 'Erreur lors de la promotion de la variante');
+      }
+    } catch (error) {
+      console.error('Error promoting variant one level:', error);
+      handleToastError('Erreur lors de la promotion de la variante');
+    } finally {
+      isDeleting = false;
+    }
+  }
+
+  async function demoteVariantOneLevel(nodeId: string) {
+    if (isDeleting) return;
+    isDeleting = true;
+
+    try {
+      const response = await fetch(`/api/nodes/${nodeId}/demote-one-level`, {
+        method: 'POST',
+      });
+
+      if (response.ok) {
+        handleToastSuccess('Variante abaissée d\'un niveau');
+        await invalidateAll();
+      } else {
+        const error = await response.json();
+        handleToastError(error.error || 'Erreur lors de l\'abaissement de la variante');
+      }
+    } catch (error) {
+      console.error('Error demoting variant one level:', error);
+      handleToastError('Erreur lors de l\'abaissement de la variante');
+    } finally {
+      isDeleting = false;
+    }
   }
 
   async function deleteVariant(nodeId: string) {
@@ -185,20 +257,35 @@
                 <br/>
                 <div class="variant-line" style="padding-left: {node.variantDepth * 20}px">
                     <Menu>
-                        <Menu.Trigger>
+                        <Menu.ContextTrigger>
                             <span class="variant-marker clickable" style="background-color: {getVariantColor(node.variantId || '')}"></span>
-                        </Menu.Trigger>
+                        </Menu.ContextTrigger>
                         <Portal>
                             <Menu.Positioner>
                                 <Menu.Content>
-                                    <Menu.Item value="delete-variant" onclick={() => deleteVariant(node.id)} disabled={isDeleting}>
-                                        {#if isDeleting}
-                                            <span class="loader size-4 mr-2"></span>
-                                        {:else}
-                                            <TrashIcon class="size-4 mr-2" />
-                                        {/if}
-                                        <Menu.ItemText>{isDeleting ? 'Suppression...' : 'Supprimer la variante'}</Menu.ItemText>
-                                    </Menu.Item>
+                                    {#if !node.estPrincipal}
+                                        <Menu.Item value="promote-to-main" onclick={() => promoteVariantToMain(node.id)} disabled={isDeleting}>
+                                            <ArrowUpFromLineIcon class="size-4 mr-2" />
+                                            <Menu.ItemText>Promouvoir en principale</Menu.ItemText>
+                                        </Menu.Item>
+                                        <Menu.Item value="promote-one-level" onclick={() => promoteVariantOneLevel(node.id)} disabled={isDeleting}>
+                                            <ArrowUpIcon class="size-4 mr-2" />
+                                            <Menu.ItemText>Promouvoir d'un niveau</Menu.ItemText>
+                                        </Menu.Item>
+                                        <Menu.Item value="demote-one-level" onclick={() => demoteVariantOneLevel(node.id)} disabled={isDeleting}>
+                                            <ArrowDownIcon class="size-4 mr-2" />
+                                            <Menu.ItemText>Abaisser d'un niveau</Menu.ItemText>
+                                        </Menu.Item>
+                                        <Menu.Separator />
+                                        <Menu.Item value="delete-variant" onclick={() => deleteVariant(node.id)} disabled={isDeleting}>
+                                            {#if isDeleting}
+                                                <span class="loader size-4 mr-2"></span>
+                                            {:else}
+                                                <TrashIcon class="size-4 mr-2" />
+                                            {/if}
+                                            <Menu.ItemText>{isDeleting ? 'Suppression...' : 'Supprimer la variante'}</Menu.ItemText>
+                                        </Menu.Item>
+                                    {/if}
                                 </Menu.Content>
                             </Menu.Positioner>
                         </Portal>

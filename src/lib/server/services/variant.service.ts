@@ -219,6 +219,84 @@ export class VariantService {
       });
     });
   }
+
+  async promoteVariantOneLevel(nodeId: string): Promise<void> {
+    const node = await prisma.coupNoeud.findUnique({
+      where: { id: nodeId },
+    });
+
+    if (!node) {
+      throw new Error("Coup introuvable");
+    }
+
+    if (node.estPrincipal) {
+      throw new Error("La ligne principale ne peut pas être promue");
+    }
+
+    const siblings = await this.getContinuations(node.parentId, node.partieId);
+    const currentIndex = siblings.findIndex(s => s.id === nodeId);
+
+    if (currentIndex <= 0) {
+      throw new Error("Cette variante ne peut pas être promue davantage");
+    }
+
+    const previousSibling = siblings[currentIndex - 1];
+
+    await prisma.$transaction(async (tx) => {
+      await tx.coupNoeud.update({
+        where: { id: node.id },
+        data: { 
+          ordre: previousSibling.ordre,
+          estPrincipal: previousSibling.estPrincipal,
+        },
+      });
+
+      await tx.coupNoeud.update({
+        where: { id: previousSibling.id },
+        data: { 
+          ordre: node.ordre,
+          estPrincipal: node.estPrincipal,
+        },
+      });
+    });
+  }
+
+  async demoteVariantOneLevel(nodeId: string): Promise<void> {
+    const node = await prisma.coupNoeud.findUnique({
+      where: { id: nodeId },
+    });
+
+    if (!node) {
+      throw new Error("Coup introuvable");
+    }
+
+    const siblings = await this.getContinuations(node.parentId, node.partieId);
+    const currentIndex = siblings.findIndex(s => s.id === nodeId);
+
+    if (currentIndex < 0 || currentIndex >= siblings.length - 1) {
+      throw new Error("Cette variante ne peut pas être abaissée");
+    }
+
+    const nextSibling = siblings[currentIndex + 1];
+
+    await prisma.$transaction(async (tx) => {
+      await tx.coupNoeud.update({
+        where: { id: node.id },
+        data: { 
+          ordre: nextSibling.ordre,
+          estPrincipal: nextSibling.estPrincipal,
+        },
+      });
+
+      await tx.coupNoeud.update({
+        where: { id: nextSibling.id },
+        data: { 
+          ordre: node.ordre,
+          estPrincipal: node.estPrincipal,
+        },
+      });
+    });
+  }
 }
 
 export const variantService = new VariantService();
