@@ -11,6 +11,9 @@ export async function getPartiesInAnalysis(userId: string) {
     },
     include: {
       coups: {
+        include: {
+          commentaires: true,
+        },
         orderBy: [
           { ply: "asc" },
           { estPrincipal: "desc" },

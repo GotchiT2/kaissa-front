@@ -2,6 +2,7 @@
   import {XIcon} from "@lucide/svelte";
   import {Dialog, Portal} from "@skeletonlabs/skeleton-svelte";
   import {_} from '$lib/i18n';
+  import {invalidateAll} from '$app/navigation';
 
   const {
     nodeId,
@@ -17,6 +18,7 @@
   let nagPosition = $state<number | null>(null);
   let isSaving = $state(false);
   let errorMessage = $state('');
+  let open = $state(false);
 
   const moveAnnotations = [
     { value: 0, label: $_('chessboard.nag.none') },
@@ -74,6 +76,8 @@
 
       if (response.ok) {
         handleToastSuccess($_('chessboard.comments.saveSuccess'));
+        open = false;
+        await invalidateAll();
       } else {
         const error = await response.json();
         errorMessage = error.message || $_('chessboard.comments.saveError');
@@ -87,7 +91,7 @@
   }
 </script>
 
-<Dialog onOpenChange={(open) => { if (open) loadComments(); }}>
+<Dialog {open} onOpenChange={(isOpen) => { open = isOpen; if (isOpen) loadComments(); }}>
     <Dialog.Trigger>
         <button class="btn btn-sm">
             {$_('chessboard.comments.editButton')}

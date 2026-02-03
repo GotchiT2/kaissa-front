@@ -9,6 +9,9 @@ export interface VariantNode {
   ordre: number;
   parentId: string | null;
   san?: string;
+  nagCoup?: number | null;
+  nagPosition?: number | null;
+  commentaires?: Array<{ type: string; contenu: string }>;
   children: VariantNode[];
 }
 
@@ -35,6 +38,9 @@ export function buildVariantTree(coups: any[]): VariantNode[] {
       estPrincipal: coup.estPrincipal,
       ordre: coup.ordre,
       parentId: coup.parentId,
+      nagCoup: coup.nagCoup,
+      nagPosition: coup.nagPosition,
+      commentaires: coup.commentaires || [],
       children: [],
     });
   }

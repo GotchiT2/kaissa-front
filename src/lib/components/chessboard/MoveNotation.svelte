@@ -46,6 +46,30 @@
     return colors[Math.abs(hash) % colors.length];
   }
 
+  function getNagSymbol(nag: number | null | undefined): string {
+    if (!nag) return '';
+    
+    const nagSymbols: Record<number, string> = {
+      1: '!',
+      2: '?',
+      3: '!!',
+      4: '??',
+      5: '!?',
+      6: '?!',
+      7: '□',
+      10: '=',
+      13: '∞',
+      14: '⩲',
+      15: '⩱',
+      16: '±',
+      17: '∓',
+      18: '+-',
+      19: '-+',
+    };
+    
+    return nagSymbols[nag] || '';
+  }
+
   function isNewVariant(node: FlatMoveNode, index: number): boolean {
     if (!node.isVariant) return false;
     if (index === 0) return true;
@@ -61,6 +85,41 @@
     const prevNode = flattenedMoves[index - 1];
     return prevNode.isVariant;
   }
+
+  function getCommentaireAvant(node: FlatMoveNode): string {
+    if (!node.commentaires || node.commentaires.length === 0) return '';
+    
+    const commentaireAvant = node.commentaires.find(c => c.type === 'AVANT');
+    return commentaireAvant?.contenu || '';
+  }
+
+  function getCommentaireApres(node: FlatMoveNode): string {
+    if (!node.commentaires || node.commentaires.length === 0) return '';
+    
+    const commentaireApres = node.commentaires.find(c => c.type === 'APRES');
+    return commentaireApres?.contenu || '';
+  }
+
+  function truncateText(text: string, maxLength: number): string {
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
+  }
+
+  function getTooltipContent(node: FlatMoveNode): string {
+    const nags = [
+      getNagSymbol(node.nagCoup),
+      getNagSymbol(node.nagPosition)
+    ].filter(Boolean).join('');
+    
+    const commentaireAvant = getCommentaireAvant(node);
+    const commentaireApres = getCommentaireApres(node);
+    
+    let tooltip = node.san + nags;
+    if (commentaireAvant) tooltip = `[${commentaireAvant}] ${tooltip}`;
+    if (commentaireApres) tooltip += ` - ${commentaireApres}`;
+    
+    return tooltip;
+  }
 </script>
 
 <div class="flex flex-col gap-4 items-center w-full mb-16">
@@ -74,12 +133,13 @@
                     <span class="move-number">{getMoveNumber(node)}</span>
                     <Menu>
                         <Menu.ContextTrigger class="card border border-dashed border-surface-200-800">
-                            <button
-                                    class="move-btn variant {currentNodeId === node.id ? 'active' : ''}"
-                                    onclick={() => onMoveClick(node.id)}
-                            >
-                                {node.san}
-                            </button>
+                    <button
+                            class="move-btn variant {currentNodeId === node.id ? 'active' : ''}"
+                            onclick={() => onMoveClick(node.id)}
+                            title={getTooltipContent(node)}
+                    >
+                        {#if getCommentaireAvant(node)}<span class="comment-text comment-avant">[{truncateText(getCommentaireAvant(node), 50)}]</span>{/if}{node.san}{#if node.nagCoup}<span class="nag-annotation">{getNagSymbol(node.nagCoup)}</span>{/if}{#if node.nagPosition}<span class="nag-annotation">{getNagSymbol(node.nagPosition)}</span>{/if}{#if getCommentaireApres(node)}<span class="comment-text">{truncateText(getCommentaireApres(node), 100)}</span>{/if}
+                    </button>
                         </Menu.ContextTrigger>
                         <Portal>
                             <Menu.Positioner>
@@ -102,8 +162,9 @@
                         <button
                                 class="move-btn main {currentNodeId === node.id ? 'active' : ''}"
                                 onclick={() => onMoveClick(node.id)}
+                                title={getTooltipContent(node)}
                         >
-                            {node.san}
+                            {#if getCommentaireAvant(node)}<span class="comment-text comment-avant">[{truncateText(getCommentaireAvant(node), 50)}]</span>{/if}{node.san}{#if node.nagCoup}<span class="nag-annotation">{getNagSymbol(node.nagCoup)}</span>{/if}{#if node.nagPosition}<span class="nag-annotation">{getNagSymbol(node.nagPosition)}</span>{/if}{#if getCommentaireApres(node)}<span class="comment-text">{truncateText(getCommentaireApres(node), 100)}</span>{/if}
                         </button>
                     </Menu.ContextTrigger>
                     <Portal>
@@ -125,8 +186,9 @@
                         <button
                                 class="move-btn variant {currentNodeId === node.id ? 'active' : ''}"
                                 onclick={() => onMoveClick(node.id)}
+                                title={getTooltipContent(node)}
                         >
-                            {node.san}
+                            {#if getCommentaireAvant(node)}<span class="comment-text comment-avant">[{truncateText(getCommentaireAvant(node), 50)}]</span>{/if}{node.san}{#if node.nagCoup}<span class="nag-annotation">{getNagSymbol(node.nagCoup)}</span>{/if}{#if node.nagPosition}<span class="nag-annotation">{getNagSymbol(node.nagPosition)}</span>{/if}{#if getCommentaireApres(node)}<span class="comment-text">{truncateText(getCommentaireApres(node), 100)}</span>{/if}
                         </button>
                     </Menu.ContextTrigger>
                     <Portal>
@@ -148,8 +210,9 @@
                         <button
                                 class="move-btn main {currentNodeId === node.id ? 'active' : ''}"
                                 onclick={() => onMoveClick(node.id)}
+                                title={getTooltipContent(node)}
                         >
-                            {node.san}
+                            {#if getCommentaireAvant(node)}<span class="comment-text comment-avant">[{truncateText(getCommentaireAvant(node), 50)}]</span>{/if}{node.san}{#if node.nagCoup}<span class="nag-annotation">{getNagSymbol(node.nagCoup)}</span>{/if}{#if node.nagPosition}<span class="nag-annotation">{getNagSymbol(node.nagPosition)}</span>{/if}{#if getCommentaireApres(node)}<span class="comment-text">{truncateText(getCommentaireApres(node), 100)}</span>{/if}
                         </button>
                     </Menu.ContextTrigger>
                     <Portal>
@@ -236,5 +299,24 @@
         background: rgba(59, 130, 246, 0.5);
         color: white;
         font-weight: 600;
+    }
+
+    .nag-annotation {
+        color: #f59e0b;
+        font-weight: 600;
+        margin-left: 2px;
+        font-size: 13px;
+    }
+
+    .comment-text {
+        color: #10b981;
+        font-style: italic;
+        margin-left: 4px;
+        font-size: 12px;
+    }
+
+    .comment-avant {
+        margin-left: 0;
+        margin-right: 4px;
     }
 </style>
