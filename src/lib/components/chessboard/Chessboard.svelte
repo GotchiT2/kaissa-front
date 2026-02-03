@@ -8,11 +8,13 @@
   import BestMovesPanel from "$lib/components/chessboard/BestMovesPanel.svelte";
   import AnalysisPanel from "$lib/components/chessboard/AnalysisPanel.svelte";
   import EvaluationBar from "$lib/components/chessboard/EvaluationBar.svelte";
-  import {buildBoard, updateStatus, calculateCapturedPieces, type CapturedPieces} from "$lib/utils/chessboard";
+  import {buildBoard, calculateCapturedPieces, type CapturedPieces, updateStatus} from "$lib/utils/chessboard";
   import {hashFEN} from "$lib/utils/positionHash";
-  import {convertUciToSan, groupMovesByPair, rebuildGamePosition} from "$lib/utils/chessNotation";
+  import {convertUciToSan, groupMovesByPair} from "$lib/utils/chessNotation";
   import {type BestMove, fetchBestMoves} from "$lib/services/bestMovesService";
   import {type StockfishAnalysis, StockfishService} from "$lib/services/stockfishService";
+  import {buildVariantTree, findNodeById, flattenTreeWithVariants, type VariantNode, type FlatMoveNode} from "$lib/utils/variantTree";
+  import {createMove as createMoveApi, getContinuations} from "$lib/services/variantService";
   import EditPartieMetadata from "$lib/components/modales/EditPartieMetadata.svelte";
   import {PencilIcon} from "@lucide/svelte";
   import {createToaster, Toast} from "@skeletonlabs/skeleton-svelte";
@@ -24,8 +26,9 @@
 
   let game = new Chess();
   let selectedGameIndex = $state(parties[0]?.id || null);
-  let currentIndex = $state(0);
+  let currentNodeId = $state<string | null>(null);
   let board = $state<{ square: string; piece: Piece | null }[][]>([]);
+  let variantTree = $state<VariantNode[]>([]);
   let selectedSquare = $state<string | null>(null);
   let possibleMoves = $state<string[]>([]);
   let statusMessage = $state<string>("Trait aux Blancs");
@@ -85,12 +88,24 @@
 
   const groupedMoves = $derived(groupMovesByPair(moves(), selectedPartie?.coups));
 
+  const flattenedMoves = $derived(() => {
+    if (!variantTree || variantTree.length === 0) return [];
+    return flattenTreeWithVariants(variantTree);
+  });
+
+  const currentNode = $derived(() => {
+    if (!variantTree || !currentNodeId || variantTree.length === 0) return null;
+    return findNodeById(variantTree, currentNodeId);
+  });
+
   $effect(() => {
-    if (selectedGameIndex) {
+    if (selectedGameIndex && selectedPartie) {
+      variantTree = buildVariantTree(selectedPartie.coups);
+
       game = new Chess(startingFen());
       board = buildBoard(game);
       currentFen = game.fen();
-      currentIndex = 0;
+      currentNodeId = null;
       freePlayMode = false;
       freePlayMoves = [];
       capturedPieces = calculateCapturedPieces(game);
@@ -102,7 +117,7 @@
     currentFen = game.fen();
     capturedPieces = calculateCapturedPieces(game);
     stockfishService = new StockfishService((analysis) => {
-      console.log("Received Stockfish analysis:", analysis);
+      // console.log("Received Stockfish analysis:", analysis);
       stockfishAnalysis = analysis;
     });
   });
@@ -132,7 +147,7 @@
       return;
     }
 
-    currentIndex;
+    currentNodeId;
     freePlayMoves;
 
     const fen = game.fen();
@@ -144,15 +159,11 @@
   });
 
   $effect(() => {
-    currentIndex;
+    currentNodeId;
     freePlayMoves;
 
     if (!showAnalysis) {
       return;
-    }
-
-    if (!freePlayMode) {
-      game = rebuildGamePosition(moves(), currentIndex, startingFen());
     }
 
     currentFen = game.fen();
@@ -206,8 +217,7 @@
     clearSelection();
   }
 
-  function handleTileClick(square: string) {
-    freePlayMode = true;
+  async function handleTileClick(square: string) {
     const clickedPiece = game.get(square as any);
 
     if (!selectedSquare) {
@@ -225,18 +235,52 @@
     if (possibleMoves.includes(square)) {
       const move = game.move({from: selectedSquare, to: square, promotion: "q"});
 
-      if (move) {
-        if (freePlayMode) {
-          freePlayMoves = [...freePlayMoves, move.lan];
-          currentFen = game.fen();
-          updateAnalysis();
-        } else {
-          currentIndex = moves().length;
+      if (move && selectedPartie) {
+        try {
+          console.log('Coup joué:', move.lan, 'Depuis la position:', currentNodeId);
+          const continuations = await getContinuations(selectedPartie.id, currentNodeId);
+          console.log('Continuations existantes:', continuations);
+          const existingMove = continuations.find(c => c.coupUci === move.lan);
+
+          if (existingMove) {
+            console.log('Coup existant trouvé:', existingMove.id);
+            navigateToNode(existingMove.id);
+          } else {
+            console.log('Création d\'un nouveau coup');
+            const currentPly = currentNode()?.ply ?? 0;
+            const newMove = await createMoveApi(selectedPartie.id, {
+              parentId: currentNodeId,
+              coupUci: move.lan,
+              fen: game.fen(),
+              ply: currentPly + 1
+            });
+
+            console.log('Nouveau coup créé:', newMove);
+
+            if (!newMove.parentId) {
+              newMove.parentId = currentNodeId;
+            }
+
+            const updatedPartie = parties.find((p: any) => p.id === selectedPartie.id);
+            if (updatedPartie) {
+              const newCoups = [...updatedPartie.coups, newMove];
+              updatedPartie.coups = newCoups;
+              variantTree = buildVariantTree(newCoups);
+              console.log('Arbre de variantes mis à jour, nombre de coups:', newCoups.length);
+              console.log('Nouveau variantTree:', variantTree);
+            }
+
+            navigateToNode(newMove.id);
+          }
+
+          board = buildBoard(game);
+          capturedPieces = calculateCapturedPieces(game);
+          clearSelection();
+          statusMessage = updateStatus(game);
+        } catch (error) {
+          console.error('Erreur lors de la création/navigation du coup:', error);
+          toaster.error({title: 'Erreur', description: 'Impossible de créer le coup'});
         }
-        board = buildBoard(game);
-        capturedPieces = calculateCapturedPieces(game);
-        clearSelection();
-        statusMessage = updateStatus(game);
         return;
       }
     }
@@ -248,8 +292,18 @@
     }
   }
 
-  function rebuildPosition() {
-    game = rebuildGamePosition(moves(), currentIndex, startingFen());
+  function navigateToNode(nodeId: string | null) {
+    const node = nodeId ? findNodeById(variantTree, nodeId) : null;
+
+    if (!node && nodeId !== null) {
+      game = new Chess(startingFen());
+    } else if (node?.fen) {
+      game.load(node.fen);
+    } else {
+      game = new Chess(startingFen());
+    }
+
+    currentNodeId = nodeId;
     board = buildBoard(game);
     statusMessage = updateStatus(game);
     currentFen = game.fen();
@@ -258,48 +312,66 @@
 
   function firstMove() {
     freePlayMode = false;
-    currentIndex = 0;
-    rebuildPosition();
+    navigateToNode(null);
     clearSelection();
   }
 
   function prevMove() {
     freePlayMode = false;
-    if (currentIndex > 0) {
-      currentIndex--;
-      rebuildPosition();
+    const node = currentNode();
+    if (node?.parentId !== undefined) {
+      navigateToNode(node.parentId);
       clearSelection();
     }
   }
 
   function nextMove() {
     freePlayMode = false;
-    if (currentIndex < moves().length) {
-      currentIndex++;
-      rebuildPosition();
+    const node = currentNode();
+    if (node?.children && node.children.length > 0) {
+      const mainChild = node.children.find(c => c.estPrincipal) || node.children[0];
+      navigateToNode(mainChild.id);
       clearSelection();
     }
   }
 
   function lastMove() {
     freePlayMode = false;
-    currentIndex = moves().length;
-    rebuildPosition();
+    if (variantTree.length === 0) return;
+
+    let node: VariantNode | undefined = variantTree.find(n => n.estPrincipal) || variantTree[0];
+    while (node?.children && node.children.length > 0) {
+      const mainChild: VariantNode | undefined = node.children.find((c: VariantNode) => c.estPrincipal) || node.children[0];
+      if (!mainChild) break;
+      node = mainChild;
+    }
+    if (node) {
+      navigateToNode(node.id);
+    }
   }
 
-  function handleMoveClick(index: number) {
-    currentIndex = index;
-    basePositionIndex = index;
+  function handleMoveClick(nodeId: string) {
     freePlayMode = false;
     freePlayMoves = [];
-    rebuildPosition();
+
+    const clickedNode = findNodeById(variantTree, nodeId);
+    console.log('Coup cliqué', clickedNode);
+    if (clickedNode && clickedNode.children && clickedNode.children.length > 0) {
+      console.log(`Variantes disponibles pour le coup ${clickedNode.san} :`, clickedNode.children.map(child => ({
+        id: child.id,
+        san: child.san,
+        estPrincipal: child.estPrincipal,
+        ordre: child.ordre
+      })));
+    }
+
+    navigateToNode(nodeId);
   }
 
   function exitFreePlayMode() {
     freePlayMode = false;
     freePlayMoves = [];
-    currentIndex = basePositionIndex;
-    rebuildPosition();
+    navigateToNode(currentNodeId);
     clearSelection();
   }
 
@@ -394,31 +466,31 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="flex items-center gap-4 w-full justify-center">
-          <!-- Pièces capturées par les Blancs (pièces noires perdues) -->
-          <div class="flex items-center gap-1">
-            {#each capturedPieces.white as piece}
-              <span class="text-2xl">{piece.unicode}</span>
-            {/each}
-            {#if capturedPieces.scoreDifference > 0}
-              <span class="text-sm text-green-400 ml-2">+{capturedPieces.scoreDifference}</span>
-            {/if}
-          </div>
+            <!-- Pièces capturées par les Blancs (pièces noires perdues) -->
+            <div class="flex items-center gap-1">
+                {#each capturedPieces.white as piece}
+                    <span class="text-2xl">{piece.unicode}</span>
+                {/each}
+                {#if capturedPieces.scoreDifference > 0}
+                    <span class="text-sm text-green-400 ml-2">+{capturedPieces.scoreDifference}</span>
+                {/if}
+            </div>
 
-          <h2 class="h4">{statusMessage}</h2>
+            <h2 class="h4">{statusMessage}</h2>
 
-          <!-- Pièces capturées par les Noirs (pièces blanches perdues) -->
-          <div class="flex items-center gap-1">
-            {#if capturedPieces.scoreDifference < 0}
-              <span class="text-sm text-green-400 mr-2">+{Math.abs(capturedPieces.scoreDifference)}</span>
-            {/if}
-            {#each capturedPieces.black as piece}
-              <span class="text-2xl">{piece.unicode}</span>
-            {/each}
-          </div>
+            <!-- Pièces capturées par les Noirs (pièces blanches perdues) -->
+            <div class="flex items-center gap-1">
+                {#if capturedPieces.scoreDifference < 0}
+                    <span class="text-sm text-green-400 mr-2">+{Math.abs(capturedPieces.scoreDifference)}</span>
+                {/if}
+                {#each capturedPieces.black as piece}
+                    <span class="text-2xl">{piece.unicode}</span>
+                {/each}
+            </div>
         </div>
-        
+
         {#if freePlayMode}
             <div class="flex gap-2 items-center">
                 <span class="badge variant-filled-warning">Mode Jeu Libre</span>
@@ -428,17 +500,17 @@
             </div>
         {/if}
         <NavigationControls
-                {currentIndex}
+                currentIndex={flattenedMoves().findIndex(n => n.id === currentNodeId)}
                 onFirst={firstMove}
                 onLast={lastMove}
                 onNext={nextMove}
                 onPrevious={prevMove}
-                totalMoves={moves().length}
+                totalMoves={flattenedMoves().length}
         />
     </div>
 
     <div class="flex h-full flex-col justify-start grow gap-4">
-        <MoveNotation {currentIndex} {groupedMoves} onMoveClick={handleMoveClick}/>
+        <MoveNotation currentNodeId={currentNodeId} flattenedMoves={flattenedMoves()} onMoveClick={handleMoveClick}/>
 
         <BestMovesPanel
                 bind:selectedCollectionId

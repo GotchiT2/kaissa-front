@@ -11,12 +11,11 @@ export async function getPartiesInAnalysis(userId: string) {
     },
     include: {
       coups: {
-        where: {
-          estPrincipal: true,
-        },
-        orderBy: {
-          ply: "asc",
-        },
+        orderBy: [
+          { ply: "asc" },
+          { estPrincipal: "desc" },
+          { ordre: "asc" },
+        ],
       },
       collection: {
         select: {

@@ -164,6 +164,7 @@ model CoupNoeud {
   hashPosition  BigInt
   fen           String?
   estPrincipal  Boolean             @default(false)
+  ordre         Int                 @default(0)
   nagCoup       Int?
   nagPosition   Int?
   createdAt     DateTime            @default(now())
@@ -177,6 +178,7 @@ model CoupNoeud {
   @@index([partieId, parentId])
   @@index([partieId, ply])
   @@index([hashPosition])
+  @@index([parentId, ordre])
 }
 
 // ============================================================================

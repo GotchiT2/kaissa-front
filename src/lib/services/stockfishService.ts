@@ -86,9 +86,12 @@ export class StockfishService {
   private evaluation: number | null = null;
   private principalVariation: string | null = null;
   private variants: VariantData[] = [];
-  
+
   // Stocker les variantes par profondeur et multipv
-  private variantsByDepth: Map<number, Map<number, { line: string; data: InfoEventPayload }>> = new Map();
+  private variantsByDepth: Map<
+    number,
+    Map<number, { line: string; data: InfoEventPayload }>
+  > = new Map();
   private maxDepth: number = 0;
 
   constructor(onUpdate: (analysis: StockfishAnalysis) => void) {
@@ -255,11 +258,11 @@ export class StockfishService {
     try {
       const wsUrl = `wss://engineproxyez4zwitd-engine-proxy.functions.fnc.fr-par.scw.cloud`;
 
-      console.log(`Connecting to control WebSocket: ${wsUrl}`);
+      //console.log(`Connecting to control WebSocket: ${wsUrl}`);
       this.controlWs = new WebSocket(wsUrl);
 
       this.controlWs.onopen = () => {
-        console.log("Control WebSocket connected");
+        //console.log("Control WebSocket connected");
         if (this.reconnectTimer) {
           clearTimeout(this.reconnectTimer);
           this.reconnectTimer = null;
@@ -267,7 +270,7 @@ export class StockfishService {
       };
 
       this.controlWs.onclose = () => {
-        console.log("Control WebSocket closed, reconnecting...");
+        //console.log("Control WebSocket closed, reconnecting...");
         this.controlWs = null;
         // Reconnexion après 2 secondes
         this.reconnectTimer = window.setTimeout(() => {
@@ -282,7 +285,7 @@ export class StockfishService {
       this.controlWs.onmessage = (event) => {
         try {
           const msg = JSON.parse(event.data);
-          console.log("Control WS message:", msg);
+          //console.log("Control WS message:", msg);
 
           // Traiter tous les événements reçus via le WebSocket
           this.handleProxyMessage(msg);
@@ -436,7 +439,7 @@ export class StockfishService {
 
     try {
       this.controlWs.send(JSON.stringify(command));
-      console.log("Control command sent:", command);
+      //console.log("Control command sent:", command);
     } catch (error) {
       console.error("Error sending control command:", error);
     }
@@ -463,9 +466,11 @@ export class StockfishService {
       if (!this.variantsByDepth.has(depth)) {
         this.variantsByDepth.set(depth, new Map());
       }
-      
+
       const prettyLine = formatInfoLine(msg);
-      this.variantsByDepth.get(depth)!.set(multipv, { line: prettyLine, data: msg });
+      this.variantsByDepth
+        .get(depth)!
+        .set(multipv, { line: prettyLine, data: msg });
 
       // Mettre à jour la profondeur maximale
       if (depth > this.maxDepth) {
@@ -475,10 +480,13 @@ export class StockfishService {
       // Reconstruire stockfishLines et variants avec uniquement les variantes de la profondeur maximale
       const maxDepthVariants = this.variantsByDepth.get(this.maxDepth);
       if (maxDepthVariants) {
-        const sortedVariants = Array.from(maxDepthVariants.entries())
-          .sort((a, b) => a[0] - b[0]); // Trier par multipv (1, 2, ...)
-        
-        this.stockfishLines = sortedVariants.map(([mpv, variant]) => `[${mpv}] ${variant.line}`);
+        const sortedVariants = Array.from(maxDepthVariants.entries()).sort(
+          (a, b) => a[0] - b[0],
+        ); // Trier par multipv (1, 2, ...)
+
+        this.stockfishLines = sortedVariants.map(
+          ([mpv, variant]) => `[${mpv}] ${variant.line}`,
+        );
 
         // Créer les variants avec les évaluations
         const variants: VariantData[] = sortedVariants.map(([mpv, variant]) => {
@@ -551,7 +559,7 @@ export class StockfishService {
     }
 
     if (msg.op === "extending") {
-      console.log("Analysis extended to depth", msg.depth);
+      //console.log("Analysis extended to depth", msg.depth);
       this.notifyUpdate(true);
       return;
     }

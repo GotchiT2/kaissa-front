@@ -153,12 +153,7 @@ export function convertUciMoveToSan(
       promotion: uciMove.length > 4 ? uciMove[4] : undefined,
     });
     return move ? move.san : uciMove;
-  } catch (e) {
-    console.error(
-      "Erreur lors de la conversion du coup UCI vers SAN:",
-      uciMove,
-      e,
-    );
+  } catch {
     return uciMove;
   }
 }
@@ -201,7 +196,7 @@ export function convertUciSequenceToSan(
           }
         }
       } catch (moveError) {
-        console.warn(`Coup UCI invalide ignoré: ${uciMove}`, moveError);
+        //console.warn(`Coup UCI invalide ignoré: ${uciMove}`, moveError);
         break;
       }
     }
