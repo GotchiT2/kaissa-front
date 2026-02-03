@@ -3,6 +3,8 @@
   import {_} from '$lib/i18n';
   import {createToaster, Menu, Portal, Toast} from '@skeletonlabs/skeleton-svelte';
   import EditMove from '$lib/components/modales/EditMove.svelte';
+  import {invalidateAll} from '$app/navigation';
+  import {TrashIcon} from '@lucide/svelte';
 
   let {
     flattenedMoves,
@@ -15,9 +17,62 @@
   } = $props();
 
   const toaster = createToaster();
+  let isDeleting = $state(false);
 
   function handleToastSuccess(message: string) {
     toaster.success({title: $_('common.messages.success'), description: message});
+  }
+
+  function handleToastError(message: string) {
+    toaster.error({title: $_('common.messages.error'), description: message});
+  }
+
+  async function deleteVariant(nodeId: string) {
+    if (isDeleting) return;
+    isDeleting = true;
+
+    try {
+      const response = await fetch(`/api/nodes/${nodeId}/delete-variant`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        handleToastSuccess('Variante supprimée avec succès');
+        await invalidateAll();
+      } else {
+        const error = await response.json();
+        handleToastError(error.error || 'Erreur lors de la suppression de la variante');
+      }
+    } catch (error) {
+      console.error('Error deleting variant:', error);
+      handleToastError('Erreur lors de la suppression de la variante');
+    } finally {
+      isDeleting = false;
+    }
+  }
+
+  async function deleteAfterNode(nodeId: string) {
+    if (isDeleting) return;
+    isDeleting = true;
+
+    try {
+      const response = await fetch(`/api/nodes/${nodeId}/delete-after`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        handleToastSuccess('Coups supprimés avec succès');
+        await invalidateAll();
+      } else {
+        const error = await response.json();
+        handleToastError(error.error || 'Erreur lors de la suppression');
+      }
+    } catch (error) {
+      console.error('Error deleting after node:', error);
+      handleToastError('Erreur lors de la suppression');
+    } finally {
+      isDeleting = false;
+    }
   }
 
   function getMoveNumber(node: FlatMoveNode): string {
@@ -129,7 +184,25 @@
             {#if isNewVariant(node, i)}
                 <br/>
                 <div class="variant-line" style="padding-left: {node.variantDepth * 20}px">
-                    <span class="variant-marker" style="background-color: {getVariantColor(node.variantId || '')}"></span>
+                    <Menu>
+                        <Menu.Trigger>
+                            <span class="variant-marker clickable" style="background-color: {getVariantColor(node.variantId || '')}"></span>
+                        </Menu.Trigger>
+                        <Portal>
+                            <Menu.Positioner>
+                                <Menu.Content>
+                                    <Menu.Item value="delete-variant" onclick={() => deleteVariant(node.id)} disabled={isDeleting}>
+                                        {#if isDeleting}
+                                            <span class="loader size-4 mr-2"></span>
+                                        {:else}
+                                            <TrashIcon class="size-4 mr-2" />
+                                        {/if}
+                                        <Menu.ItemText>{isDeleting ? 'Suppression...' : 'Supprimer la variante'}</Menu.ItemText>
+                                    </Menu.Item>
+                                </Menu.Content>
+                            </Menu.Positioner>
+                        </Portal>
+                    </Menu>
                     <span class="move-number">{getMoveNumber(node)}</span>
                     <Menu>
                         <Menu.ContextTrigger class="card border border-dashed border-surface-200-800">
@@ -148,6 +221,10 @@
                                         <Menu.ItemText>
                                             <EditMove nodeId={node.id} {handleToastSuccess}/>
                                         </Menu.ItemText>
+                                    </Menu.Item>
+                                    <Menu.Item value="delete-after" onclick={() => deleteAfterNode(node.id)}>
+                                        <TrashIcon class="size-4 mr-2" />
+                                        <Menu.ItemText>Supprimer après ce coup</Menu.ItemText>
                                     </Menu.Item>
                                 </Menu.Content>
                             </Menu.Positioner>
@@ -175,6 +252,10 @@
                                         <EditMove nodeId={node.id} {handleToastSuccess}/>
                                     </Menu.ItemText>
                                 </Menu.Item>
+                                <Menu.Item value="delete-after" onclick={() => deleteAfterNode(node.id)}>
+                                    <TrashIcon class="size-4 mr-2" />
+                                    <Menu.ItemText>Supprimer après ce coup</Menu.ItemText>
+                                </Menu.Item>
                             </Menu.Content>
                         </Menu.Positioner>
                     </Portal>
@@ -199,6 +280,10 @@
                                         <EditMove nodeId={node.id} {handleToastSuccess}/>
                                     </Menu.ItemText>
                                 </Menu.Item>
+                                <Menu.Item value="delete-after" onclick={() => deleteAfterNode(node.id)}>
+                                    <TrashIcon class="size-4 mr-2" />
+                                    <Menu.ItemText>Supprimer après ce coup</Menu.ItemText>
+                                </Menu.Item>
                             </Menu.Content>
                         </Menu.Positioner>
                     </Portal>
@@ -222,6 +307,10 @@
                                     <Menu.ItemText>
                                         <EditMove nodeId={node.id} {handleToastSuccess}/>
                                     </Menu.ItemText>
+                                </Menu.Item>
+                                <Menu.Item value="delete-after" onclick={() => deleteAfterNode(node.id)}>
+                                    <TrashIcon class="size-4 mr-2" />
+                                    <Menu.ItemText>Supprimer après ce coup</Menu.ItemText>
                                 </Menu.Item>
                             </Menu.Content>
                         </Menu.Positioner>
@@ -268,6 +357,15 @@
         margin-right: 6px;
         border-radius: 1px;
         vertical-align: middle;
+    }
+
+    .variant-marker.clickable {
+        cursor: pointer;
+        transition: opacity 0.15s;
+    }
+
+    .variant-marker.clickable:hover {
+        opacity: 0.7;
     }
 
     .move-btn {
@@ -318,5 +416,18 @@
     .comment-avant {
         margin-left: 0;
         margin-right: 4px;
+    }
+
+    .loader {
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top: 2px solid white;
+        animation: spin 0.6s linear infinite;
+        display: inline-block;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
     }
 </style>

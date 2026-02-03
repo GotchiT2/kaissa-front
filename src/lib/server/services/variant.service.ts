@@ -158,6 +158,67 @@ export class VariantService {
 
     return tree;
   }
+
+  async getAllDescendants(nodeId: string): Promise<string[]> {
+    const children = await prisma.coupNoeud.findMany({
+      where: { parentId: nodeId },
+      select: { id: true },
+    });
+
+    const descendantIds: string[] = children.map(c => c.id);
+
+    for (const child of children) {
+      const childDescendants = await this.getAllDescendants(child.id);
+      descendantIds.push(...childDescendants);
+    }
+
+    return descendantIds;
+  }
+
+  async deleteVariant(nodeId: string): Promise<void> {
+    const node = await prisma.coupNoeud.findUnique({
+      where: { id: nodeId },
+    });
+
+    if (!node) {
+      throw new Error("Coup introuvable");
+    }
+
+    if (node.estPrincipal) {
+      throw new Error("Impossible de supprimer la ligne principale");
+    }
+
+    const descendantIds = await this.getAllDescendants(nodeId);
+    const allIds = [nodeId, ...descendantIds];
+
+    await prisma.$transaction(async (tx) => {
+      await tx.commentaireNoeud.deleteMany({
+        where: { noeudId: { in: allIds } },
+      });
+
+      await tx.coupNoeud.deleteMany({
+        where: { id: { in: allIds } },
+      });
+    });
+  }
+
+  async deleteAfterNode(nodeId: string): Promise<void> {
+    const descendantIds = await this.getAllDescendants(nodeId);
+
+    if (descendantIds.length === 0) {
+      return;
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.commentaireNoeud.deleteMany({
+        where: { noeudId: { in: descendantIds } },
+      });
+
+      await tx.coupNoeud.deleteMany({
+        where: { id: { in: descendantIds } },
+      });
+    });
+  }
 }
 
 export const variantService = new VariantService();
